@@ -113,6 +113,10 @@ public class AccountController : Controller
                 : _emailOptions.BaseUrl.TrimEnd('/');
             var resetUrl = $"{baseUrl}{resetPath}";
             await _emailSender.SendPasswordResetAsync(login.Email, login.Username, resetUrl, cancellationToken);
+            if (!_emailOptions.IsConfigured && HttpContext.RequestServices.GetRequiredService<IHostEnvironment>().IsDevelopment())
+            {
+                TempData["DevelopmentResetUrl"] = resetUrl;
+            }
         }
 
         return View("ForgotPasswordSent");
