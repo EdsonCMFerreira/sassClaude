@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using sassClaude.Models;
 
@@ -15,9 +16,12 @@ public class HomeController : Controller
 
     public IActionResult Index()
     {
-        return RedirectToAction("Index", "Login");
+        return User.Identity?.IsAuthenticated == true
+            ? RedirectToAction("Index", "Dashboard")
+            : RedirectToAction("Login", "Account");
     }
 
+    [Authorize]
     public IActionResult Privacy()
     {
         return View();

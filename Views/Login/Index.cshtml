@@ -1,63 +1,39 @@
 @{
-    ViewData["Title"] = "Login CRUD";
+    ViewData["Title"] = "Usuários";
 }
 
-<div class="container py-4">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-primary text-white">
-                    <h3 class="mb-0">CRUD de Login</h3>
-                </div>
-                <div class="card-body">
-                    <form id="loginForm">
+<div class="page-heading">
+    <div><span class="eyebrow">Administração</span><h1>Usuários do workspace.</h1><p class="muted">Gerencie quem pode acessar este espaço.</p></div>
+</div>
+<div class="surface-card users-card">
+    <div class="section-heading"><div><h2>Contas cadastradas</h2><p class="muted">Credenciais sempre protegidas.</p></div><span class="secure-badge">● Seguro</span></div>
+    <div class="user-form-wrap">
+        <form id="loginForm">
+                        @Html.AntiForgeryToken()
                         <input type="hidden" id="loginId" />
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label for="username" class="form-label">Usuário</label>
-                                <input id="username" class="form-control" required />
-                            </div>
-                            <div class="col-md-6">
-                                <label for="email" class="form-label">E-mail</label>
-                                <input id="email" type="email" class="form-control" required />
-                            </div>
-                            <div class="col-12">
-                                <label for="password" class="form-label">Senha</label>
-                                <input id="password" type="password" class="form-control" />
-                                <div class="form-text">Obrigatória ao criar. Deixe em branco ao editar para manter a senha atual.</div>
-                            </div>
-                            <div class="col-12 d-flex justify-content-end gap-2">
-                                <button type="submit" class="btn btn-primary">Salvar</button>
-                                <button type="button" id="cancelEdit" class="btn btn-outline-secondary d-none">Cancelar</button>
-                            </div>
+                        <div class="user-form-grid">
+                            <div><label for="username">Usuário</label><input id="username" required /></div>
+                            <div><label for="email">E-mail</label><input id="email" type="email" required /></div>
+                            <div><label for="password">Senha</label><input id="password" type="password" /><small>Obrigatória ao criar. Em branco ao editar mantém a atual.</small></div>
+                            <div class="user-form-actions"><button type="submit" class="button button-primary">Salvar</button><button type="button" id="cancelEdit" class="button button-outline hidden">Cancelar</button></div>
                         </div>
-                    </form>
-                </div>
-            </div>
-        </div>
+        </form>
     </div>
 
-    <div class="mt-4 card shadow-sm border-0">
-        <div class="card-header bg-light">
-            <h4 class="mb-0">Lista de usuários</h4>
-        </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
+    <div class="table-wrap">
+                <table class="data-table">
                     <thead class="table-light">
                         <tr>
                             <th>ID</th>
                             <th>Usuário</th>
                             <th>E-mail</th>
                             <th>Data</th>
-                            <th class="text-end">Ações</th>
+                            <th>Ações</th>
                         </tr>
                     </thead>
                     <tbody id="loginTableBody"></tbody>
                 </table>
             </div>
-        </div>
-    </div>
 </div>
 
 @section Scripts {
@@ -69,6 +45,7 @@
         const password = document.getElementById('password');
         const cancelEdit = document.getElementById('cancelEdit');
         const tableBody = document.getElementById('loginTableBody');
+        const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
 
         async function loadLogins() {
             const response = await fetch('/api/login');
@@ -83,9 +60,9 @@
                     <td>${item.username}</td>
                     <td>${item.email}</td>
                     <td>${new Date(item.createdAt).toLocaleString('pt-BR')}</td>
-                    <td class="text-end">
-                        <button class="btn btn-sm btn-outline-primary me-2" data-edit="${item.id}">Editar</button>
-                        <button class="btn btn-sm btn-outline-danger" data-delete="${item.id}">Excluir</button>
+                    <td>
+                        <button class="table-action" data-edit="${item.id}">Editar</button>
+                        <button class="table-action danger" data-delete="${item.id}">Excluir</button>
                     </td>
                 </tr>
             `).join('');
@@ -106,7 +83,7 @@
             username.value = data.username;
             email.value = data.email;
             password.value = '';
-            cancelEdit.classList.remove('d-none');
+            cancelEdit.classList.remove('hidden');
             username.focus();
         }
 
@@ -114,7 +91,7 @@
             const confirmed = confirm('Deseja excluir este usuário?');
             if (!confirmed) return;
 
-            const response = await fetch(`/api/login/${id}`, { method: 'DELETE' });
+            const response = await fetch(`/api/login/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': csrfToken } });
             if (response.ok) {
                 await loadLogins();
             }
@@ -135,14 +112,14 @@
 
             const response = await fetch(url, {
                 method,
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
                 body: JSON.stringify(payload)
             });
 
             if (response.ok) {
                 form.reset();
                 loginId.value = '';
-                cancelEdit.classList.add('d-none');
+                cancelEdit.classList.add('hidden');
                 await loadLogins();
             } else {
                 const errorText = await response.text();
@@ -153,7 +130,7 @@
         cancelEdit.addEventListener('click', () => {
             form.reset();
             loginId.value = '';
-            cancelEdit.classList.add('d-none');
+            cancelEdit.classList.add('hidden');
         });
 
         loadLogins().catch(error => console.error(error));

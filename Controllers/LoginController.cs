@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using sassClaude.Data;
 using sassClaude.Models;
 
 namespace sassClaude.Controllers;
 
+[Authorize]
 public class LoginController : Controller
 {
     private readonly SassDbContext _context;
@@ -22,6 +24,7 @@ public class LoginController : Controller
 }
 
 [ApiController]
+[Authorize]
 [Route("api/login")]
 public class ApiLoginController : ControllerBase
 {
@@ -55,6 +58,7 @@ public class ApiLoginController : ControllerBase
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<ActionResult<LoginResponse>> PostLogin(LoginRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Username) ||
@@ -80,6 +84,7 @@ public class ApiLoginController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> PutLogin(int id, LoginRequest request)
     {
         var existing = await _context.Logins.FindAsync(id);
@@ -105,6 +110,7 @@ public class ApiLoginController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteLogin(int id)
     {
         var login = await _context.Logins.FindAsync(id);

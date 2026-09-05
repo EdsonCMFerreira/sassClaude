@@ -1,0 +1,17 @@
+@model sassClaude.Controllers.DashboardViewModel
+@{
+    ViewData["Title"] = "Visão geral";
+}
+<div class="page-heading">
+    <div><span class="eyebrow">Visão geral</span><h1>Bom trabalho, @User.Identity?.Name.</h1><p class="muted">Aqui está o que está acontecendo no seu workspace hoje.</p></div>
+    <a class="button button-primary" asp-controller="Workspace" asp-action="Index">Abrir workspace <span>→</span></a>
+</div>
+<div class="metric-grid">
+    <article class="metric-card metric-highlight"><span class="metric-label">Contas cadastradas</span><strong>@Model.TotalUsers</strong><span class="metric-caption">usuários no workspace</span></article>
+    <article class="metric-card"><span class="metric-label">Plano atual</span><strong>Starter</strong><span class="metric-caption">ciclo mensal ativo</span></article>
+    <article class="metric-card"><span class="metric-label">Status</span><strong class="status-positive">Ativo</strong><span class="metric-caption">tudo funcionando bem</span></article>
+</div>
+<div class="content-grid">
+    <section class="surface-card activity-card"><div class="section-heading"><div><span class="eyebrow">Atividade</span><h2>Seu workspace está pronto</h2></div><span class="status-dot">Agora</span></div><div class="activity-row"><span class="activity-icon">✓</span><div><strong>Conta configurada</strong><p>Seu acesso foi autenticado com segurança.</p></div><time>Hoje</time></div><div class="activity-row"><span class="activity-icon">＋</span><div><strong>Explore seus usuários</strong><p>Gerencie os acessos pela área de usuários.</p></div><a asp-controller="Login" asp-action="Index">Abrir</a></div></section>
+    <aside class="surface-card next-card"><span class="eyebrow">Próximo passo</span><h2>Conheça seu workspace</h2><p>Use o workspace para organizar as informações importantes do seu time.</p><a class="text-link" asp-controller="Workspace" asp-action="Index">Explorar workspace <span>↗</span></a></aside>
+</div>

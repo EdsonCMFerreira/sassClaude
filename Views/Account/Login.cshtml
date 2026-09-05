@@ -1,0 +1,40 @@
+@model LoginViewModel
+@{
+    ViewData["Title"] = "Entrar";
+    Layout = "_AuthLayout";
+}
+
+<div class="auth-shell">
+    <section class="auth-promo">
+        <div class="brand-lockup"><span class="brand-mark">s</span> sassClaude</div>
+        <div class="promo-copy">
+            <span class="eyebrow">Workspace inteligente</span>
+            <h1>Seu trabalho, mais simples de acompanhar.</h1>
+            <p>Centralize suas operações em um espaço seguro, claro e feito para o ritmo do seu time.</p>
+        </div>
+        <div class="promo-foot">Construído para times que fazem acontecer.</div>
+    </section>
+    <section class="auth-panel">
+        <div class="auth-card">
+            <div class="mobile-brand"><span class="brand-mark">s</span> sassClaude</div>
+            <span class="eyebrow">Bem-vindo de volta</span>
+            <h2>Entrar na sua conta</h2>
+            <p class="muted">Acesse seu workspace para continuar.</p>
+            <form asp-action="Login" method="post" class="auth-form">
+                <input asp-for="ReturnUrl" type="hidden" />
+                <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+                <label asp-for="Identifier"></label>
+                <input asp-for="Identifier" autocomplete="username" placeholder="voce@empresa.com" autofocus />
+                <span asp-validation-for="Identifier" class="field-error"></span>
+                <label asp-for="Password"></label>
+                <input asp-for="Password" autocomplete="current-password" placeholder="Sua senha" />
+                <span asp-validation-for="Password" class="field-error"></span>
+                <button class="button button-primary button-wide" type="submit">Entrar <span>→</span></button>
+            </form>
+            <p class="auth-switch">Ainda não tem uma conta? <a asp-action="Register">Criar conta</a></p>
+        </div>
+    </section>
+</div>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

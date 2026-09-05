@@ -14,4 +14,10 @@
     </PackageReference>
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="sassClaude.Tests\**" />
+    <EmbeddedResource Remove="sassClaude.Tests\**" />
+    <None Remove="sassClaude.Tests\**" />
+  </ItemGroup>
+
 </Project>
