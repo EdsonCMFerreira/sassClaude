@@ -13,6 +13,15 @@ Aplicação ASP.NET Core MVC com API CRUD para cadastro de usuários de login.
 - Proteção CSRF nas operações de alteração
 - Testes de integração com xUnit
 
+## Configurar envio de e-mail
+
+Preencha a seção `Email` em `appsettings.json` ou use um arquivo de configuração
+por ambiente com `Host`, `Port`, `Username`, `Password` e `From`. Em desenvolvimento,
+sem SMTP configurado, o link é registrado no log da aplicação para facilitar o teste.
+Para produção, defina também `BaseUrl` com o endereço público da aplicação. Variáveis
+de ambiente usam o formato `Email__Host`, `Email__Port`, `Email__Username`, `Email__Password`,
+`Email__From` e `Email__BaseUrl`.
+
 ## Executar
 
 ```powershell

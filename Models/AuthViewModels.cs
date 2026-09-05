@@ -38,3 +38,29 @@ public sealed class RegisterViewModel
     [Display(Name = "Confirmar senha")]
     public string ConfirmPassword { get; set; } = string.Empty;
 }
+
+public sealed class ForgotPasswordViewModel
+{
+    [Required(ErrorMessage = "Informe o e-mail da conta.")]
+    [EmailAddress(ErrorMessage = "Informe um e-mail válido.")]
+    [Display(Name = "E-mail")]
+    public string Email { get; set; } = string.Empty;
+}
+
+public sealed class ResetPasswordViewModel
+{
+    [Required]
+    public string Token { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Informe a nova senha.")]
+    [StringLength(100, MinimumLength = 6, ErrorMessage = "A senha deve ter pelo menos 6 caracteres.")]
+    [DataType(DataType.Password)]
+    [Display(Name = "Nova senha")]
+    public string Password { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Confirme sua nova senha.")]
+    [Compare(nameof(Password), ErrorMessage = "As senhas não conferem.")]
+    [DataType(DataType.Password)]
+    [Display(Name = "Confirmar nova senha")]
+    public string ConfirmPassword { get; set; } = string.Empty;
+}

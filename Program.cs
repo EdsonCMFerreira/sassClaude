@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using sassClaude.Data;
 using sassClaude.Models;
+using sassClaude.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,6 +43,8 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         };
     });
 builder.Services.AddAntiforgery(options => options.HeaderName = "X-CSRF-TOKEN");
+builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("Email"));
+builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
@@ -68,6 +71,17 @@ using (var scope = app.Services.CreateScope())
     try
     {
         db.Database.EnsureCreated();
+        db.Database.ExecuteSqlRaw("""
+            CREATE TABLE IF NOT EXISTS PasswordResetTokens (
+                Id INTEGER NOT NULL CONSTRAINT PK_PasswordResetTokens PRIMARY KEY AUTOINCREMENT,
+                LoginId INTEGER NOT NULL,
+                TokenHash TEXT NOT NULL,
+                ExpiresAt TEXT NOT NULL,
+                UsedAt TEXT NULL,
+                CONSTRAINT FK_PasswordResetTokens_Logins_LoginId FOREIGN KEY (LoginId) REFERENCES Logins (Id) ON DELETE CASCADE
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS IX_PasswordResetTokens_TokenHash ON PasswordResetTokens (TokenHash);
+            """);
         var passwordHasher = new PasswordHasher<Login>();
         var usersWithPlaintextPasswords = db.Logins
             .ToList();

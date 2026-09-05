@@ -36,6 +36,16 @@ public sealed class AuthenticationTests : IClassFixture<WebApplicationFactory<Pr
     }
 
     [Fact]
+    public async Task Password_recovery_pages_are_public()
+    {
+        var forgot = await _client.GetAsync("/Account/ForgotPassword");
+        var invalidReset = await _client.GetAsync("/Account/ResetPassword?token=invalid");
+
+        Assert.Equal(System.Net.HttpStatusCode.OK, forgot.StatusCode);
+        Assert.Equal(System.Net.HttpStatusCode.OK, invalidReset.StatusCode);
+    }
+
+    [Fact]
     public async Task User_api_requires_an_authenticated_session()
     {
         var response = await _client.GetAsync("/api/login");
