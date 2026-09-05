@@ -1,0 +1,161 @@
+@{
+    ViewData["Title"] = "Login CRUD";
+}
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">CRUD de Login</h3>
+                </div>
+                <div class="card-body">
+                    <form id="loginForm">
+                        <input type="hidden" id="loginId" />
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="username" class="form-label">Usuário</label>
+                                <input id="username" class="form-control" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label for="email" class="form-label">E-mail</label>
+                                <input id="email" type="email" class="form-control" required />
+                            </div>
+                            <div class="col-12">
+                                <label for="password" class="form-label">Senha</label>
+                                <input id="password" type="password" class="form-control" />
+                                <div class="form-text">Obrigatória ao criar. Deixe em branco ao editar para manter a senha atual.</div>
+                            </div>
+                            <div class="col-12 d-flex justify-content-end gap-2">
+                                <button type="submit" class="btn btn-primary">Salvar</button>
+                                <button type="button" id="cancelEdit" class="btn btn-outline-secondary d-none">Cancelar</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4 card shadow-sm border-0">
+        <div class="card-header bg-light">
+            <h4 class="mb-0">Lista de usuários</h4>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Usuário</th>
+                            <th>E-mail</th>
+                            <th>Data</th>
+                            <th class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="loginTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const form = document.getElementById('loginForm');
+        const loginId = document.getElementById('loginId');
+        const username = document.getElementById('username');
+        const email = document.getElementById('email');
+        const password = document.getElementById('password');
+        const cancelEdit = document.getElementById('cancelEdit');
+        const tableBody = document.getElementById('loginTableBody');
+
+        async function loadLogins() {
+            const response = await fetch('/api/login');
+            if (!response.ok) {
+                throw new Error('Erro ao carregar usuários.');
+            }
+
+            const data = await response.json();
+            tableBody.innerHTML = data.map(item => `
+                <tr>
+                    <td>${item.id}</td>
+                    <td>${item.username}</td>
+                    <td>${item.email}</td>
+                    <td>${new Date(item.createdAt).toLocaleString('pt-BR')}</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-primary me-2" data-edit="${item.id}">Editar</button>
+                        <button class="btn btn-sm btn-outline-danger" data-delete="${item.id}">Excluir</button>
+                    </td>
+                </tr>
+            `).join('');
+
+            tableBody.querySelectorAll('[data-edit]').forEach(button => {
+                button.addEventListener('click', () => editLogin(Number(button.dataset.edit)));
+            });
+
+            tableBody.querySelectorAll('[data-delete]').forEach(button => {
+                button.addEventListener('click', () => deleteLogin(Number(button.dataset.delete)));
+            });
+        }
+
+        async function editLogin(id) {
+            const response = await fetch(`/api/login/${id}`);
+            const data = await response.json();
+            loginId.value = data.id;
+            username.value = data.username;
+            email.value = data.email;
+            password.value = '';
+            cancelEdit.classList.remove('d-none');
+            username.focus();
+        }
+
+        async function deleteLogin(id) {
+            const confirmed = confirm('Deseja excluir este usuário?');
+            if (!confirmed) return;
+
+            const response = await fetch(`/api/login/${id}`, { method: 'DELETE' });
+            if (response.ok) {
+                await loadLogins();
+            }
+        }
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const payload = {
+                id: Number(loginId.value || 0),
+                username: username.value.trim(),
+                email: email.value.trim(),
+                password: password.value.trim()
+            };
+
+            const method = payload.id ? 'PUT' : 'POST';
+            const url = payload.id ? `/api/login/${payload.id}` : '/api/login';
+
+            const response = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                form.reset();
+                loginId.value = '';
+                cancelEdit.classList.add('d-none');
+                await loadLogins();
+            } else {
+                const errorText = await response.text();
+                alert(errorText || 'Erro ao salvar usuário.');
+            }
+        });
+
+        cancelEdit.addEventListener('click', () => {
+            form.reset();
+            loginId.value = '';
+            cancelEdit.classList.add('d-none');
+        });
+
+        loadLogins().catch(error => console.error(error));
+    </script>
+}
