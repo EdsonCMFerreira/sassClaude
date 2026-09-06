@@ -16,7 +16,9 @@ public class Product
 
     public DateTime Validade { get; set; }
 
-    public decimal Valor { get; set; }
+    public decimal ValorCompra { get; set; }
+
+    public decimal ValorVenda { get; set; }
 
     [Required]
     [StringLength(150)]

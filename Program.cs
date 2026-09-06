@@ -127,12 +127,35 @@ using (var scope = app.Services.CreateScope())
                 Codigo TEXT NOT NULL,
                 Descricao TEXT NOT NULL,
                 Validade TEXT NOT NULL,
-                Valor TEXT NOT NULL,
+                ValorCompra TEXT NOT NULL,
+                ValorVenda TEXT NOT NULL,
                 Fornecedor TEXT NOT NULL,
                 CreatedAt TEXT NOT NULL
             );
             CREATE UNIQUE INDEX IF NOT EXISTS IX_Products_Codigo ON Products (Codigo);
             """);
+
+        var productColumns = new List<string>();
+        using (var command = db.Database.GetDbConnection().CreateCommand())
+        {
+            command.CommandText = "PRAGMA table_info(Products);";
+            db.Database.OpenConnection();
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                productColumns.Add(reader.GetString(reader.GetOrdinal("name")));
+            }
+        }
+
+        if (productColumns.Contains("Valor") && !productColumns.Contains("ValorCompra"))
+        {
+            db.Database.ExecuteSqlRaw("ALTER TABLE Products RENAME COLUMN Valor TO ValorCompra;");
+        }
+
+        if (!productColumns.Contains("ValorVenda"))
+        {
+            db.Database.ExecuteSqlRaw("ALTER TABLE Products ADD COLUMN ValorVenda TEXT NOT NULL DEFAULT '0';");
+        }
 
         var loginColumns = new List<string>();
         using (var command = db.Database.GetDbConnection().CreateCommand())

@@ -27,10 +27,8 @@ public class ApiProductsController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ProductResponse>>> GetProducts()
     {
-        return await _context.Products
-            .OrderBy(x => x.Codigo)
-            .Select(product => ToResponse(product))
-            .ToListAsync();
+        var products = await _context.Products.OrderBy(x => x.Codigo).ToListAsync();
+        return products.Select(ToResponse).ToList();
     }
 
     [HttpGet("{id:int}")]
@@ -68,7 +66,8 @@ public class ApiProductsController : ControllerBase
             Codigo = codigo,
             Descricao = request.Descricao.Trim(),
             Validade = request.Validade,
-            Valor = request.Valor,
+            ValorCompra = request.ValorCompra,
+            ValorVenda = request.ValorVenda,
             Fornecedor = request.Fornecedor.Trim(),
             CreatedAt = DateTime.UtcNow
         };
@@ -106,7 +105,8 @@ public class ApiProductsController : ControllerBase
         existing.Codigo = codigo;
         existing.Descricao = request.Descricao.Trim();
         existing.Validade = request.Validade;
-        existing.Valor = request.Valor;
+        existing.ValorCompra = request.ValorCompra;
+        existing.ValorVenda = request.ValorVenda;
         existing.Fornecedor = request.Fornecedor.Trim();
 
         await _context.SaveChangesAsync();
@@ -130,10 +130,23 @@ public class ApiProductsController : ControllerBase
 
     private static ProductResponse ToResponse(Product product)
     {
-        return new ProductResponse(product.Id, product.Codigo, product.Descricao, product.Validade, product.Valor, product.Fornecedor, product.CreatedAt);
+        var percentualLucro = product.ValorCompra > 0
+            ? Math.Round((product.ValorVenda - product.ValorCompra) / product.ValorCompra * 100, 2)
+            : 0m;
+
+        return new ProductResponse(
+            product.Id,
+            product.Codigo,
+            product.Descricao,
+            product.Validade,
+            product.ValorCompra,
+            product.ValorVenda,
+            percentualLucro,
+            product.Fornecedor,
+            product.CreatedAt);
     }
 }
 
-public sealed record ProductRequest(string Codigo, string Descricao, DateTime Validade, decimal Valor, string Fornecedor);
+public sealed record ProductRequest(string Codigo, string Descricao, DateTime Validade, decimal ValorCompra, decimal ValorVenda, string Fornecedor);
 
-public sealed record ProductResponse(int Id, string Codigo, string Descricao, DateTime Validade, decimal Valor, string Fornecedor, DateTime CreatedAt);
+public sealed record ProductResponse(int Id, string Codigo, string Descricao, DateTime Validade, decimal ValorCompra, decimal ValorVenda, decimal PercentualLucro, string Fornecedor, DateTime CreatedAt);
