@@ -278,6 +278,42 @@ using (var scope = app.Services.CreateScope())
             db.Database.ExecuteSqlRaw("ALTER TABLE Clientes ADD COLUMN Site TEXT NOT NULL DEFAULT '';");
         }
 
+        if (clienteColumns.Contains("Endereco") && !clienteColumns.Contains("CobrancaEndereco"))
+        {
+            db.Database.ExecuteSqlRaw("""
+                ALTER TABLE Clientes ADD COLUMN CobrancaCep TEXT NOT NULL DEFAULT '';
+                ALTER TABLE Clientes ADD COLUMN CobrancaEndereco TEXT NOT NULL DEFAULT '';
+                ALTER TABLE Clientes ADD COLUMN CobrancaNumero TEXT NOT NULL DEFAULT '';
+                ALTER TABLE Clientes ADD COLUMN CobrancaComplemento TEXT NOT NULL DEFAULT '';
+                ALTER TABLE Clientes ADD COLUMN CobrancaBairro TEXT NOT NULL DEFAULT '';
+                ALTER TABLE Clientes ADD COLUMN CobrancaCidade TEXT NOT NULL DEFAULT '';
+                ALTER TABLE Clientes ADD COLUMN CobrancaUf TEXT NOT NULL DEFAULT '';
+                ALTER TABLE Clientes ADD COLUMN EntregaCep TEXT NOT NULL DEFAULT '';
+                ALTER TABLE Clientes ADD COLUMN EntregaEndereco TEXT NOT NULL DEFAULT '';
+                ALTER TABLE Clientes ADD COLUMN EntregaNumero TEXT NOT NULL DEFAULT '';
+                ALTER TABLE Clientes ADD COLUMN EntregaComplemento TEXT NOT NULL DEFAULT '';
+                ALTER TABLE Clientes ADD COLUMN EntregaBairro TEXT NOT NULL DEFAULT '';
+                ALTER TABLE Clientes ADD COLUMN EntregaCidade TEXT NOT NULL DEFAULT '';
+                ALTER TABLE Clientes ADD COLUMN EntregaUf TEXT NOT NULL DEFAULT '';
+                """);
+            db.Database.ExecuteSqlRaw("""
+                UPDATE Clientes SET
+                    CobrancaCep = Cep, CobrancaEndereco = Endereco, CobrancaNumero = Numero,
+                    CobrancaComplemento = Complemento, CobrancaBairro = Bairro, CobrancaCidade = Cidade, CobrancaUf = Uf,
+                    EntregaCep = Cep, EntregaEndereco = Endereco, EntregaNumero = Numero,
+                    EntregaComplemento = Complemento, EntregaBairro = Bairro, EntregaCidade = Cidade, EntregaUf = Uf;
+                """);
+            db.Database.ExecuteSqlRaw("""
+                ALTER TABLE Clientes DROP COLUMN Cep;
+                ALTER TABLE Clientes DROP COLUMN Endereco;
+                ALTER TABLE Clientes DROP COLUMN Numero;
+                ALTER TABLE Clientes DROP COLUMN Complemento;
+                ALTER TABLE Clientes DROP COLUMN Bairro;
+                ALTER TABLE Clientes DROP COLUMN Cidade;
+                ALTER TABLE Clientes DROP COLUMN Uf;
+                """);
+        }
+
         var fornecedorColumns = new List<string>();
         using (var command = db.Database.GetDbConnection().CreateCommand())
         {

@@ -116,13 +116,20 @@ public class ApiClientesController : ControllerBase
         cliente.Email = request.Email.Trim();
         cliente.Site = request.Site.Trim();
         cliente.Telefone = request.Telefone.Trim();
-        cliente.Cep = request.Cep.Trim();
-        cliente.Endereco = request.Endereco.Trim();
-        cliente.Numero = request.Numero.Trim();
-        cliente.Complemento = request.Complemento.Trim();
-        cliente.Bairro = request.Bairro.Trim();
-        cliente.Cidade = request.Cidade.Trim();
-        cliente.Uf = request.Uf.Trim();
+        cliente.CobrancaCep = request.CobrancaCep.Trim();
+        cliente.CobrancaEndereco = request.CobrancaEndereco.Trim();
+        cliente.CobrancaNumero = request.CobrancaNumero.Trim();
+        cliente.CobrancaComplemento = request.CobrancaComplemento.Trim();
+        cliente.CobrancaBairro = request.CobrancaBairro.Trim();
+        cliente.CobrancaCidade = request.CobrancaCidade.Trim();
+        cliente.CobrancaUf = request.CobrancaUf.Trim();
+        cliente.EntregaCep = request.EntregaCep.Trim();
+        cliente.EntregaEndereco = request.EntregaEndereco.Trim();
+        cliente.EntregaNumero = request.EntregaNumero.Trim();
+        cliente.EntregaComplemento = request.EntregaComplemento.Trim();
+        cliente.EntregaBairro = request.EntregaBairro.Trim();
+        cliente.EntregaCidade = request.EntregaCidade.Trim();
+        cliente.EntregaUf = request.EntregaUf.Trim();
         return cliente;
     }
 
@@ -130,16 +137,25 @@ public class ApiClientesController : ControllerBase
     {
         return new ClienteResponse(
             cliente.Id, cliente.Nome, cliente.TipoPessoa, cliente.CpfCnpj, cliente.Email, cliente.Site, cliente.Telefone,
-            cliente.Cep, cliente.Endereco, cliente.Numero, cliente.Complemento, cliente.Bairro, cliente.Cidade, cliente.Uf,
+            cliente.CobrancaCep, cliente.CobrancaEndereco, cliente.CobrancaNumero, cliente.CobrancaComplemento,
+            cliente.CobrancaBairro, cliente.CobrancaCidade, cliente.CobrancaUf,
+            cliente.EntregaCep, cliente.EntregaEndereco, cliente.EntregaNumero, cliente.EntregaComplemento,
+            cliente.EntregaBairro, cliente.EntregaCidade, cliente.EntregaUf,
             cliente.UltimaCompraData, cliente.UltimaCompraValor, cliente.CreatedAt);
     }
 }
 
 public sealed record ClienteRequest(
     string Nome, string TipoPessoa, string CpfCnpj, string Email, string Site, string Telefone,
-    string Cep, string Endereco, string Numero, string Complemento, string Bairro, string Cidade, string Uf);
+    string CobrancaCep, string CobrancaEndereco, string CobrancaNumero, string CobrancaComplemento,
+    string CobrancaBairro, string CobrancaCidade, string CobrancaUf,
+    string EntregaCep, string EntregaEndereco, string EntregaNumero, string EntregaComplemento,
+    string EntregaBairro, string EntregaCidade, string EntregaUf);
 
 public sealed record ClienteResponse(
     int Id, string Nome, string TipoPessoa, string CpfCnpj, string Email, string Site, string Telefone,
-    string Cep, string Endereco, string Numero, string Complemento, string Bairro, string Cidade, string Uf,
+    string CobrancaCep, string CobrancaEndereco, string CobrancaNumero, string CobrancaComplemento,
+    string CobrancaBairro, string CobrancaCidade, string CobrancaUf,
+    string EntregaCep, string EntregaEndereco, string EntregaNumero, string EntregaComplemento,
+    string EntregaBairro, string EntregaCidade, string EntregaUf,
     DateTime? UltimaCompraData, decimal? UltimaCompraValor, DateTime CreatedAt);

@@ -6,7 +6,7 @@
     <div><span class="eyebrow">Cadastro</span><h1>Clientes.</h1><p class="muted">Ficha cadastral completa do cliente.</p></div>
 </div>
 <div class="surface-card users-card">
-    <div class="section-heading"><div><h2>Clientes cadastrados</h2><p class="muted">Dados pessoais e endereço. A última compra é calculada automaticamente a partir dos registros em Vendas.</p></div></div>
+    <div class="section-heading"><div><h2>Clientes cadastrados</h2><p class="muted">Dados pessoais, endereço de cobrança e de entrega. A última compra é calculada automaticamente a partir dos registros em Vendas.</p></div></div>
     <div class="user-form-wrap">
         <form id="clienteForm">
             @Html.AntiForgeryToken()
@@ -18,13 +18,28 @@
                 <div><label for="email">E-mail</label><input id="email" type="email" /></div>
                 <div><label for="site">Site</label><input id="site" type="url" placeholder="https://" /></div>
                 <div><label for="telefone">Telefone</label><input id="telefone" /></div>
-                <div><label for="cep">CEP</label><input id="cep" /></div>
-                <div><label for="endereco">Endereço</label><input id="endereco" /></div>
-                <div><label for="numero">Número</label><input id="numero" /></div>
-                <div><label for="complemento">Complemento</label><input id="complemento" /></div>
-                <div><label for="bairro">Bairro</label><input id="bairro" /></div>
-                <div><label for="cidade">Cidade</label><input id="cidade" /></div>
-                <div><label for="uf">UF</label><select id="uf"><option value="">Selecione...</option><option value="AC">AC - Acre</option><option value="AL">AL - Alagoas</option><option value="AP">AP - Amapá</option><option value="AM">AM - Amazonas</option><option value="BA">BA - Bahia</option><option value="CE">CE - Ceará</option><option value="DF">DF - Distrito Federal</option><option value="ES">ES - Espírito Santo</option><option value="GO">GO - Goiás</option><option value="MA">MA - Maranhão</option><option value="MT">MT - Mato Grosso</option><option value="MS">MS - Mato Grosso do Sul</option><option value="MG">MG - Minas Gerais</option><option value="PA">PA - Pará</option><option value="PB">PB - Paraíba</option><option value="PR">PR - Paraná</option><option value="PE">PE - Pernambuco</option><option value="PI">PI - Piauí</option><option value="RJ">RJ - Rio de Janeiro</option><option value="RN">RN - Rio Grande do Norte</option><option value="RS">RS - Rio Grande do Sul</option><option value="RO">RO - Rondônia</option><option value="RR">RR - Roraima</option><option value="SC">SC - Santa Catarina</option><option value="SP">SP - São Paulo</option><option value="SE">SE - Sergipe</option><option value="TO">TO - Tocantins</option></select></div>
+
+                <div class="form-section-title">Endereço de cobrança</div>
+                <div><label for="cobrancaCep">CEP</label><input id="cobrancaCep" /></div>
+                <div><label for="cobrancaEndereco">Endereço</label><input id="cobrancaEndereco" /></div>
+                <div><label for="cobrancaNumero">Número</label><input id="cobrancaNumero" /></div>
+                <div><label for="cobrancaComplemento">Complemento</label><input id="cobrancaComplemento" /></div>
+                <div><label for="cobrancaBairro">Bairro</label><input id="cobrancaBairro" /></div>
+                <div><label for="cobrancaCidade">Cidade</label><input id="cobrancaCidade" /></div>
+                <div><label for="cobrancaUf">UF</label><select id="cobrancaUf"><option value="">Selecione...</option><option value="AC">AC - Acre</option><option value="AL">AL - Alagoas</option><option value="AP">AP - Amapá</option><option value="AM">AM - Amazonas</option><option value="BA">BA - Bahia</option><option value="CE">CE - Ceará</option><option value="DF">DF - Distrito Federal</option><option value="ES">ES - Espírito Santo</option><option value="GO">GO - Goiás</option><option value="MA">MA - Maranhão</option><option value="MT">MT - Mato Grosso</option><option value="MS">MS - Mato Grosso do Sul</option><option value="MG">MG - Minas Gerais</option><option value="PA">PA - Pará</option><option value="PB">PB - Paraíba</option><option value="PR">PR - Paraná</option><option value="PE">PE - Pernambuco</option><option value="PI">PI - Piauí</option><option value="RJ">RJ - Rio de Janeiro</option><option value="RN">RN - Rio Grande do Norte</option><option value="RS">RS - Rio Grande do Sul</option><option value="RO">RO - Rondônia</option><option value="RR">RR - Roraima</option><option value="SC">SC - Santa Catarina</option><option value="SP">SP - São Paulo</option><option value="SE">SE - Sergipe</option><option value="TO">TO - Tocantins</option></select></div>
+
+                <div class="form-section-title form-section-title-with-toggle">
+                    <span>Endereço de entrega</span>
+                    <label class="inline-checkbox"><input type="checkbox" id="entregaIgualCobranca" checked /> Igual ao de cobrança</label>
+                </div>
+                <div><label for="entregaCep">CEP</label><input id="entregaCep" /></div>
+                <div><label for="entregaEndereco">Endereço</label><input id="entregaEndereco" /></div>
+                <div><label for="entregaNumero">Número</label><input id="entregaNumero" /></div>
+                <div><label for="entregaComplemento">Complemento</label><input id="entregaComplemento" /></div>
+                <div><label for="entregaBairro">Bairro</label><input id="entregaBairro" /></div>
+                <div><label for="entregaCidade">Cidade</label><input id="entregaCidade" /></div>
+                <div><label for="entregaUf">UF</label><select id="entregaUf"><option value="">Selecione...</option><option value="AC">AC - Acre</option><option value="AL">AL - Alagoas</option><option value="AP">AP - Amapá</option><option value="AM">AM - Amazonas</option><option value="BA">BA - Bahia</option><option value="CE">CE - Ceará</option><option value="DF">DF - Distrito Federal</option><option value="ES">ES - Espírito Santo</option><option value="GO">GO - Goiás</option><option value="MA">MA - Maranhão</option><option value="MT">MT - Mato Grosso</option><option value="MS">MS - Mato Grosso do Sul</option><option value="MG">MG - Minas Gerais</option><option value="PA">PA - Pará</option><option value="PB">PB - Paraíba</option><option value="PR">PR - Paraná</option><option value="PE">PE - Pernambuco</option><option value="PI">PI - Piauí</option><option value="RJ">RJ - Rio de Janeiro</option><option value="RN">RN - Rio Grande do Norte</option><option value="RS">RS - Rio Grande do Sul</option><option value="RO">RO - Rondônia</option><option value="RR">RR - Roraima</option><option value="SC">SC - Santa Catarina</option><option value="SP">SP - São Paulo</option><option value="SE">SE - Sergipe</option><option value="TO">TO - Tocantins</option></select></div>
+
                 <div class="user-form-actions"><button type="submit" class="button button-primary">Salvar</button><button type="button" id="cancelEdit" class="button button-outline hidden">Cancelar</button></div>
             </div>
         </form>
@@ -37,7 +52,7 @@
                     <th>Nome</th>
                     <th>CPF/CNPJ</th>
                     <th>Telefone</th>
-                    <th>Cidade/UF</th>
+                    <th>Cidade/UF (cobrança)</th>
                     <th>Ações</th>
                 </tr>
             </thead>
@@ -56,16 +71,41 @@
         const email = document.getElementById('email');
         const site = document.getElementById('site');
         const telefone = document.getElementById('telefone');
-        const cep = document.getElementById('cep');
-        const endereco = document.getElementById('endereco');
-        const numero = document.getElementById('numero');
-        const complemento = document.getElementById('complemento');
-        const bairro = document.getElementById('bairro');
-        const cidade = document.getElementById('cidade');
-        const uf = document.getElementById('uf');
+        const cobrancaCep = document.getElementById('cobrancaCep');
+        const cobrancaEndereco = document.getElementById('cobrancaEndereco');
+        const cobrancaNumero = document.getElementById('cobrancaNumero');
+        const cobrancaComplemento = document.getElementById('cobrancaComplemento');
+        const cobrancaBairro = document.getElementById('cobrancaBairro');
+        const cobrancaCidade = document.getElementById('cobrancaCidade');
+        const cobrancaUf = document.getElementById('cobrancaUf');
+        const entregaIgualCobranca = document.getElementById('entregaIgualCobranca');
+        const entregaCep = document.getElementById('entregaCep');
+        const entregaEndereco = document.getElementById('entregaEndereco');
+        const entregaNumero = document.getElementById('entregaNumero');
+        const entregaComplemento = document.getElementById('entregaComplemento');
+        const entregaBairro = document.getElementById('entregaBairro');
+        const entregaCidade = document.getElementById('entregaCidade');
+        const entregaUf = document.getElementById('entregaUf');
+        const entregaFields = [entregaCep, entregaEndereco, entregaNumero, entregaComplemento, entregaBairro, entregaCidade, entregaUf];
         const cancelEdit = document.getElementById('cancelEdit');
         const tableBody = document.getElementById('clienteTableBody');
         const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+        function syncEntregaComCobranca() {
+            if (!entregaIgualCobranca.checked) return;
+            entregaCep.value = cobrancaCep.value;
+            entregaEndereco.value = cobrancaEndereco.value;
+            entregaNumero.value = cobrancaNumero.value;
+            entregaComplemento.value = cobrancaComplemento.value;
+            entregaBairro.value = cobrancaBairro.value;
+            entregaCidade.value = cobrancaCidade.value;
+            entregaUf.value = cobrancaUf.value;
+        }
+
+        function updateEntregaDisabled() {
+            entregaFields.forEach(field => { field.disabled = entregaIgualCobranca.checked; });
+            syncEntregaComCobranca();
+        }
 
         async function loadClientes() {
             const response = await fetch('/api/clientes');
@@ -79,7 +119,7 @@
                     <td>${item.nome}</td>
                     <td>${item.cpfCnpj}</td>
                     <td>${item.telefone || '—'}</td>
-                    <td>${[item.cidade, item.uf].filter(Boolean).join('/') || '—'}</td>
+                    <td>${[item.cobrancaCidade, item.cobrancaUf].filter(Boolean).join('/') || '—'}</td>
                     <td>
                         <button class="table-action" data-edit="${item.id}">Editar</button>
                         <button class="table-action danger" data-delete="${item.id}">Excluir</button>
@@ -106,13 +146,32 @@
             email.value = data.email;
             site.value = data.site;
             telefone.value = data.telefone;
-            cep.value = data.cep;
-            endereco.value = data.endereco;
-            numero.value = data.numero;
-            complemento.value = data.complemento;
-            bairro.value = data.bairro;
-            cidade.value = data.cidade;
-            uf.value = data.uf;
+            cobrancaCep.value = data.cobrancaCep;
+            cobrancaEndereco.value = data.cobrancaEndereco;
+            cobrancaNumero.value = data.cobrancaNumero;
+            cobrancaComplemento.value = data.cobrancaComplemento;
+            cobrancaBairro.value = data.cobrancaBairro;
+            cobrancaCidade.value = data.cobrancaCidade;
+            cobrancaUf.value = data.cobrancaUf;
+
+            const enderecosIguais = data.cobrancaCep === data.entregaCep &&
+                data.cobrancaEndereco === data.entregaEndereco &&
+                data.cobrancaNumero === data.entregaNumero &&
+                data.cobrancaComplemento === data.entregaComplemento &&
+                data.cobrancaBairro === data.entregaBairro &&
+                data.cobrancaCidade === data.entregaCidade &&
+                data.cobrancaUf === data.entregaUf;
+
+            entregaIgualCobranca.checked = enderecosIguais;
+            entregaCep.value = data.entregaCep;
+            entregaEndereco.value = data.entregaEndereco;
+            entregaNumero.value = data.entregaNumero;
+            entregaComplemento.value = data.entregaComplemento;
+            entregaBairro.value = data.entregaBairro;
+            entregaCidade.value = data.entregaCidade;
+            entregaUf.value = data.entregaUf;
+            updateEntregaDisabled();
+
             cancelEdit.classList.remove('hidden');
             nome.focus();
         }
@@ -129,6 +188,7 @@
 
         form.addEventListener('submit', async (event) => {
             event.preventDefault();
+            syncEntregaComCobranca();
 
             const payload = {
                 id: Number(clienteId.value || 0),
@@ -138,13 +198,20 @@
                 email: email.value.trim(),
                 site: site.value.trim(),
                 telefone: telefone.value.trim(),
-                cep: cep.value.trim(),
-                endereco: endereco.value.trim(),
-                numero: numero.value.trim(),
-                complemento: complemento.value.trim(),
-                bairro: bairro.value.trim(),
-                cidade: cidade.value.trim(),
-                uf: uf.value.trim()
+                cobrancaCep: cobrancaCep.value.trim(),
+                cobrancaEndereco: cobrancaEndereco.value.trim(),
+                cobrancaNumero: cobrancaNumero.value.trim(),
+                cobrancaComplemento: cobrancaComplemento.value.trim(),
+                cobrancaBairro: cobrancaBairro.value.trim(),
+                cobrancaCidade: cobrancaCidade.value.trim(),
+                cobrancaUf: cobrancaUf.value.trim(),
+                entregaCep: entregaCep.value.trim(),
+                entregaEndereco: entregaEndereco.value.trim(),
+                entregaNumero: entregaNumero.value.trim(),
+                entregaComplemento: entregaComplemento.value.trim(),
+                entregaBairro: entregaBairro.value.trim(),
+                entregaCidade: entregaCidade.value.trim(),
+                entregaUf: entregaUf.value.trim()
             };
 
             const method = payload.id ? 'PUT' : 'POST';
@@ -159,6 +226,8 @@
             if (response.ok) {
                 form.reset();
                 clienteId.value = '';
+                entregaIgualCobranca.checked = true;
+                updateEntregaDisabled();
                 cancelEdit.classList.add('hidden');
                 await loadClientes();
             } else {
@@ -170,9 +239,18 @@
         cancelEdit.addEventListener('click', () => {
             form.reset();
             clienteId.value = '';
+            entregaIgualCobranca.checked = true;
+            updateEntregaDisabled();
             cancelEdit.classList.add('hidden');
         });
 
+        entregaIgualCobranca.addEventListener('change', updateEntregaDisabled);
+        [cobrancaCep, cobrancaEndereco, cobrancaNumero, cobrancaComplemento, cobrancaBairro, cobrancaCidade, cobrancaUf].forEach(field => {
+            field.addEventListener('input', syncEntregaComCobranca);
+            field.addEventListener('change', syncEntregaComCobranca);
+        });
+
+        updateEntregaDisabled();
         loadClientes().catch(error => console.error(error));
     </script>
 }

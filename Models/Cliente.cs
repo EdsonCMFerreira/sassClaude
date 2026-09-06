@@ -28,25 +28,46 @@ public class Cliente
     public string Telefone { get; set; } = string.Empty;
 
     [StringLength(10)]
-    public string Cep { get; set; } = string.Empty;
+    public string CobrancaCep { get; set; } = string.Empty;
 
     [StringLength(200)]
-    public string Endereco { get; set; } = string.Empty;
+    public string CobrancaEndereco { get; set; } = string.Empty;
 
     [StringLength(20)]
-    public string Numero { get; set; } = string.Empty;
+    public string CobrancaNumero { get; set; } = string.Empty;
 
     [StringLength(100)]
-    public string Complemento { get; set; } = string.Empty;
+    public string CobrancaComplemento { get; set; } = string.Empty;
 
     [StringLength(100)]
-    public string Bairro { get; set; } = string.Empty;
+    public string CobrancaBairro { get; set; } = string.Empty;
 
     [StringLength(100)]
-    public string Cidade { get; set; } = string.Empty;
+    public string CobrancaCidade { get; set; } = string.Empty;
 
     [StringLength(2)]
-    public string Uf { get; set; } = string.Empty;
+    public string CobrancaUf { get; set; } = string.Empty;
+
+    [StringLength(10)]
+    public string EntregaCep { get; set; } = string.Empty;
+
+    [StringLength(200)]
+    public string EntregaEndereco { get; set; } = string.Empty;
+
+    [StringLength(20)]
+    public string EntregaNumero { get; set; } = string.Empty;
+
+    [StringLength(100)]
+    public string EntregaComplemento { get; set; } = string.Empty;
+
+    [StringLength(100)]
+    public string EntregaBairro { get; set; } = string.Empty;
+
+    [StringLength(100)]
+    public string EntregaCidade { get; set; } = string.Empty;
+
+    [StringLength(2)]
+    public string EntregaUf { get; set; } = string.Empty;
 
     public DateTime? UltimaCompraData { get; set; }
 
