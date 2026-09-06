@@ -231,10 +231,11 @@ public class ApiProductsController : ControllerBase
             percentualLucro,
             product.FornecedorId ?? 0,
             product.Fornecedor?.Nome ?? "—",
+            product.Saldo,
             product.CreatedAt);
     }
 }
 
 public sealed record ProductRequest(string Codigo, string Descricao, DateTime Validade, decimal ValorCompra, decimal ValorVenda, int FornecedorId);
 
-public sealed record ProductResponse(int Id, string Codigo, string Descricao, DateTime Validade, decimal ValorCompra, decimal ValorVenda, decimal PercentualLucro, int FornecedorId, string FornecedorNome, DateTime CreatedAt);
+public sealed record ProductResponse(int Id, string Codigo, string Descricao, DateTime Validade, decimal ValorCompra, decimal ValorVenda, decimal PercentualLucro, int FornecedorId, string FornecedorNome, int Saldo, DateTime CreatedAt);

@@ -375,6 +375,28 @@ using (var scope = app.Services.CreateScope())
             );
             """);
 
+        var productColumnsForSaldo = new List<string>();
+        using (var command = db.Database.GetDbConnection().CreateCommand())
+        {
+            command.CommandText = "PRAGMA table_info(Products);";
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                productColumnsForSaldo.Add(reader.GetString(reader.GetOrdinal("name")));
+            }
+        }
+
+        if (!productColumnsForSaldo.Contains("Saldo"))
+        {
+            db.Database.ExecuteSqlRaw("ALTER TABLE Products ADD COLUMN Saldo INTEGER NOT NULL DEFAULT 0;");
+            db.Database.ExecuteSqlRaw("""
+                UPDATE Products SET Saldo = (
+                    COALESCE((SELECT SUM(Quantidade) FROM Compras WHERE Compras.ProductId = Products.Id), 0) -
+                    COALESCE((SELECT SUM(Quantidade) FROM Vendas WHERE Vendas.ProductId = Products.Id), 0)
+                );
+                """);
+        }
+
         var loginColumns = new List<string>();
         using (var command = db.Database.GetDbConnection().CreateCommand())
         {

@@ -7,7 +7,7 @@
     <div class="hero-actions"><a class="button button-outline" asp-controller="Products" asp-action="Estoque">Ver estoque</a><a class="button button-outline" asp-controller="Products" asp-action="Dashboard">Ver dashboard <span>→</span></a></div>
 </div>
 <div class="surface-card users-card">
-    <div class="section-heading"><div><h2>Produtos cadastrados</h2><p class="muted">Código, descrição, validade, valor de compra, valor de venda e fornecedor.</p></div></div>
+    <div class="section-heading"><div><h2>Produtos cadastrados</h2><p class="muted">Código, descrição, validade, valores, fornecedor e saldo em estoque (atualizado automaticamente por Compras e Vendas).</p></div></div>
     <div class="user-form-wrap">
         <form id="productForm">
             @Html.AntiForgeryToken()
@@ -36,6 +36,7 @@
                     <th>Valor de venda</th>
                     <th>% de lucro</th>
                     <th>Fornecedor</th>
+                    <th>Saldo</th>
                     <th>Ações</th>
                 </tr>
             </thead>
@@ -109,12 +110,13 @@
                     <td>${formatCurrency(item.valorVenda)}</td>
                     <td>${formatPercent(item.percentualLucro)}</td>
                     <td>${item.fornecedorNome}</td>
+                    <td class="${item.saldo < 0 ? 'text-negative' : ''}">${item.saldo}</td>
                     <td>
                         <button class="table-action" data-edit="${item.id}">Editar</button>
                         <button class="table-action danger" data-delete="${item.id}">Excluir</button>
                     </td>
                 </tr>
-            `).join('') || '<tr><td colspan="8" class="muted">Nenhum produto cadastrado ainda.</td></tr>';
+            `).join('') || '<tr><td colspan="9" class="muted">Nenhum produto cadastrado ainda.</td></tr>';
 
             tableBody.querySelectorAll('[data-edit]').forEach(button => {
                 button.addEventListener('click', () => editProduct(Number(button.dataset.edit)));

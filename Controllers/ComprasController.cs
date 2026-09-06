@@ -86,6 +86,7 @@ public class ApiComprasController : ControllerBase
         };
 
         _context.Compras.Add(compra);
+        product.Saldo += request.Quantidade;
         await _context.SaveChangesAsync();
         await RecalcularUltimaCompraFornecedor(fornecedor.Id);
 
@@ -120,6 +121,8 @@ public class ApiComprasController : ControllerBase
         }
 
         var fornecedorAnteriorId = existing.FornecedorId;
+        var produtoAnteriorId = existing.ProductId;
+        var quantidadeAnterior = existing.Quantidade;
 
         existing.Fornecedor = fornecedor;
         existing.Product = product;
@@ -130,6 +133,21 @@ public class ApiComprasController : ControllerBase
         existing.FormaPagamento = request.FormaPagamento.Trim();
         existing.Status = request.Status.Trim();
         existing.Observacoes = request.Observacoes.Trim();
+
+        if (produtoAnteriorId.HasValue && produtoAnteriorId != product.Id)
+        {
+            var produtoAnterior = await _context.Products.FindAsync(produtoAnteriorId.Value);
+            if (produtoAnterior is not null)
+            {
+                produtoAnterior.Saldo -= quantidadeAnterior;
+            }
+
+            product.Saldo += request.Quantidade;
+        }
+        else
+        {
+            product.Saldo += request.Quantidade - quantidadeAnterior;
+        }
 
         await _context.SaveChangesAsync();
 
@@ -153,7 +171,19 @@ public class ApiComprasController : ControllerBase
         }
 
         var fornecedorId = compra.FornecedorId;
+        var produtoId = compra.ProductId;
+        var quantidade = compra.Quantidade;
         _context.Compras.Remove(compra);
+
+        if (produtoId.HasValue)
+        {
+            var produto = await _context.Products.FindAsync(produtoId.Value);
+            if (produto is not null)
+            {
+                produto.Saldo -= quantidade;
+            }
+        }
+
         await _context.SaveChangesAsync();
 
         if (fornecedorId.HasValue)

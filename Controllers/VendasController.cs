@@ -188,6 +188,7 @@ public class ApiVendasController : ControllerBase
         };
 
         _context.Vendas.Add(venda);
+        product.Saldo -= request.Quantidade;
         await _context.SaveChangesAsync();
         await RecalcularUltimaCompraCliente(cliente.Id);
 
@@ -222,6 +223,8 @@ public class ApiVendasController : ControllerBase
         }
 
         var clienteAnteriorId = existing.ClienteId;
+        var produtoAnteriorId = existing.ProductId;
+        var quantidadeAnterior = existing.Quantidade;
 
         existing.Cliente = cliente;
         existing.Product = product;
@@ -232,6 +235,21 @@ public class ApiVendasController : ControllerBase
         existing.FormaPagamento = request.FormaPagamento.Trim();
         existing.Status = request.Status.Trim();
         existing.Observacoes = request.Observacoes.Trim();
+
+        if (produtoAnteriorId.HasValue && produtoAnteriorId != product.Id)
+        {
+            var produtoAnterior = await _context.Products.FindAsync(produtoAnteriorId.Value);
+            if (produtoAnterior is not null)
+            {
+                produtoAnterior.Saldo += quantidadeAnterior;
+            }
+
+            product.Saldo -= request.Quantidade;
+        }
+        else
+        {
+            product.Saldo -= request.Quantidade - quantidadeAnterior;
+        }
 
         await _context.SaveChangesAsync();
 
@@ -255,7 +273,19 @@ public class ApiVendasController : ControllerBase
         }
 
         var clienteId = venda.ClienteId;
+        var produtoId = venda.ProductId;
+        var quantidade = venda.Quantidade;
         _context.Vendas.Remove(venda);
+
+        if (produtoId.HasValue)
+        {
+            var produto = await _context.Products.FindAsync(produtoId.Value);
+            if (produto is not null)
+            {
+                produto.Saldo += quantidade;
+            }
+        }
+
         await _context.SaveChangesAsync();
 
         if (clienteId.HasValue)
