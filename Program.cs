@@ -121,6 +121,18 @@ using (var scope = app.Services.CreateScope())
                 CONSTRAINT FK_Invoices_Logins_LoginId FOREIGN KEY (LoginId) REFERENCES Logins (Id) ON DELETE CASCADE
             );
             """);
+        db.Database.ExecuteSqlRaw("""
+            CREATE TABLE IF NOT EXISTS Products (
+                Id INTEGER NOT NULL CONSTRAINT PK_Products PRIMARY KEY AUTOINCREMENT,
+                Codigo TEXT NOT NULL,
+                Descricao TEXT NOT NULL,
+                Validade TEXT NOT NULL,
+                Valor TEXT NOT NULL,
+                Fornecedor TEXT NOT NULL,
+                CreatedAt TEXT NOT NULL
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS IX_Products_Codigo ON Products (Codigo);
+            """);
 
         var loginColumns = new List<string>();
         using (var command = db.Database.GetDbConnection().CreateCommand())

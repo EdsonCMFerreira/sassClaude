@@ -1,0 +1,156 @@
+@{
+    ViewData["Title"] = "Produtos";
+}
+
+<div class="page-heading">
+    <div><span class="eyebrow">Catálogo</span><h1>Produtos.</h1><p class="muted">Gerencie o cadastro de produtos do workspace.</p></div>
+</div>
+<div class="surface-card users-card">
+    <div class="section-heading"><div><h2>Produtos cadastrados</h2><p class="muted">Código, descrição, validade, valor e fornecedor.</p></div></div>
+    <div class="user-form-wrap">
+        <form id="productForm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" id="productId" />
+            <div class="user-form-grid">
+                <div><label for="codigo">Código</label><input id="codigo" required /></div>
+                <div><label for="descricao">Descrição</label><input id="descricao" required /></div>
+                <div><label for="validade">Validade</label><input id="validade" type="date" required /></div>
+                <div><label for="valor">Valor</label><input id="valor" type="number" step="0.01" min="0" required /></div>
+                <div><label for="fornecedor">Fornecedor</label><input id="fornecedor" required /></div>
+                <div class="user-form-actions"><button type="submit" class="button button-primary">Salvar</button><button type="button" id="cancelEdit" class="button button-outline hidden">Cancelar</button></div>
+            </div>
+        </form>
+    </div>
+
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead class="table-light">
+                <tr>
+                    <th>Código</th>
+                    <th>Descrição</th>
+                    <th>Validade</th>
+                    <th>Valor</th>
+                    <th>Fornecedor</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody id="productTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const form = document.getElementById('productForm');
+        const productId = document.getElementById('productId');
+        const codigo = document.getElementById('codigo');
+        const descricao = document.getElementById('descricao');
+        const validade = document.getElementById('validade');
+        const valor = document.getElementById('valor');
+        const fornecedor = document.getElementById('fornecedor');
+        const cancelEdit = document.getElementById('cancelEdit');
+        const tableBody = document.getElementById('productTableBody');
+        const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+        function formatCurrency(value) {
+            return Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
+        function formatDate(value) {
+            return new Date(value).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+        }
+
+        async function loadProducts() {
+            const response = await fetch('/api/products');
+            if (!response.ok) {
+                throw new Error('Erro ao carregar produtos.');
+            }
+
+            const data = await response.json();
+            tableBody.innerHTML = data.map(item => `
+                <tr>
+                    <td>${item.codigo}</td>
+                    <td>${item.descricao}</td>
+                    <td>${formatDate(item.validade)}</td>
+                    <td>${formatCurrency(item.valor)}</td>
+                    <td>${item.fornecedor}</td>
+                    <td>
+                        <button class="table-action" data-edit="${item.id}">Editar</button>
+                        <button class="table-action danger" data-delete="${item.id}">Excluir</button>
+                    </td>
+                </tr>
+            `).join('') || '<tr><td colspan="6" class="muted">Nenhum produto cadastrado ainda.</td></tr>';
+
+            tableBody.querySelectorAll('[data-edit]').forEach(button => {
+                button.addEventListener('click', () => editProduct(Number(button.dataset.edit)));
+            });
+
+            tableBody.querySelectorAll('[data-delete]').forEach(button => {
+                button.addEventListener('click', () => deleteProduct(Number(button.dataset.delete)));
+            });
+        }
+
+        async function editProduct(id) {
+            const response = await fetch(`/api/products/${id}`);
+            const data = await response.json();
+            productId.value = data.id;
+            codigo.value = data.codigo;
+            descricao.value = data.descricao;
+            validade.value = data.validade.slice(0, 10);
+            valor.value = data.valor;
+            fornecedor.value = data.fornecedor;
+            cancelEdit.classList.remove('hidden');
+            codigo.focus();
+        }
+
+        async function deleteProduct(id) {
+            const confirmed = confirm('Deseja excluir este produto?');
+            if (!confirmed) return;
+
+            const response = await fetch(`/api/products/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': csrfToken } });
+            if (response.ok) {
+                await loadProducts();
+            }
+        }
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const payload = {
+                id: Number(productId.value || 0),
+                codigo: codigo.value.trim(),
+                descricao: descricao.value.trim(),
+                validade: validade.value,
+                valor: Number(valor.value),
+                fornecedor: fornecedor.value.trim()
+            };
+
+            const method = payload.id ? 'PUT' : 'POST';
+            const url = payload.id ? `/api/products/${payload.id}` : '/api/products';
+
+            const response = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                form.reset();
+                productId.value = '';
+                cancelEdit.classList.add('hidden');
+                await loadProducts();
+            } else {
+                const errorText = await response.text();
+                alert(errorText || 'Erro ao salvar produto.');
+            }
+        });
+
+        cancelEdit.addEventListener('click', () => {
+            form.reset();
+            productId.value = '';
+            cancelEdit.classList.add('hidden');
+        });
+
+        loadProducts().catch(error => console.error(error));
+    </script>
+}
