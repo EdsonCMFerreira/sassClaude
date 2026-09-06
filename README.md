@@ -19,6 +19,15 @@ Preencha a seção `Email` em `appsettings.json` ou use um arquivo de configura�
 por ambiente com `Host`, `Port`, `Username`, `Password` e `From`. Em desenvolvimento,
 sem SMTP configurado, o link é registrado no log da aplicação para facilitar o teste.
 A tela de confirmação também mostra esse link somente no ambiente `Development`.
+Para configurar o Gmail localmente sem gravar a senha no projeto:
+
+```powershell
+dotnet user-secrets set "Email:Username" "seu-email@gmail.com" --project .\sassClaude.csproj
+dotnet user-secrets set "Email:From" "seu-email@gmail.com" --project .\sassClaude.csproj
+dotnet user-secrets set "Email:Password" "SUA_SENHA_DE_APLICATIVO" --project .\sassClaude.csproj
+```
+
+Use uma senha de aplicativo do Gmail, não a senha normal da conta.
 Para produção, defina também `BaseUrl` com o endereço público da aplicação. Variáveis
 de ambiente usam o formato `Email__Host`, `Email__Port`, `Email__Username`, `Email__Password`,
 `Email__From` e `Email__BaseUrl`.
