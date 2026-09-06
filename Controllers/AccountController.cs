@@ -294,7 +294,8 @@ public class AccountController : Controller
         {
             new Claim(ClaimTypes.NameIdentifier, login.Id.ToString()),
             new Claim(ClaimTypes.Name, login.Username),
-            new Claim(ClaimTypes.Email, login.Email)
+            new Claim(ClaimTypes.Email, login.Email),
+            new Claim(ClaimTypes.Role, login.Role)
         };
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         await HttpContext.SignInAsync(

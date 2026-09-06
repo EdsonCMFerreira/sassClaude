@@ -22,4 +22,8 @@ public class Login
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public bool EmailConfirmed { get; set; }
+
+    [Required]
+    [StringLength(20)]
+    public string Role { get; set; } = "Colaborador";
 }

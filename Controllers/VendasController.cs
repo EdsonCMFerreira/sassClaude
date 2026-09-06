@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 using sassClaude.Data;
 using sassClaude.Models;
 
@@ -9,7 +12,106 @@ namespace sassClaude.Controllers;
 [Authorize]
 public class VendasController : Controller
 {
+    private readonly SassDbContext _context;
+
+    public VendasController(SassDbContext context)
+    {
+        _context = context;
+    }
+
     public IActionResult Index() => View();
+
+    public async Task<IActionResult> Recibo(int id)
+    {
+        var venda = await _context.Vendas
+            .Include(x => x.Cliente)
+            .Include(x => x.Product)
+            .FirstOrDefaultAsync(x => x.Id == id);
+        if (venda is null)
+        {
+            return NotFound();
+        }
+
+        var valorTotal = venda.Quantidade * venda.ValorUnitario;
+        var ptBr = new System.Globalization.CultureInfo("pt-BR");
+
+        var document = Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(40);
+                page.DefaultTextStyle(x => x.FontSize(11));
+
+                page.Header().Column(column =>
+                {
+                    column.Item().Text("sassClaude").FontSize(20).Bold();
+                    column.Item().Text("Recibo de venda").FontSize(14).FontColor(Colors.Grey.Darken1);
+                });
+
+                page.Content().PaddingVertical(20).Column(column =>
+                {
+                    column.Spacing(8);
+                    column.Item().Text($"Recibo Nº {venda.Id}");
+                    column.Item().Text($"Data: {venda.DataVenda:dd/MM/yyyy}");
+                    if (!string.IsNullOrWhiteSpace(venda.NumeroNota))
+                    {
+                        column.Item().Text($"Nota: {venda.NumeroNota}");
+                    }
+
+                    column.Item().PaddingTop(10).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
+
+                    column.Item().PaddingTop(10).Text($"Cliente: {venda.Cliente?.Nome ?? "—"}");
+                    if (venda.Cliente is not null && !string.IsNullOrWhiteSpace(venda.Cliente.CpfCnpj))
+                    {
+                        column.Item().Text($"CPF/CNPJ: {venda.Cliente.CpfCnpj}");
+                    }
+
+                    column.Item().PaddingTop(10).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
+
+                    column.Item().PaddingTop(10).Table(table =>
+                    {
+                        table.ColumnsDefinition(columns =>
+                        {
+                            columns.RelativeColumn(3);
+                            columns.RelativeColumn(1);
+                            columns.RelativeColumn(1);
+                            columns.RelativeColumn(1);
+                        });
+
+                        table.Header(header =>
+                        {
+                            header.Cell().Text("Produto").Bold();
+                            header.Cell().Text("Qtd.").Bold();
+                            header.Cell().Text("Valor unit.").Bold();
+                            header.Cell().Text("Total").Bold();
+                        });
+
+                        table.Cell().Text(venda.Product?.Descricao ?? "—");
+                        table.Cell().Text(venda.Quantidade.ToString());
+                        table.Cell().Text(venda.ValorUnitario.ToString("C", ptBr));
+                        table.Cell().Text(valorTotal.ToString("C", ptBr));
+                    });
+
+                    column.Item().PaddingTop(10).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
+
+                    column.Item().PaddingTop(10).AlignRight().Text($"Valor total: {valorTotal.ToString("C", ptBr)}").FontSize(14).Bold();
+                    column.Item().Text($"Forma de pagamento: {(string.IsNullOrWhiteSpace(venda.FormaPagamento) ? "—" : venda.FormaPagamento)}");
+                    column.Item().Text($"Status: {venda.Status}");
+
+                    if (!string.IsNullOrWhiteSpace(venda.Observacoes))
+                    {
+                        column.Item().PaddingTop(10).Text($"Observações: {venda.Observacoes}");
+                    }
+                });
+
+                page.Footer().AlignCenter().Text("Documento gerado automaticamente pelo sassClaude.").FontSize(9).FontColor(Colors.Grey.Darken1);
+            });
+        });
+
+        var pdfBytes = document.GeneratePdf();
+        return File(pdfBytes, "application/pdf", $"recibo-venda-{venda.Id}.pdf");
+    }
 }
 
 [ApiController]

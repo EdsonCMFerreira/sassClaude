@@ -29,12 +29,14 @@ public class WorkspaceController : Controller
 
     public IActionResult Index() => View();
 
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Invite()
     {
         return View(new WorkspaceInvitePageViewModel { Invites = await LoadInvites() });
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Invite(WorkspaceInvitePageViewModel model, CancellationToken cancellationToken)
     {

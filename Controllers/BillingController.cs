@@ -7,7 +7,7 @@ using sassClaude.Models;
 
 namespace sassClaude.Controllers;
 
-[Authorize]
+[Authorize(Roles = "Admin")]
 public class BillingController : Controller
 {
     private readonly SassDbContext _context;

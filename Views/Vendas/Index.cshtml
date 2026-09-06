@@ -111,6 +111,7 @@
                     <td>${formatDate(item.dataVenda)}</td>
                     <td>${item.status}</td>
                     <td>
+                        <a class="table-action" href="/Vendas/Recibo/${item.id}" target="_blank" rel="noopener">Recibo</a>
                         <button class="table-action" data-edit="${item.id}">Editar</button>
                         <button class="table-action danger" data-delete="${item.id}">Excluir</button>
                     </td>

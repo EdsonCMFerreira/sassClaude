@@ -1,0 +1,51 @@
+@model EstoqueViewModel
+@{
+    ViewData["Title"] = "Estoque";
+}
+<div class="page-heading">
+    <div><span class="eyebrow">Catálogo</span><h1>Estoque.</h1><p class="muted">Quantidade em mão por produto, calculada a partir de Compras e Vendas.</p></div>
+    <a class="button button-outline" asp-controller="Products" asp-action="Index">← Ver produtos</a>
+</div>
+
+<div class="metric-grid">
+    <article class="metric-card metric-highlight"><span class="metric-label">Valor total em estoque</span><strong>@Model.ValorTotalEstoque.ToString("C", new System.Globalization.CultureInfo("pt-BR"))</strong><span class="metric-caption">a preço de compra</span></article>
+    <article class="metric-card"><span class="metric-label">Produtos com saldo negativo</span><strong class="@(Model.ProdutosComSaldoNegativo > 0 ? "status-negative" : "")">@Model.ProdutosComSaldoNegativo</strong><span class="metric-caption">venderam mais do que compraram</span></article>
+    <article class="metric-card"><span class="metric-label">Sem movimentação</span><strong>@Model.ProdutosSemMovimentacao</strong><span class="metric-caption">nenhuma compra ou venda ainda</span></article>
+</div>
+
+<div class="surface-card users-card">
+    <div class="section-heading"><div><h2>Saldo por produto</h2><p class="muted">Comprado − Vendido = Saldo em mão.</p></div></div>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead class="table-light">
+                <tr>
+                    <th>Código</th>
+                    <th>Descrição</th>
+                    <th>Fornecedor</th>
+                    <th>Comprado</th>
+                    <th>Vendido</th>
+                    <th>Saldo</th>
+                    <th>Valor em estoque</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Itens.Any())
+                {
+                    <tr><td colspan="7" class="muted">Nenhum produto cadastrado ainda.</td></tr>
+                }
+                @foreach (var item in Model.Itens)
+                {
+                    <tr>
+                        <td>@item.Codigo</td>
+                        <td>@item.Descricao</td>
+                        <td>@item.FornecedorNome</td>
+                        <td>@item.QuantidadeComprada</td>
+                        <td>@item.QuantidadeVendida</td>
+                        <td class="@(item.SaldoEstoque < 0 ? "text-negative" : "")">@item.SaldoEstoque</td>
+                        <td>@item.ValorEstoque.ToString("C", new System.Globalization.CultureInfo("pt-BR"))</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

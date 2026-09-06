@@ -22,8 +22,13 @@
                 <a asp-controller="Fornecedores" asp-action="Index">Fornecedores</a>
                 <a asp-controller="Compras" asp-action="Index">Compras</a>
                 <a asp-controller="Vendas" asp-action="Index">Vendas</a>
-                <a asp-controller="Login" asp-action="Index">Usuários</a>
-                <a asp-controller="Billing" asp-action="Index">Plano</a>
+                @if (User.IsInRole("Admin"))
+                {
+                    <a asp-controller="Login" asp-action="Index">Usuários</a>
+                    <a asp-controller="Billing" asp-action="Index">Plano</a>
+                    <a asp-controller="Financeiro" asp-action="Index">Financeiro</a>
+                    <a asp-controller="AuditLog" asp-action="Index">Auditoria</a>
+                }
             </div>
             <div class="app-nav-actions">
                 <a class="nav-icon-link" asp-controller="Settings" asp-action="Index" aria-label="Configurações">⚙</a>

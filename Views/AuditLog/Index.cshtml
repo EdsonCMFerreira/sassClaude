@@ -1,0 +1,71 @@
+@model List<AuditLogEntry>
+@{
+    ViewData["Title"] = "Log de auditoria";
+    var entidadeSelecionada = (string)(ViewData["EntidadeSelecionada"] ?? string.Empty);
+    var nomes = new Dictionary<string, string>
+    {
+        ["Product"] = "Produto",
+        ["Cliente"] = "Cliente",
+        ["Fornecedor"] = "Fornecedor",
+        ["Compra"] = "Compra",
+        ["Venda"] = "Venda",
+        ["Login"] = "Usuário"
+    };
+}
+<div class="page-heading">
+    <div><span class="eyebrow">Administração</span><h1>Log de auditoria.</h1><p class="muted">Últimas 200 alterações em produtos, clientes, fornecedores, compras, vendas e usuários.</p></div>
+</div>
+<div class="surface-card users-card">
+    <div class="section-heading">
+        <div><h2>Alterações registradas</h2><p class="muted">Quem fez o quê, e quando.</p></div>
+        <form method="get" class="settings-form filter-form">
+            <div><label for="entidade">Filtrar por</label>
+                <select id="entidade" name="entidade" onchange="this.form.submit()">
+                    <option value="">Todas</option>
+                    @foreach (var item in nomes)
+                    {
+                        if (item.Key == entidadeSelecionada)
+                        {
+                            <option value="@item.Key" selected>@item.Value</option>
+                        }
+                        else
+                        {
+                            <option value="@item.Key">@item.Value</option>
+                        }
+                    }
+                </select>
+            </div>
+        </form>
+    </div>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead class="table-light">
+                <tr>
+                    <th>Data/Hora</th>
+                    <th>Entidade</th>
+                    <th>ID</th>
+                    <th>Ação</th>
+                    <th>Usuário</th>
+                    <th>Detalhes</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="6" class="muted">Nenhum registro de auditoria ainda.</td></tr>
+                }
+                @foreach (var entry in Model)
+                {
+                    <tr>
+                        <td>@entry.Timestamp.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>@(nomes.TryGetValue(entry.EntityName, out var nome) ? nome : entry.EntityName)</td>
+                        <td>@entry.EntityId</td>
+                        <td>@entry.Action</td>
+                        <td>@entry.UserName</td>
+                        <td>@(string.IsNullOrEmpty(entry.Details) ? "—" : entry.Details)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

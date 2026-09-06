@@ -8,8 +8,11 @@ using sassClaude.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddDbContext<SassDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -342,6 +345,24 @@ using (var scope = app.Services.CreateScope())
         {
             db.Database.ExecuteSqlRaw("ALTER TABLE Logins ADD COLUMN EmailConfirmed INTEGER NOT NULL DEFAULT 0;");
         }
+
+        if (!loginColumns.Contains("Role"))
+        {
+            db.Database.ExecuteSqlRaw("ALTER TABLE Logins ADD COLUMN Role TEXT NOT NULL DEFAULT 'Colaborador';");
+            db.Database.ExecuteSqlRaw("UPDATE Logins SET Role = 'Admin';");
+        }
+
+        db.Database.ExecuteSqlRaw("""
+            CREATE TABLE IF NOT EXISTS AuditLogEntries (
+                Id INTEGER NOT NULL CONSTRAINT PK_AuditLogEntries PRIMARY KEY AUTOINCREMENT,
+                EntityName TEXT NOT NULL,
+                EntityId INTEGER NOT NULL,
+                Action TEXT NOT NULL,
+                UserName TEXT NOT NULL,
+                Details TEXT NOT NULL,
+                Timestamp TEXT NOT NULL
+            );
+            """);
 
         var passwordHasher = new PasswordHasher<Login>();
         var usersWithPlaintextPasswords = db.Logins

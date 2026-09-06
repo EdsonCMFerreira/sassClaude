@@ -7,7 +7,7 @@ using sassClaude.Models;
 
 namespace sassClaude.Controllers;
 
-[Authorize]
+[Authorize(Roles = "Admin")]
 public class LoginController : Controller
 {
     private readonly SassDbContext _context;
@@ -24,10 +24,12 @@ public class LoginController : Controller
 }
 
 [ApiController]
-[Authorize]
+[Authorize(Roles = "Admin")]
 [Route("api/login")]
 public class ApiLoginController : ControllerBase
 {
+    private static readonly string[] ValidRoles = ["Admin", "Colaborador"];
+
     private readonly SassDbContext _context;
     private readonly PasswordHasher<Login> _passwordHasher = new();
 
@@ -41,7 +43,7 @@ public class ApiLoginController : ControllerBase
     {
         return await _context.Logins
             .OrderByDescending(x => x.CreatedAt)
-            .Select(login => new LoginResponse(login.Id, login.Username, login.Email, login.CreatedAt))
+            .Select(login => new LoginResponse(login.Id, login.Username, login.Email, login.Role, login.CreatedAt))
             .ToListAsync();
     }
 
@@ -54,7 +56,7 @@ public class ApiLoginController : ControllerBase
             return NotFound();
         }
 
-        return new LoginResponse(login.Id, login.Username, login.Email, login.CreatedAt);
+        return new LoginResponse(login.Id, login.Username, login.Email, login.Role, login.CreatedAt);
     }
 
     [HttpPost]
@@ -68,19 +70,21 @@ public class ApiLoginController : ControllerBase
             return BadRequest("Dados de login inválidos.");
         }
 
+        var role = ValidRoles.Contains(request.Role) ? request.Role : "Colaborador";
+
         var login = new Login
         {
             Username = request.Username.Trim(),
             Email = request.Email.Trim(),
+            Role = role,
             CreatedAt = DateTime.UtcNow
         };
         login.Password = _passwordHasher.HashPassword(login, request.Password);
-        login.CreatedAt = DateTime.UtcNow;
         _context.Logins.Add(login);
         await _context.SaveChangesAsync();
 
         return CreatedAtAction(nameof(GetLogin), new { id = login.Id },
-            new LoginResponse(login.Id, login.Username, login.Email, login.CreatedAt));
+            new LoginResponse(login.Id, login.Username, login.Email, login.Role, login.CreatedAt));
     }
 
     [HttpPut("{id:int}")]
@@ -98,8 +102,15 @@ public class ApiLoginController : ControllerBase
             return BadRequest("Usuário e e-mail são obrigatórios.");
         }
 
+        var role = ValidRoles.Contains(request.Role) ? request.Role : existing.Role;
+        if (existing.Role == "Admin" && role != "Admin" && await IsLastAdmin(existing.Id))
+        {
+            return BadRequest("Não é possível remover o último administrador.");
+        }
+
         existing.Username = request.Username.Trim();
         existing.Email = request.Email.Trim();
+        existing.Role = role;
         if (!string.IsNullOrWhiteSpace(request.Password))
         {
             existing.Password = _passwordHasher.HashPassword(existing, request.Password);
@@ -119,12 +130,22 @@ public class ApiLoginController : ControllerBase
             return NotFound();
         }
 
+        if (login.Role == "Admin" && await IsLastAdmin(login.Id))
+        {
+            return BadRequest("Não é possível excluir o último administrador.");
+        }
+
         _context.Logins.Remove(login);
         await _context.SaveChangesAsync();
         return NoContent();
     }
+
+    private async Task<bool> IsLastAdmin(int excludingId)
+    {
+        return !await _context.Logins.AnyAsync(item => item.Role == "Admin" && item.Id != excludingId);
+    }
 }
 
-public sealed record LoginRequest(string Username, string Password, string Email);
+public sealed record LoginRequest(string Username, string Password, string Email, string Role);
 
-public sealed record LoginResponse(int Id, string Username, string Email, DateTime CreatedAt);
+public sealed record LoginResponse(int Id, string Username, string Email, string Role, DateTime CreatedAt);

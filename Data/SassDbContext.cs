@@ -1,12 +1,23 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using sassClaude.Models;
 
 namespace sassClaude.Data;
 
 public class SassDbContext : DbContext
 {
-    public SassDbContext(DbContextOptions<SassDbContext> options) : base(options)
+    private static readonly Type[] AuditableTypes =
+    [
+        typeof(Product), typeof(Cliente), typeof(Fornecedor), typeof(Compra), typeof(Venda), typeof(Login)
+    ];
+
+    private readonly IHttpContextAccessor? _httpContextAccessor;
+
+    public SassDbContext(DbContextOptions<SassDbContext> options, IHttpContextAccessor? httpContextAccessor = null) : base(options)
     {
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public DbSet<Login> Logins => Set<Login>();
@@ -19,6 +30,86 @@ public class SassDbContext : DbContext
     public DbSet<Fornecedor> Fornecedores => Set<Fornecedor>();
     public DbSet<Compra> Compras => Set<Compra>();
     public DbSet<Venda> Vendas => Set<Venda>();
+    public DbSet<AuditLogEntry> AuditLogEntries => Set<AuditLogEntry>();
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        return SaveChangesAsync(acceptAllChangesOnSuccess).GetAwaiter().GetResult();
+    }
+
+    public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        var pending = new List<(EntityEntry Entry, string EntityName, string Action, string Details)>();
+
+        foreach (var entry in ChangeTracker.Entries())
+        {
+            if (entry.State is not (EntityState.Added or EntityState.Modified or EntityState.Deleted))
+            {
+                continue;
+            }
+
+            if (!AuditableTypes.Contains(entry.Entity.GetType()))
+            {
+                continue;
+            }
+
+            var entityName = entry.Entity.GetType().Name;
+            var action = entry.State switch
+            {
+                EntityState.Added => "Criação",
+                EntityState.Modified => "Atualização",
+                EntityState.Deleted => "Exclusão",
+                _ => "Desconhecida"
+            };
+
+            if (action == "Atualização" && !entry.Properties.Any(p => p.IsModified && p.Metadata.Name != "Id"))
+            {
+                continue;
+            }
+
+            pending.Add((entry, entityName, action, BuildDetails(entry, action)));
+        }
+
+        var result = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+
+        if (pending.Count > 0)
+        {
+            var userName = _httpContextAccessor?.HttpContext?.User?.Identity?.Name ?? "Sistema";
+            foreach (var item in pending)
+            {
+                var entityId = Convert.ToInt32(item.Entry.Property("Id").CurrentValue);
+                AuditLogEntries.Add(new AuditLogEntry
+                {
+                    EntityName = item.EntityName,
+                    EntityId = entityId,
+                    Action = item.Action,
+                    UserName = userName,
+                    Details = item.Details,
+                    Timestamp = DateTime.UtcNow
+                });
+            }
+
+            await base.SaveChangesAsync(true, cancellationToken);
+        }
+
+        return result;
+    }
+
+    private static string BuildDetails(EntityEntry entry, string action)
+    {
+        if (action != "Atualização")
+        {
+            return string.Empty;
+        }
+
+        var changes = entry.Properties
+            .Where(p => p.IsModified && p.Metadata.Name != "Id")
+            .Select(p => p.Metadata.Name == "Password"
+                ? "Password: (alterada)"
+                : $"{p.Metadata.Name}: '{p.OriginalValue}' → '{p.CurrentValue}'");
+
+        return string.Join("; ", changes);
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -28,6 +119,7 @@ public class SassDbContext : DbContext
             entity.Property(x => x.Username).IsRequired().HasMaxLength(100);
             entity.Property(x => x.Password).IsRequired().HasMaxLength(255);
             entity.Property(x => x.Email).IsRequired().HasMaxLength(150);
+            entity.Property(x => x.Role).IsRequired().HasMaxLength(20);
         });
 
         modelBuilder.Entity<PasswordResetToken>(entity =>
@@ -138,6 +230,15 @@ public class SassDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(x => x.ProductId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<AuditLogEntry>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.EntityName).IsRequired().HasMaxLength(50);
+            entity.Property(x => x.Action).IsRequired().HasMaxLength(20);
+            entity.Property(x => x.UserName).IsRequired().HasMaxLength(100);
+            entity.Property(x => x.Details).IsRequired().HasMaxLength(1000);
         });
     }
 }

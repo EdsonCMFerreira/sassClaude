@@ -14,6 +14,7 @@
                         <div class="user-form-grid">
                             <div><label for="username">Usuário</label><input id="username" required /></div>
                             <div><label for="email">E-mail</label><input id="email" type="email" required /></div>
+                            <div><label for="role">Cargo</label><select id="role"><option value="Colaborador">Colaborador</option><option value="Admin">Admin</option></select></div>
                             <div><label for="password">Senha</label><input id="password" type="password" /><small>Obrigatória ao criar. Em branco ao editar mantém a atual.</small></div>
                             <div class="user-form-actions"><button type="submit" class="button button-primary">Salvar</button><button type="button" id="cancelEdit" class="button button-outline hidden">Cancelar</button></div>
                         </div>
@@ -27,6 +28,7 @@
                             <th>ID</th>
                             <th>Usuário</th>
                             <th>E-mail</th>
+                            <th>Cargo</th>
                             <th>Data</th>
                             <th>Ações</th>
                         </tr>
@@ -42,6 +44,7 @@
         const loginId = document.getElementById('loginId');
         const username = document.getElementById('username');
         const email = document.getElementById('email');
+        const role = document.getElementById('role');
         const password = document.getElementById('password');
         const cancelEdit = document.getElementById('cancelEdit');
         const tableBody = document.getElementById('loginTableBody');
@@ -59,6 +62,7 @@
                     <td>${item.id}</td>
                     <td>${item.username}</td>
                     <td>${item.email}</td>
+                    <td>${item.role}</td>
                     <td>${new Date(item.createdAt).toLocaleString('pt-BR')}</td>
                     <td>
                         <button class="table-action" data-edit="${item.id}">Editar</button>
@@ -82,6 +86,7 @@
             loginId.value = data.id;
             username.value = data.username;
             email.value = data.email;
+            role.value = data.role;
             password.value = '';
             cancelEdit.classList.remove('hidden');
             username.focus();
@@ -94,6 +99,9 @@
             const response = await fetch(`/api/login/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': csrfToken } });
             if (response.ok) {
                 await loadLogins();
+            } else {
+                const errorText = await response.text();
+                alert(errorText || 'Erro ao excluir usuário.');
             }
         }
 
@@ -104,6 +112,7 @@
                 id: Number(loginId.value || 0),
                 username: username.value.trim(),
                 email: email.value.trim(),
+                role: role.value,
                 password: password.value.trim()
             };
 

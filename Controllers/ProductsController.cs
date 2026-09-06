@@ -18,6 +18,34 @@ public class ProductsController : Controller
 
     public IActionResult Index() => View();
 
+    public async Task<IActionResult> Estoque()
+    {
+        var products = await _context.Products.Include(x => x.Fornecedor).ToListAsync();
+        var compras = await _context.Compras.Where(c => c.ProductId != null).ToListAsync();
+        var vendas = await _context.Vendas.Where(v => v.ProductId != null).ToListAsync();
+
+        var itens = products
+            .Select(p =>
+            {
+                var comprada = compras.Where(c => c.ProductId == p.Id).Sum(c => c.Quantidade);
+                var vendida = vendas.Where(v => v.ProductId == p.Id).Sum(v => v.Quantidade);
+                var saldo = comprada - vendida;
+                return new EstoqueRow(p.Codigo, p.Descricao, p.Fornecedor?.Nome ?? "—", comprada, vendida, saldo, saldo * p.ValorCompra);
+            })
+            .OrderBy(x => x.Codigo)
+            .ToList();
+
+        var model = new EstoqueViewModel
+        {
+            Itens = itens,
+            ValorTotalEstoque = itens.Sum(x => x.ValorEstoque),
+            ProdutosComSaldoNegativo = itens.Count(x => x.SaldoEstoque < 0),
+            ProdutosSemMovimentacao = itens.Count(x => x.QuantidadeComprada == 0 && x.QuantidadeVendida == 0)
+        };
+
+        return View(model);
+    }
+
     public async Task<IActionResult> Dashboard()
     {
         var products = await _context.Products.Include(x => x.Fornecedor).ToListAsync();
