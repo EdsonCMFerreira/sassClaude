@@ -14,6 +14,7 @@
             <div class="user-form-grid">
                 <div><label for="clienteId">Cliente</label><select id="clienteId" required><option value="">Selecione...</option></select></div>
                 <div><label for="productId">Produto</label><select id="productId" required><option value="">Selecione...</option></select></div>
+                <div><label for="fornecedorNome">Fornecedor</label><input id="fornecedorNome" type="text" readonly disabled /></div>
                 <div><label for="quantidade">Quantidade</label><input id="quantidade" type="number" min="1" step="1" value="1" required /></div>
                 <div><label for="valorUnitario">Valor unitário</label><input id="valorUnitario" type="number" step="0.01" min="0" required /></div>
                 <div><label for="valorTotal">Valor total</label><input id="valorTotal" type="text" readonly disabled /></div>
@@ -52,6 +53,7 @@
         const vendaId = document.getElementById('vendaId');
         const clienteId = document.getElementById('clienteId');
         const productId = document.getElementById('productId');
+        const fornecedorNome = document.getElementById('fornecedorNome');
         const quantidade = document.getElementById('quantidade');
         const valorUnitario = document.getElementById('valorUnitario');
         const valorTotal = document.getElementById('valorTotal');
@@ -63,6 +65,7 @@
         const cancelEdit = document.getElementById('cancelEdit');
         const tableBody = document.getElementById('vendaTableBody');
         const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        let allProducts = [];
 
         function formatCurrency(value) {
             return Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -88,10 +91,15 @@
 
         async function loadProductsOptions() {
             const response = await fetch('/api/products');
-            const data = await response.json();
-            productId.innerHTML = '<option value="">Selecione...</option>' + data.map(item =>
+            allProducts = await response.json();
+            productId.innerHTML = '<option value="">Selecione...</option>' + allProducts.map(item =>
                 `<option value="${item.id}">${item.codigo} — ${item.descricao}</option>`
             ).join('');
+        }
+
+        function updateFornecedorPreview() {
+            const produto = allProducts.find(item => item.id === Number(productId.value));
+            fornecedorNome.value = produto ? produto.fornecedorNome : '';
         }
 
         async function loadVendas() {
@@ -133,6 +141,7 @@
             vendaId.value = data.id;
             clienteId.value = data.clienteId;
             productId.value = data.productId;
+            updateFornecedorPreview();
             quantidade.value = data.quantidade;
             valorUnitario.value = data.valorUnitario;
             dataVenda.value = data.dataVenda.slice(0, 10);
@@ -184,6 +193,7 @@
                 form.reset();
                 vendaId.value = '';
                 valorTotal.value = '';
+                fornecedorNome.value = '';
                 cancelEdit.classList.add('hidden');
                 await loadVendas();
             } else {
@@ -196,11 +206,13 @@
             form.reset();
             vendaId.value = '';
             valorTotal.value = '';
+            fornecedorNome.value = '';
             cancelEdit.classList.add('hidden');
         });
 
         quantidade.addEventListener('input', updateValorTotalPreview);
         valorUnitario.addEventListener('input', updateValorTotalPreview);
+        productId.addEventListener('change', updateFornecedorPreview);
 
         Promise.all([loadClientesOptions(), loadProductsOptions()])
             .then(loadVendas)
