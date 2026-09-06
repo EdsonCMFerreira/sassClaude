@@ -3,10 +3,10 @@
 }
 
 <div class="page-heading">
-    <div><span class="eyebrow">Cadastro</span><h1>Clientes.</h1><p class="muted">Ficha cadastral completa e dados da última compra.</p></div>
+    <div><span class="eyebrow">Cadastro</span><h1>Clientes.</h1><p class="muted">Ficha cadastral completa do cliente.</p></div>
 </div>
 <div class="surface-card users-card">
-    <div class="section-heading"><div><h2>Clientes cadastrados</h2><p class="muted">Dados pessoais, endereço e última compra.</p></div></div>
+    <div class="section-heading"><div><h2>Clientes cadastrados</h2><p class="muted">Dados pessoais e endereço. A última compra é calculada automaticamente a partir dos registros em Vendas.</p></div></div>
     <div class="user-form-wrap">
         <form id="clienteForm">
             @Html.AntiForgeryToken()
@@ -25,8 +25,6 @@
                 <div><label for="bairro">Bairro</label><input id="bairro" /></div>
                 <div><label for="cidade">Cidade</label><input id="cidade" /></div>
                 <div><label for="uf">UF</label><select id="uf"><option value="">Selecione...</option><option value="AC">AC - Acre</option><option value="AL">AL - Alagoas</option><option value="AP">AP - Amapá</option><option value="AM">AM - Amazonas</option><option value="BA">BA - Bahia</option><option value="CE">CE - Ceará</option><option value="DF">DF - Distrito Federal</option><option value="ES">ES - Espírito Santo</option><option value="GO">GO - Goiás</option><option value="MA">MA - Maranhão</option><option value="MT">MT - Mato Grosso</option><option value="MS">MS - Mato Grosso do Sul</option><option value="MG">MG - Minas Gerais</option><option value="PA">PA - Pará</option><option value="PB">PB - Paraíba</option><option value="PR">PR - Paraná</option><option value="PE">PE - Pernambuco</option><option value="PI">PI - Piauí</option><option value="RJ">RJ - Rio de Janeiro</option><option value="RN">RN - Rio Grande do Norte</option><option value="RS">RS - Rio Grande do Sul</option><option value="RO">RO - Rondônia</option><option value="RR">RR - Roraima</option><option value="SC">SC - Santa Catarina</option><option value="SP">SP - São Paulo</option><option value="SE">SE - Sergipe</option><option value="TO">TO - Tocantins</option></select></div>
-                <div><label for="ultimaCompraData">Data da última compra</label><input id="ultimaCompraData" type="date" /></div>
-                <div><label for="ultimaCompraValor">Valor da última compra</label><input id="ultimaCompraValor" type="number" step="0.01" min="0" /></div>
                 <div class="user-form-actions"><button type="submit" class="button button-primary">Salvar</button><button type="button" id="cancelEdit" class="button button-outline hidden">Cancelar</button></div>
             </div>
         </form>
@@ -40,8 +38,6 @@
                     <th>CPF/CNPJ</th>
                     <th>Telefone</th>
                     <th>Cidade/UF</th>
-                    <th>Última compra</th>
-                    <th>Valor</th>
                     <th>Ações</th>
                 </tr>
             </thead>
@@ -67,19 +63,9 @@
         const bairro = document.getElementById('bairro');
         const cidade = document.getElementById('cidade');
         const uf = document.getElementById('uf');
-        const ultimaCompraData = document.getElementById('ultimaCompraData');
-        const ultimaCompraValor = document.getElementById('ultimaCompraValor');
         const cancelEdit = document.getElementById('cancelEdit');
         const tableBody = document.getElementById('clienteTableBody');
         const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
-
-        function formatCurrency(value) {
-            return value === null || value === undefined ? '—' : Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        }
-
-        function formatDate(value) {
-            return value ? new Date(value).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '—';
-        }
 
         async function loadClientes() {
             const response = await fetch('/api/clientes');
@@ -94,14 +80,12 @@
                     <td>${item.cpfCnpj}</td>
                     <td>${item.telefone || '—'}</td>
                     <td>${[item.cidade, item.uf].filter(Boolean).join('/') || '—'}</td>
-                    <td>${formatDate(item.ultimaCompraData)}</td>
-                    <td>${formatCurrency(item.ultimaCompraValor)}</td>
                     <td>
                         <button class="table-action" data-edit="${item.id}">Editar</button>
                         <button class="table-action danger" data-delete="${item.id}">Excluir</button>
                     </td>
                 </tr>
-            `).join('') || '<tr><td colspan="7" class="muted">Nenhum cliente cadastrado ainda.</td></tr>';
+            `).join('') || '<tr><td colspan="5" class="muted">Nenhum cliente cadastrado ainda.</td></tr>';
 
             tableBody.querySelectorAll('[data-edit]').forEach(button => {
                 button.addEventListener('click', () => editCliente(Number(button.dataset.edit)));
@@ -129,8 +113,6 @@
             bairro.value = data.bairro;
             cidade.value = data.cidade;
             uf.value = data.uf;
-            ultimaCompraData.value = data.ultimaCompraData ? data.ultimaCompraData.slice(0, 10) : '';
-            ultimaCompraValor.value = data.ultimaCompraValor ?? '';
             cancelEdit.classList.remove('hidden');
             nome.focus();
         }
@@ -162,9 +144,7 @@
                 complemento: complemento.value.trim(),
                 bairro: bairro.value.trim(),
                 cidade: cidade.value.trim(),
-                uf: uf.value.trim(),
-                ultimaCompraData: ultimaCompraData.value || null,
-                ultimaCompraValor: ultimaCompraValor.value ? Number(ultimaCompraValor.value) : null
+                uf: uf.value.trim()
             };
 
             const method = payload.id ? 'PUT' : 'POST';

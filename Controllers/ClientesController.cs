@@ -123,8 +123,6 @@ public class ApiClientesController : ControllerBase
         cliente.Bairro = request.Bairro.Trim();
         cliente.Cidade = request.Cidade.Trim();
         cliente.Uf = request.Uf.Trim();
-        cliente.UltimaCompraData = request.UltimaCompraData;
-        cliente.UltimaCompraValor = request.UltimaCompraValor;
         return cliente;
     }
 
@@ -139,8 +137,7 @@ public class ApiClientesController : ControllerBase
 
 public sealed record ClienteRequest(
     string Nome, string TipoPessoa, string CpfCnpj, string Email, string Site, string Telefone,
-    string Cep, string Endereco, string Numero, string Complemento, string Bairro, string Cidade, string Uf,
-    DateTime? UltimaCompraData, decimal? UltimaCompraValor);
+    string Cep, string Endereco, string Numero, string Complemento, string Bairro, string Cidade, string Uf);
 
 public sealed record ClienteResponse(
     int Id, string Nome, string TipoPessoa, string CpfCnpj, string Email, string Site, string Telefone,
