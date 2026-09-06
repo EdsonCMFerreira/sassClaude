@@ -17,6 +17,8 @@ public class SassDbContext : DbContext
     public DbSet<Product> Products => Set<Product>();
     public DbSet<Cliente> Clientes => Set<Cliente>();
     public DbSet<Fornecedor> Fornecedores => Set<Fornecedor>();
+    public DbSet<Compra> Compras => Set<Compra>();
+    public DbSet<Venda> Vendas => Set<Venda>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -106,6 +108,36 @@ public class SassDbContext : DbContext
             entity.Property(x => x.CpfCnpj).IsRequired().HasMaxLength(20);
             entity.Property(x => x.UltimaCompraValor).HasColumnType("decimal(10,2)");
             entity.HasIndex(x => x.CpfCnpj).IsUnique();
+        });
+
+        modelBuilder.Entity<Compra>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Status).IsRequired().HasMaxLength(20);
+            entity.Property(x => x.ValorUnitario).HasColumnType("decimal(10,2)");
+            entity.HasOne(x => x.Fornecedor)
+                .WithMany()
+                .HasForeignKey(x => x.FornecedorId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(x => x.Product)
+                .WithMany()
+                .HasForeignKey(x => x.ProductId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<Venda>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Status).IsRequired().HasMaxLength(20);
+            entity.Property(x => x.ValorUnitario).HasColumnType("decimal(10,2)");
+            entity.HasOne(x => x.Cliente)
+                .WithMany()
+                .HasForeignKey(x => x.ClienteId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(x => x.Product)
+                .WithMany()
+                .HasForeignKey(x => x.ProductId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }
