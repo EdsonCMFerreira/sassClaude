@@ -9,7 +9,58 @@ namespace sassClaude.Controllers;
 [Authorize]
 public class ProductsController : Controller
 {
+    private readonly SassDbContext _context;
+
+    public ProductsController(SassDbContext context)
+    {
+        _context = context;
+    }
+
     public IActionResult Index() => View();
+
+    public async Task<IActionResult> Dashboard()
+    {
+        var products = await _context.Products.ToListAsync();
+        var today = DateTime.UtcNow.Date;
+        var in30Days = today.AddDays(30);
+
+        var comPrecoDefinido = products.Where(p => p.ValorCompra > 0 && p.ValorVenda > 0).ToList();
+        var margens = comPrecoDefinido
+            .Select(p => (Produto: p, Margem: (p.ValorVenda - p.ValorCompra) / p.ValorCompra * 100))
+            .ToList();
+
+        var maisLucrativo = margens.OrderByDescending(x => x.Margem).FirstOrDefault();
+        var menosLucrativo = margens.OrderBy(x => x.Margem).FirstOrDefault();
+
+        var model = new ProductDashboardViewModel
+        {
+            TotalProdutos = products.Count,
+            Vencidos = products.Count(p => p.Validade.Date < today),
+            VenceEm30Dias = products.Count(p => p.Validade.Date >= today && p.Validade.Date <= in30Days),
+            LucroMedioPercentual = margens.Count > 0 ? Math.Round(margens.Average(x => x.Margem), 2) : 0m,
+            ValorTotalCompra = products.Sum(p => p.ValorCompra),
+            ValorTotalVenda = products.Sum(p => p.ValorVenda),
+            LucroPotencialTotal = products.Sum(p => p.ValorVenda - p.ValorCompra),
+            ProximosVencimentos = products
+                .Where(p => p.Validade.Date >= today)
+                .OrderBy(p => p.Validade)
+                .Take(5)
+                .Select(p => new ProductExpiryRow(p.Codigo, p.Descricao, p.Validade, (p.Validade.Date - today).Days))
+                .ToList(),
+            TopFornecedores = products
+                .GroupBy(p => p.Fornecedor)
+                .Select(g => new SupplierBreakdownRow(g.Key, g.Count()))
+                .OrderByDescending(x => x.Quantidade)
+                .Take(5)
+                .ToList(),
+            ProdutoMaisLucrativo = maisLucrativo.Produto is not null ? $"{maisLucrativo.Produto.Codigo} — {maisLucrativo.Produto.Descricao}" : null,
+            ProdutoMaisLucrativoPercentual = maisLucrativo.Produto is not null ? Math.Round(maisLucrativo.Margem, 2) : null,
+            ProdutoMenosLucrativo = menosLucrativo.Produto is not null ? $"{menosLucrativo.Produto.Codigo} — {menosLucrativo.Produto.Descricao}" : null,
+            ProdutoMenosLucrativoPercentual = menosLucrativo.Produto is not null ? Math.Round(menosLucrativo.Margem, 2) : null
+        };
+
+        return View(model);
+    }
 }
 
 [ApiController]

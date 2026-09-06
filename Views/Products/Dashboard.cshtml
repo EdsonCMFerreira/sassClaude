@@ -1,0 +1,71 @@
+@model ProductDashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard de produtos";
+}
+<div class="page-heading">
+    <div><span class="eyebrow">Catálogo</span><h1>Dashboard de produtos.</h1><p class="muted">Visão geral do catálogo, vencimentos e margens.</p></div>
+    <a class="button button-outline" asp-controller="Products" asp-action="Index">← Ver produtos</a>
+</div>
+
+<div class="metric-grid">
+    <article class="metric-card metric-highlight"><span class="metric-label">Produtos cadastrados</span><strong>@Model.TotalProdutos</strong><span class="metric-caption">no catálogo</span></article>
+    <article class="metric-card"><span class="metric-label">Vencendo em 30 dias</span><strong>@Model.VenceEm30Dias</strong><span class="metric-caption">fique de olho</span></article>
+    <article class="metric-card"><span class="metric-label">Vencidos</span><strong class="@(Model.Vencidos > 0 ? "status-negative" : "")">@Model.Vencidos</strong><span class="metric-caption">precisam de atenção</span></article>
+    <article class="metric-card"><span class="metric-label">Lucro médio</span><strong>@Model.LucroMedioPercentual.ToString("0.00")%</strong><span class="metric-caption">entre compra e venda</span></article>
+</div>
+
+<div class="content-grid">
+    <section class="surface-card activity-card">
+        <div class="section-heading"><div><span class="eyebrow">Atenção</span><h2>Próximos vencimentos</h2></div></div>
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead class="table-light"><tr><th>Código</th><th>Descrição</th><th>Validade</th><th>Dias restantes</th></tr></thead>
+                <tbody>
+                    @if (!Model.ProximosVencimentos.Any())
+                    {
+                        <tr><td colspan="4" class="muted">Nenhum produto com validade futura cadastrada.</td></tr>
+                    }
+                    @foreach (var item in Model.ProximosVencimentos)
+                    {
+                        <tr>
+                            <td>@item.Codigo</td>
+                            <td>@item.Descricao</td>
+                            <td>@item.Validade.ToString("dd/MM/yyyy")</td>
+                            <td>@item.DiasRestantes dia(s)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+    <aside class="settings-stack">
+        <div class="surface-card next-card">
+            <span class="eyebrow">Financeiro</span>
+            <h2>Resumo do catálogo</h2>
+            <div class="settings-row"><div><h3>Valor total de compra</h3></div><span class="settings-value">@Model.ValorTotalCompra.ToString("C", new System.Globalization.CultureInfo("pt-BR"))</span></div>
+            <div class="settings-row"><div><h3>Valor total de venda</h3></div><span class="settings-value">@Model.ValorTotalVenda.ToString("C", new System.Globalization.CultureInfo("pt-BR"))</span></div>
+            <div class="settings-row"><div><h3>Lucro potencial</h3></div><span class="settings-value">@Model.LucroPotencialTotal.ToString("C", new System.Globalization.CultureInfo("pt-BR"))</span></div>
+        </div>
+        <div class="surface-card settings-card">
+            <span class="eyebrow">Fornecedores</span>
+            <h2>Top fornecedores</h2>
+            @if (!Model.TopFornecedores.Any())
+            {
+                <p class="muted">Nenhum fornecedor cadastrado ainda.</p>
+            }
+            @foreach (var fornecedor in Model.TopFornecedores)
+            {
+                <div class="settings-row"><div><h3>@fornecedor.Fornecedor</h3></div><span class="settings-value">@fornecedor.Quantidade produto(s)</span></div>
+            }
+        </div>
+        @if (Model.ProdutoMaisLucrativo is not null)
+        {
+            <div class="surface-card settings-card">
+                <span class="eyebrow">Margem</span>
+                <h2>Destaques</h2>
+                <div class="settings-row"><div><h3>Maior margem</h3><p>@Model.ProdutoMaisLucrativo</p></div><span class="status-positive">@Model.ProdutoMaisLucrativoPercentual?.ToString("0.00")%</span></div>
+                <div class="settings-row"><div><h3>Menor margem</h3><p>@Model.ProdutoMenosLucrativo</p></div><span class="settings-value">@Model.ProdutoMenosLucrativoPercentual?.ToString("0.00")%</span></div>
+            </div>
+        }
+    </aside>
+</div>
