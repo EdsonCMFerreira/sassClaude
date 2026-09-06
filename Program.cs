@@ -278,6 +278,11 @@ using (var scope = app.Services.CreateScope())
             db.Database.ExecuteSqlRaw("ALTER TABLE Clientes ADD COLUMN Site TEXT NOT NULL DEFAULT '';");
         }
 
+        if (!clienteColumns.Contains("Observacoes"))
+        {
+            db.Database.ExecuteSqlRaw("ALTER TABLE Clientes ADD COLUMN Observacoes TEXT NOT NULL DEFAULT '';");
+        }
+
         if (clienteColumns.Contains("Endereco") && !clienteColumns.Contains("CobrancaEndereco"))
         {
             db.Database.ExecuteSqlRaw("""
@@ -328,6 +333,11 @@ using (var scope = app.Services.CreateScope())
         if (!fornecedorColumns.Contains("Site"))
         {
             db.Database.ExecuteSqlRaw("ALTER TABLE Fornecedores ADD COLUMN Site TEXT NOT NULL DEFAULT '';");
+        }
+
+        if (!fornecedorColumns.Contains("Observacoes"))
+        {
+            db.Database.ExecuteSqlRaw("ALTER TABLE Fornecedores ADD COLUMN Observacoes TEXT NOT NULL DEFAULT '';");
         }
 
         db.Database.ExecuteSqlRaw("""

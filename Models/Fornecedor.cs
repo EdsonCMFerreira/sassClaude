@@ -51,6 +51,9 @@ public class Fornecedor
     [StringLength(2)]
     public string Uf { get; set; } = string.Empty;
 
+    [StringLength(1000)]
+    public string Observacoes { get; set; } = string.Empty;
+
     public DateTime? UltimaCompraData { get; set; }
 
     public decimal? UltimaCompraValor { get; set; }

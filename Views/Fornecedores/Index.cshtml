@@ -26,6 +26,7 @@
                 <div><label for="bairro">Bairro</label><input id="bairro" /></div>
                 <div><label for="cidade">Cidade</label><input id="cidade" /></div>
                 <div><label for="uf">UF</label><select id="uf"><option value="">Selecione...</option><option value="AC">AC - Acre</option><option value="AL">AL - Alagoas</option><option value="AP">AP - Amapá</option><option value="AM">AM - Amazonas</option><option value="BA">BA - Bahia</option><option value="CE">CE - Ceará</option><option value="DF">DF - Distrito Federal</option><option value="ES">ES - Espírito Santo</option><option value="GO">GO - Goiás</option><option value="MA">MA - Maranhão</option><option value="MT">MT - Mato Grosso</option><option value="MS">MS - Mato Grosso do Sul</option><option value="MG">MG - Minas Gerais</option><option value="PA">PA - Pará</option><option value="PB">PB - Paraíba</option><option value="PR">PR - Paraná</option><option value="PE">PE - Pernambuco</option><option value="PI">PI - Piauí</option><option value="RJ">RJ - Rio de Janeiro</option><option value="RN">RN - Rio Grande do Norte</option><option value="RS">RS - Rio Grande do Sul</option><option value="RO">RO - Rondônia</option><option value="RR">RR - Roraima</option><option value="SC">SC - Santa Catarina</option><option value="SP">SP - São Paulo</option><option value="SE">SE - Sergipe</option><option value="TO">TO - Tocantins</option></select></div>
+                <div class="field-full"><label for="observacoes">Observações</label><textarea id="observacoes" rows="3"></textarea></div>
                 <div class="user-form-actions"><button type="submit" class="button button-primary">Salvar</button><button type="button" id="cancelEdit" class="button button-outline hidden">Cancelar</button></div>
             </div>
         </form>
@@ -66,6 +67,7 @@
         const bairro = document.getElementById('bairro');
         const cidade = document.getElementById('cidade');
         const uf = document.getElementById('uf');
+        const observacoes = document.getElementById('observacoes');
         const cancelEdit = document.getElementById('cancelEdit');
         const tableBody = document.getElementById('fornecedorTableBody');
         const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
@@ -118,6 +120,7 @@
             bairro.value = data.bairro;
             cidade.value = data.cidade;
             uf.value = data.uf;
+            observacoes.value = data.observacoes;
             cancelEdit.classList.remove('hidden');
             nome.focus();
         }
@@ -150,7 +153,8 @@
                 complemento: complemento.value.trim(),
                 bairro: bairro.value.trim(),
                 cidade: cidade.value.trim(),
-                uf: uf.value.trim()
+                uf: uf.value.trim(),
+                observacoes: observacoes.value.trim()
             };
 
             const method = payload.id ? 'PUT' : 'POST';

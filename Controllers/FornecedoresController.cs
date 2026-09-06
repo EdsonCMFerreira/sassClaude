@@ -124,6 +124,7 @@ public class ApiFornecedoresController : ControllerBase
         fornecedor.Bairro = request.Bairro.Trim();
         fornecedor.Cidade = request.Cidade.Trim();
         fornecedor.Uf = request.Uf.Trim();
+        fornecedor.Observacoes = request.Observacoes.Trim();
         return fornecedor;
     }
 
@@ -133,15 +134,18 @@ public class ApiFornecedoresController : ControllerBase
             fornecedor.Id, fornecedor.Nome, fornecedor.TipoPessoa, fornecedor.CpfCnpj, fornecedor.ContatoResponsavel,
             fornecedor.Email, fornecedor.Site, fornecedor.Telefone, fornecedor.Cep, fornecedor.Endereco, fornecedor.Numero,
             fornecedor.Complemento, fornecedor.Bairro, fornecedor.Cidade, fornecedor.Uf,
+            fornecedor.Observacoes,
             fornecedor.UltimaCompraData, fornecedor.UltimaCompraValor, fornecedor.CreatedAt);
     }
 }
 
 public sealed record FornecedorRequest(
     string Nome, string TipoPessoa, string CpfCnpj, string ContatoResponsavel, string Email, string Site, string Telefone,
-    string Cep, string Endereco, string Numero, string Complemento, string Bairro, string Cidade, string Uf);
+    string Cep, string Endereco, string Numero, string Complemento, string Bairro, string Cidade, string Uf,
+    string Observacoes);
 
 public sealed record FornecedorResponse(
     int Id, string Nome, string TipoPessoa, string CpfCnpj, string ContatoResponsavel, string Email, string Site, string Telefone,
     string Cep, string Endereco, string Numero, string Complemento, string Bairro, string Cidade, string Uf,
+    string Observacoes,
     DateTime? UltimaCompraData, decimal? UltimaCompraValor, DateTime CreatedAt);

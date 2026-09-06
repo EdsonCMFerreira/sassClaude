@@ -130,6 +130,7 @@ public class ApiClientesController : ControllerBase
         cliente.EntregaBairro = request.EntregaBairro.Trim();
         cliente.EntregaCidade = request.EntregaCidade.Trim();
         cliente.EntregaUf = request.EntregaUf.Trim();
+        cliente.Observacoes = request.Observacoes.Trim();
         return cliente;
     }
 
@@ -141,6 +142,7 @@ public class ApiClientesController : ControllerBase
             cliente.CobrancaBairro, cliente.CobrancaCidade, cliente.CobrancaUf,
             cliente.EntregaCep, cliente.EntregaEndereco, cliente.EntregaNumero, cliente.EntregaComplemento,
             cliente.EntregaBairro, cliente.EntregaCidade, cliente.EntregaUf,
+            cliente.Observacoes,
             cliente.UltimaCompraData, cliente.UltimaCompraValor, cliente.CreatedAt);
     }
 }
@@ -150,7 +152,8 @@ public sealed record ClienteRequest(
     string CobrancaCep, string CobrancaEndereco, string CobrancaNumero, string CobrancaComplemento,
     string CobrancaBairro, string CobrancaCidade, string CobrancaUf,
     string EntregaCep, string EntregaEndereco, string EntregaNumero, string EntregaComplemento,
-    string EntregaBairro, string EntregaCidade, string EntregaUf);
+    string EntregaBairro, string EntregaCidade, string EntregaUf,
+    string Observacoes);
 
 public sealed record ClienteResponse(
     int Id, string Nome, string TipoPessoa, string CpfCnpj, string Email, string Site, string Telefone,
@@ -158,4 +161,5 @@ public sealed record ClienteResponse(
     string CobrancaBairro, string CobrancaCidade, string CobrancaUf,
     string EntregaCep, string EntregaEndereco, string EntregaNumero, string EntregaComplemento,
     string EntregaBairro, string EntregaCidade, string EntregaUf,
+    string Observacoes,
     DateTime? UltimaCompraData, decimal? UltimaCompraValor, DateTime CreatedAt);
