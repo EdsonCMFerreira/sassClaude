@@ -20,7 +20,12 @@
             <span class="eyebrow">Primeiro acesso</span>
             <h2>Crie sua conta</h2>
             <p class="muted">Leva menos de um minuto.</p>
+            @if (!string.IsNullOrWhiteSpace(Model.InviteToken))
+            {
+                <div class="settings-success">Você foi convidado para este workspace. Finalize seu cadastro abaixo.</div>
+            }
             <form asp-action="Register" method="post" class="auth-form">
+                <input asp-for="InviteToken" type="hidden" />
                 <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
                 <label asp-for="Username"></label>
                 <input asp-for="Username" autocomplete="username" placeholder="Como podemos chamar você?" autofocus />

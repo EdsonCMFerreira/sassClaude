@@ -18,20 +18,64 @@ public sealed class SmtpEmailSender : IEmailSender
 
     public async Task SendPasswordResetAsync(string recipient, string recipientName, string resetUrl, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(_options.Host) || string.IsNullOrWhiteSpace(_options.From))
+        if (!_options.IsConfigured)
         {
             _logger.LogWarning("SMTP não configurado. Link de recuperação para {Email}: {ResetUrl}", recipient, resetUrl);
             return;
         }
 
+        var html = $"<p>Olá, {System.Net.WebUtility.HtmlEncode(recipientName)}.</p><p>Recebemos uma solicitação para redefinir sua senha.</p><p><a href=\"{System.Net.WebUtility.HtmlEncode(resetUrl)}\">Redefinir minha senha</a></p><p>O link expira em 30 minutos. Se você não solicitou isso, ignore este e-mail.</p>";
+        await SendAsync(recipient, recipientName, "Redefinição de senha | sassClaude", html, cancellationToken);
+    }
+
+    public async Task SendEmailConfirmationAsync(string recipient, string recipientName, string confirmUrl, CancellationToken cancellationToken = default)
+    {
+        if (!_options.IsConfigured)
+        {
+            _logger.LogWarning("SMTP não configurado. Link de confirmação de e-mail para {Email}: {ConfirmUrl}", recipient, confirmUrl);
+            return;
+        }
+
+        var html = $"<p>Olá, {System.Net.WebUtility.HtmlEncode(recipientName)}.</p><p>Confirme seu e-mail para ativar sua conta no sassClaude.</p><p><a href=\"{System.Net.WebUtility.HtmlEncode(confirmUrl)}\">Confirmar meu e-mail</a></p><p>O link expira em 30 minutos.</p>";
+        await SendAsync(recipient, recipientName, "Confirme seu e-mail | sassClaude", html, cancellationToken);
+    }
+
+    public async Task SendWorkspaceInviteAsync(string recipient, string inviterName, string acceptUrl, CancellationToken cancellationToken = default)
+    {
+        if (!_options.IsConfigured)
+        {
+            _logger.LogWarning("SMTP não configurado. Link de convite para {Email}: {AcceptUrl}", recipient, acceptUrl);
+            return;
+        }
+
+        var html = $"<p>{System.Net.WebUtility.HtmlEncode(inviterName)} convidou você para o workspace no sassClaude.</p><p><a href=\"{System.Net.WebUtility.HtmlEncode(acceptUrl)}\">Aceitar convite e criar conta</a></p><p>O convite expira em 7 dias.</p>";
+        await SendAsync(recipient, recipient, "Você foi convidado para um workspace | sassClaude", html, cancellationToken);
+    }
+
+    public async Task SendContactMessageAsync(string senderName, string senderEmail, string message, CancellationToken cancellationToken = default)
+    {
+        if (!_options.IsConfigured)
+        {
+            _logger.LogWarning("SMTP não configurado. Mensagem de contato de {Name} <{Email}>: {Message}", senderName, senderEmail, message);
+            return;
+        }
+
+        var html = $"<p>Nova mensagem de contato de {System.Net.WebUtility.HtmlEncode(senderName)} ({System.Net.WebUtility.HtmlEncode(senderEmail)}):</p><p>{System.Net.WebUtility.HtmlEncode(message)}</p>";
+        await SendAsync(_options.From, "Suporte sassClaude", "Nova mensagem de contato | sassClaude", html, cancellationToken, replyTo: senderEmail);
+    }
+
+    private async Task SendAsync(string recipient, string recipientName, string subject, string html, CancellationToken cancellationToken, string? replyTo = null)
+    {
         var message = new MimeMessage();
         message.From.Add(MailboxAddress.Parse(_options.From));
         message.To.Add(new MailboxAddress(recipientName, recipient));
-        message.Subject = "Redefinição de senha | sassClaude";
-        message.Body = new BodyBuilder
+        if (!string.IsNullOrWhiteSpace(replyTo))
         {
-            HtmlBody = $"<p>Olá, {System.Net.WebUtility.HtmlEncode(recipientName)}.</p><p>Recebemos uma solicitação para redefinir sua senha.</p><p><a href=\"{System.Net.WebUtility.HtmlEncode(resetUrl)}\">Redefinir minha senha</a></p><p>O link expira em 30 minutos. Se você não solicitou isso, ignore este e-mail.</p>"
-        }.ToMessageBody();
+            message.ReplyTo.Add(MailboxAddress.Parse(replyTo));
+        }
+
+        message.Subject = subject;
+        message.Body = new BodyBuilder { HtmlBody = html }.ToMessageBody();
 
         using var smtp = new SmtpClient();
         await smtp.ConnectAsync(_options.Host, _options.Port, SecureSocketOptions.StartTls, cancellationToken);

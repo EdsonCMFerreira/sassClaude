@@ -55,6 +55,10 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+app.UseWhen(
+    context => !context.Request.Path.StartsWithSegments("/api"),
+    branch => branch.UseStatusCodePagesWithReExecute("/Home/PageNotFound"));
+
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
@@ -82,6 +86,59 @@ using (var scope = app.Services.CreateScope())
             );
             CREATE UNIQUE INDEX IF NOT EXISTS IX_PasswordResetTokens_TokenHash ON PasswordResetTokens (TokenHash);
             """);
+        db.Database.ExecuteSqlRaw("""
+            CREATE TABLE IF NOT EXISTS EmailVerificationTokens (
+                Id INTEGER NOT NULL CONSTRAINT PK_EmailVerificationTokens PRIMARY KEY AUTOINCREMENT,
+                LoginId INTEGER NOT NULL,
+                TokenHash TEXT NOT NULL,
+                ExpiresAt TEXT NOT NULL,
+                UsedAt TEXT NULL,
+                CONSTRAINT FK_EmailVerificationTokens_Logins_LoginId FOREIGN KEY (LoginId) REFERENCES Logins (Id) ON DELETE CASCADE
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS IX_EmailVerificationTokens_TokenHash ON EmailVerificationTokens (TokenHash);
+            """);
+        db.Database.ExecuteSqlRaw("""
+            CREATE TABLE IF NOT EXISTS WorkspaceInvites (
+                Id INTEGER NOT NULL CONSTRAINT PK_WorkspaceInvites PRIMARY KEY AUTOINCREMENT,
+                Email TEXT NOT NULL,
+                TokenHash TEXT NOT NULL,
+                InvitedByLoginId INTEGER NOT NULL,
+                CreatedAt TEXT NOT NULL,
+                ExpiresAt TEXT NOT NULL,
+                AcceptedAt TEXT NULL,
+                CONSTRAINT FK_WorkspaceInvites_Logins_InvitedByLoginId FOREIGN KEY (InvitedByLoginId) REFERENCES Logins (Id) ON DELETE CASCADE
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS IX_WorkspaceInvites_TokenHash ON WorkspaceInvites (TokenHash);
+            """);
+        db.Database.ExecuteSqlRaw("""
+            CREATE TABLE IF NOT EXISTS Invoices (
+                Id INTEGER NOT NULL CONSTRAINT PK_Invoices PRIMARY KEY AUTOINCREMENT,
+                LoginId INTEGER NOT NULL,
+                IssuedAt TEXT NOT NULL,
+                Amount TEXT NOT NULL,
+                Status TEXT NOT NULL,
+                Description TEXT NOT NULL,
+                CONSTRAINT FK_Invoices_Logins_LoginId FOREIGN KEY (LoginId) REFERENCES Logins (Id) ON DELETE CASCADE
+            );
+            """);
+
+        var loginColumns = new List<string>();
+        using (var command = db.Database.GetDbConnection().CreateCommand())
+        {
+            command.CommandText = "PRAGMA table_info(Logins);";
+            db.Database.OpenConnection();
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                loginColumns.Add(reader.GetString(reader.GetOrdinal("name")));
+            }
+        }
+
+        if (!loginColumns.Contains("EmailConfirmed"))
+        {
+            db.Database.ExecuteSqlRaw("ALTER TABLE Logins ADD COLUMN EmailConfirmed INTEGER NOT NULL DEFAULT 0;");
+        }
+
         var passwordHasher = new PasswordHasher<Login>();
         var usersWithPlaintextPasswords = db.Logins
             .ToList();

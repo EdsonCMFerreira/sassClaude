@@ -19,12 +19,14 @@ public class AccountController : Controller
     private readonly PasswordHasher<Login> _passwordHasher = new();
     private readonly IEmailSender _emailSender;
     private readonly EmailOptions _emailOptions;
+    private readonly ILogger<AccountController> _logger;
 
-    public AccountController(SassDbContext context, IEmailSender emailSender, IOptions<EmailOptions> emailOptions)
+    public AccountController(SassDbContext context, IEmailSender emailSender, IOptions<EmailOptions> emailOptions, ILogger<AccountController> logger)
     {
         _context = context;
         _emailSender = emailSender;
         _emailOptions = emailOptions.Value;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -68,14 +70,25 @@ public class AccountController : Controller
     }
 
     [HttpGet]
-    public IActionResult Register()
+    public async Task<IActionResult> Register(string? invite = null, CancellationToken cancellationToken = default)
     {
         if (User.Identity?.IsAuthenticated == true)
         {
             return RedirectToAction("Index", "Dashboard");
         }
 
-        return View(new RegisterViewModel());
+        var model = new RegisterViewModel();
+        if (!string.IsNullOrWhiteSpace(invite))
+        {
+            var pendingInvite = await FindValidInvite(invite, cancellationToken);
+            if (pendingInvite is not null)
+            {
+                model.Email = pendingInvite.Email;
+                model.InviteToken = invite;
+            }
+        }
+
+        return View(model);
     }
 
     [HttpGet]
@@ -157,7 +170,7 @@ public class AccountController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Register(RegisterViewModel model)
+    public async Task<IActionResult> Register(RegisterViewModel model, CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid)
         {
@@ -184,10 +197,84 @@ public class AccountController : Controller
         login.Password = _passwordHasher.HashPassword(login, model.Password);
 
         _context.Logins.Add(login);
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken);
+
+        if (!string.IsNullOrWhiteSpace(model.InviteToken))
+        {
+            var pendingInvite = await FindValidInvite(model.InviteToken, cancellationToken);
+            if (pendingInvite is not null)
+            {
+                pendingInvite.AcceptedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+        }
+
+        try
+        {
+            await SendEmailConfirmation(login, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Falha ao enviar e-mail de confirmação para {Email}.", login.Email);
+        }
+
         await SignIn(login);
 
         return RedirectToAction("Index", "Dashboard");
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ConfirmEmail(string token, CancellationToken cancellationToken)
+    {
+        var verification = await FindValidVerificationToken(token, cancellationToken);
+        if (verification is null)
+        {
+            return View("EmailConfirmationInvalid");
+        }
+
+        verification.Login.EmailConfirmed = true;
+        verification.UsedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync(cancellationToken);
+        return View("EmailConfirmed");
+    }
+
+    private async Task SendEmailConfirmation(Login login, CancellationToken cancellationToken)
+    {
+        var rawToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48));
+        _context.EmailVerificationTokens.Add(new EmailVerificationToken
+        {
+            LoginId = login.Id,
+            TokenHash = HashToken(rawToken),
+            ExpiresAt = DateTime.UtcNow.AddMinutes(30)
+        });
+        await _context.SaveChangesAsync(cancellationToken);
+
+        var confirmPath = Url.Action(nameof(ConfirmEmail), "Account", new { token = rawToken })!;
+        var baseUrl = string.IsNullOrWhiteSpace(_emailOptions.BaseUrl)
+            ? $"{Request.Scheme}://{Request.Host}"
+            : _emailOptions.BaseUrl.TrimEnd('/');
+        var confirmUrl = $"{baseUrl}{confirmPath}";
+        await _emailSender.SendEmailConfirmationAsync(login.Email, login.Username, confirmUrl, cancellationToken);
+    }
+
+    private async Task<WorkspaceInvite?> FindValidInvite(string rawToken, CancellationToken cancellationToken)
+    {
+        var invite = await _context.WorkspaceInvites
+            .SingleOrDefaultAsync(item => item.TokenHash == HashToken(rawToken) && item.AcceptedAt == null, cancellationToken);
+        return invite is not null && invite.ExpiresAt > DateTime.UtcNow ? invite : null;
+    }
+
+    private async Task<EmailVerificationToken?> FindValidVerificationToken(string rawToken, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(rawToken))
+        {
+            return null;
+        }
+
+        var token = await _context.EmailVerificationTokens
+            .Include(item => item.Login)
+            .SingleOrDefaultAsync(item => item.TokenHash == HashToken(rawToken) && item.UsedAt == null, cancellationToken);
+        return token is not null && token.ExpiresAt > DateTime.UtcNow ? token : null;
     }
 
     [HttpPost]

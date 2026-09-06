@@ -1,0 +1,55 @@
+@model WorkspaceInvitePageViewModel
+@{
+    ViewData["Title"] = "Convidar membros";
+}
+<div class="page-heading"><div><span class="eyebrow">Workspace</span><h1>Convide seu time.</h1><p class="muted">Envie um convite por e-mail para adicionar alguém ao workspace.</p></div></div>
+@if (TempData["SettingsMessage"] is string message)
+{
+    <div class="settings-success">@message</div>
+}
+<div class="surface-card settings-card">
+    <div class="section-heading"><div><h2>Novo convite</h2><p class="muted">A pessoa recebe um link para criar a própria conta.</p></div></div>
+    <form asp-controller="Workspace" asp-action="Invite" method="post" class="settings-form">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+        <div class="field-row"><label asp-for="Form.Email"></label><input asp-for="Form.Email" placeholder="colega@empresa.com" /><span asp-validation-for="Form.Email" class="field-error"></span></div>
+        <div class="settings-actions"><button class="button button-primary" type="submit">Enviar convite</button></div>
+    </form>
+</div>
+<div class="surface-card users-card">
+    <div class="section-heading"><div><h2>Convites enviados</h2><p class="muted">Acompanhe quem ainda não aceitou.</p></div></div>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead class="table-light"><tr><th>E-mail</th><th>Enviado em</th><th>Expira em</th><th>Status</th></tr></thead>
+            <tbody>
+                @if (!Model.Invites.Any())
+                {
+                    <tr><td colspan="4" class="muted">Nenhum convite enviado ainda.</td></tr>
+                }
+                @foreach (var invite in Model.Invites)
+                {
+                    <tr>
+                        <td>@invite.Email</td>
+                        <td>@invite.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>@invite.ExpiresAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>
+                            @if (invite.Accepted)
+                            {
+                                <span class="status-positive">Aceito</span>
+                            }
+                            else if (invite.ExpiresAt < DateTime.UtcNow)
+                            {
+                                <span class="muted">Expirado</span>
+                            }
+                            else
+                            {
+                                <span class="muted">Pendente</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

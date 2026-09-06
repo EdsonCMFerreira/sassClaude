@@ -1,8 +1,37 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@{
+    ViewData["Title"] = "sassClaude — Organize seu negócio";
+    Layout = "_MarketingLayout";
 }
-
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<section class="hero">
+    <div class="hero-copy">
+        <span class="eyebrow">Workspace inteligente</span>
+        <h1>Organize sua operação em um só lugar.</h1>
+        <p>O sassClaude reúne usuários, projetos e cobrança em um workspace simples, seguro e pronto para crescer com o seu time.</p>
+        <div class="hero-actions">
+            <a class="button button-primary" asp-controller="Account" asp-action="Register">Criar conta grátis <span>→</span></a>
+            <a class="button button-outline" asp-controller="Account" asp-action="Login">Entrar</a>
+        </div>
+    </div>
+    <div class="hero-panel">
+        <span class="eyebrow">Painel em tempo real</span>
+        <h2>Tudo sob controle.</h2>
+        <p>Métricas do seu workspace, sempre visíveis.</p>
+        <div class="hero-stats">
+            <div><strong>128</strong><span>usuários ativos</span></div>
+            <div><strong>99,9%</strong><span>uptime</span></div>
+        </div>
+    </div>
+</section>
+<section class="feature-section">
+    <div class="section-heading"><div><span class="eyebrow">Recursos</span><h2>Feito para o dia a dia do seu time.</h2></div></div>
+    <div class="feature-grid">
+        <article class="feature-card"><div class="feature-icon">✓</div><h3>Cadastro de usuários</h3><p class="muted">Gerencie contas e acessos com segurança, com senhas sempre protegidas.</p></article>
+        <article class="feature-card"><div class="feature-icon">⚙</div><h3>Workspace organizado</h3><p class="muted">Centralize projetos e informações importantes em um só espaço.</p></article>
+        <article class="feature-card"><div class="feature-icon">$</div><h3>Cobrança simples</h3><p class="muted">Acompanhe plano e uso sem complicação, direto do painel.</p></article>
+    </div>
+</section>
+<section class="cta-band">
+    <h2>Pronto para organizar seu workspace?</h2>
+    <p>Crie sua conta gratuitamente e comece agora mesmo.</p>
+    <a class="button button-primary" asp-controller="Account" asp-action="Register">Criar conta grátis <span>→</span></a>
+</section>

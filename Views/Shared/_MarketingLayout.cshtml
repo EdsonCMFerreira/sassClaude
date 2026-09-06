@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - sassClaude</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <header class="marketing-header">
+        <nav class="marketing-nav">
+            <a class="brand-lockup" asp-controller="Home" asp-action="Index"><span class="brand-mark">s</span> sassClaude</a>
+            <div class="marketing-nav-links">
+                <a asp-controller="Home" asp-action="Pricing">Preços</a>
+                <a asp-controller="Home" asp-action="Help">Ajuda</a>
+                <a asp-controller="Home" asp-action="About">Contato</a>
+            </div>
+            <div class="marketing-actions">
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <a class="button button-primary" asp-controller="Dashboard" asp-action="Index">Ir para o painel <span>→</span></a>
+                }
+                else
+                {
+                    <a asp-controller="Account" asp-action="Login">Entrar</a>
+                    <a class="button button-primary" asp-controller="Account" asp-action="Register">Criar conta</a>
+                }
+            </div>
+        </nav>
+    </header>
+    <main class="marketing-main">
+        @RenderBody()
+    </main>
+    <footer class="marketing-footer">
+        <div>
+            <span>© 2026 sassClaude</span>
+            <div class="footer-links">
+                <a asp-controller="Home" asp-action="Pricing">Preços</a>
+                <a asp-controller="Home" asp-action="Help">Ajuda</a>
+                <a asp-controller="Home" asp-action="Terms">Termos</a>
+                <a asp-controller="Home" asp-action="Privacy">Privacidade</a>
+            </div>
+        </div>
+    </footer>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

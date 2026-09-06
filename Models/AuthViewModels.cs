@@ -37,6 +37,8 @@ public sealed class RegisterViewModel
     [DataType(DataType.Password)]
     [Display(Name = "Confirmar senha")]
     public string ConfirmPassword { get; set; } = string.Empty;
+
+    public string? InviteToken { get; set; }
 }
 
 public sealed class ForgotPasswordViewModel
