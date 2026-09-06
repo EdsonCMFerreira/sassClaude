@@ -102,6 +102,15 @@
             fornecedorNome.value = produto ? produto.fornecedorNome : '';
         }
 
+        function onProductSelected() {
+            const produto = allProducts.find(item => item.id === Number(productId.value));
+            fornecedorNome.value = produto ? produto.fornecedorNome : '';
+            if (produto) {
+                valorUnitario.value = produto.valorVenda;
+            }
+            updateValorTotalPreview();
+        }
+
         async function loadVendas() {
             const response = await fetch('/api/vendas');
             if (!response.ok) {
@@ -212,7 +221,7 @@
 
         quantidade.addEventListener('input', updateValorTotalPreview);
         valorUnitario.addEventListener('input', updateValorTotalPreview);
-        productId.addEventListener('change', updateFornecedorPreview);
+        productId.addEventListener('change', onProductSelected);
 
         Promise.all([loadClientesOptions(), loadProductsOptions()])
             .then(loadVendas)
