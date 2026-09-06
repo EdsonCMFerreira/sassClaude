@@ -24,10 +24,15 @@
                 <a asp-controller="Vendas" asp-action="Index">Vendas</a>
                 @if (User.IsInRole("Admin"))
                 {
-                    <a asp-controller="Login" asp-action="Index">Usuários</a>
-                    <a asp-controller="Billing" asp-action="Index">Plano</a>
-                    <a asp-controller="Financeiro" asp-action="Index">Financeiro</a>
-                    <a asp-controller="AuditLog" asp-action="Index">Auditoria</a>
+                    <div class="nav-dropdown">
+                        <button type="button" class="nav-dropdown-toggle" onclick="this.closest('.nav-dropdown').classList.toggle('open')">Administração <span class="nav-dropdown-caret">▾</span></button>
+                        <div class="nav-dropdown-menu">
+                            <a asp-controller="Login" asp-action="Index">Usuários</a>
+                            <a asp-controller="Billing" asp-action="Index">Plano</a>
+                            <a asp-controller="Financeiro" asp-action="Index">Financeiro</a>
+                            <a asp-controller="AuditLog" asp-action="Index">Auditoria</a>
+                        </div>
+                    </div>
                 }
             </div>
             <div class="app-nav-actions">
