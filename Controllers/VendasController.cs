@@ -173,6 +173,11 @@ public class ApiVendasController : ControllerBase
             return BadRequest("Selecione um produto válido.");
         }
 
+        if (request.Quantidade > product.Saldo)
+        {
+            return BadRequest($"Estoque insuficiente. Saldo disponível de \"{product.Descricao}\": {product.Saldo}.");
+        }
+
         var venda = new Venda
         {
             Cliente = cliente,
@@ -225,6 +230,14 @@ public class ApiVendasController : ControllerBase
         var clienteAnteriorId = existing.ClienteId;
         var produtoAnteriorId = existing.ProductId;
         var quantidadeAnterior = existing.Quantidade;
+
+        var saldoDisponivel = produtoAnteriorId == product.Id
+            ? product.Saldo + quantidadeAnterior
+            : product.Saldo;
+        if (request.Quantidade > saldoDisponivel)
+        {
+            return BadRequest($"Estoque insuficiente. Saldo disponível de \"{product.Descricao}\": {saldoDisponivel}.");
+        }
 
         existing.Cliente = cliente;
         existing.Product = product;

@@ -15,6 +15,7 @@
                 <div><label for="clienteId">Cliente</label><select id="clienteId" required><option value="">Selecione...</option></select></div>
                 <div><label for="productId">Produto</label><select id="productId" required><option value="">Selecione...</option></select></div>
                 <div><label for="fornecedorNome">Fornecedor</label><input id="fornecedorNome" type="text" readonly disabled /></div>
+                <div><label for="saldoDisponivel">Saldo disponível</label><input id="saldoDisponivel" type="text" readonly disabled /></div>
                 <div><label for="quantidade">Quantidade</label><input id="quantidade" type="number" min="1" step="1" value="1" required /></div>
                 <div><label for="valorUnitario">Valor unitário</label><input id="valorUnitario" type="number" step="0.01" min="0" required /></div>
                 <div><label for="valorTotal">Valor total</label><input id="valorTotal" type="text" readonly disabled /></div>
@@ -54,6 +55,7 @@
         const clienteId = document.getElementById('clienteId');
         const productId = document.getElementById('productId');
         const fornecedorNome = document.getElementById('fornecedorNome');
+        const saldoDisponivel = document.getElementById('saldoDisponivel');
         const quantidade = document.getElementById('quantidade');
         const valorUnitario = document.getElementById('valorUnitario');
         const valorTotal = document.getElementById('valorTotal');
@@ -66,6 +68,8 @@
         const tableBody = document.getElementById('vendaTableBody');
         const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
         let allProducts = [];
+        let produtoEmEdicaoId = 0;
+        let quantidadeEmEdicao = 0;
 
         function formatCurrency(value) {
             return Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -102,12 +106,24 @@
             fornecedorNome.value = produto ? produto.fornecedorNome : '';
         }
 
+        function updateSaldoDisponivelPreview() {
+            const produto = allProducts.find(item => item.id === Number(productId.value));
+            if (!produto) {
+                saldoDisponivel.value = '';
+                return;
+            }
+
+            const efetivo = produto.id === produtoEmEdicaoId ? produto.saldo + quantidadeEmEdicao : produto.saldo;
+            saldoDisponivel.value = `${efetivo} unidade(s)`;
+        }
+
         function onProductSelected() {
             const produto = allProducts.find(item => item.id === Number(productId.value));
             fornecedorNome.value = produto ? produto.fornecedorNome : '';
             if (produto) {
                 valorUnitario.value = produto.valorVenda;
             }
+            updateSaldoDisponivelPreview();
             updateValorTotalPreview();
         }
 
@@ -150,7 +166,10 @@
             vendaId.value = data.id;
             clienteId.value = data.clienteId;
             productId.value = data.productId;
+            produtoEmEdicaoId = data.productId;
+            quantidadeEmEdicao = data.quantidade;
             updateFornecedorPreview();
+            updateSaldoDisponivelPreview();
             quantidade.value = data.quantidade;
             valorUnitario.value = data.valorUnitario;
             dataVenda.value = data.dataVenda.slice(0, 10);
@@ -203,6 +222,9 @@
                 vendaId.value = '';
                 valorTotal.value = '';
                 fornecedorNome.value = '';
+                saldoDisponivel.value = '';
+                produtoEmEdicaoId = 0;
+                quantidadeEmEdicao = 0;
                 cancelEdit.classList.add('hidden');
                 await loadVendas();
             } else {
@@ -216,6 +238,9 @@
             vendaId.value = '';
             valorTotal.value = '';
             fornecedorNome.value = '';
+            saldoDisponivel.value = '';
+            produtoEmEdicaoId = 0;
+            quantidadeEmEdicao = 0;
             cancelEdit.classList.add('hidden');
         });
 
