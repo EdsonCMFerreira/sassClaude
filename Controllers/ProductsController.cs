@@ -20,7 +20,7 @@ public class ProductsController : Controller
 
     public async Task<IActionResult> Dashboard()
     {
-        var products = await _context.Products.ToListAsync();
+        var products = await _context.Products.Include(x => x.Fornecedor).ToListAsync();
         var today = DateTime.UtcNow.Date;
         var in30Days = today.AddDays(30);
 
@@ -48,7 +48,7 @@ public class ProductsController : Controller
                 .Select(p => new ProductExpiryRow(p.Codigo, p.Descricao, p.Validade, (p.Validade.Date - today).Days))
                 .ToList(),
             TopFornecedores = products
-                .GroupBy(p => p.Fornecedor)
+                .GroupBy(p => p.Fornecedor?.Nome ?? "—")
                 .Select(g => new SupplierBreakdownRow(g.Key, g.Count()))
                 .OrderByDescending(x => x.Quantidade)
                 .Take(5)
@@ -78,14 +78,14 @@ public class ApiProductsController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ProductResponse>>> GetProducts()
     {
-        var products = await _context.Products.OrderBy(x => x.Codigo).ToListAsync();
+        var products = await _context.Products.Include(x => x.Fornecedor).OrderBy(x => x.Codigo).ToListAsync();
         return products.Select(ToResponse).ToList();
     }
 
     [HttpGet("{id:int}")]
     public async Task<ActionResult<ProductResponse>> GetProduct(int id)
     {
-        var product = await _context.Products.FindAsync(id);
+        var product = await _context.Products.Include(x => x.Fornecedor).FirstOrDefaultAsync(x => x.Id == id);
         if (product is null)
         {
             return NotFound();
@@ -98,11 +98,15 @@ public class ApiProductsController : ControllerBase
     [ValidateAntiForgeryToken]
     public async Task<ActionResult<ProductResponse>> PostProduct(ProductRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Codigo) ||
-            string.IsNullOrWhiteSpace(request.Descricao) ||
-            string.IsNullOrWhiteSpace(request.Fornecedor))
+        if (string.IsNullOrWhiteSpace(request.Codigo) || string.IsNullOrWhiteSpace(request.Descricao))
         {
-            return BadRequest("Código, descrição e fornecedor são obrigatórios.");
+            return BadRequest("Código e descrição são obrigatórios.");
+        }
+
+        var fornecedor = await _context.Fornecedores.FindAsync(request.FornecedorId);
+        if (fornecedor is null)
+        {
+            return BadRequest("Selecione um fornecedor válido.");
         }
 
         var codigo = request.Codigo.Trim();
@@ -119,7 +123,7 @@ public class ApiProductsController : ControllerBase
             Validade = request.Validade,
             ValorCompra = request.ValorCompra,
             ValorVenda = request.ValorVenda,
-            Fornecedor = request.Fornecedor.Trim(),
+            Fornecedor = fornecedor,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -139,11 +143,15 @@ public class ApiProductsController : ControllerBase
             return NotFound();
         }
 
-        if (string.IsNullOrWhiteSpace(request.Codigo) ||
-            string.IsNullOrWhiteSpace(request.Descricao) ||
-            string.IsNullOrWhiteSpace(request.Fornecedor))
+        if (string.IsNullOrWhiteSpace(request.Codigo) || string.IsNullOrWhiteSpace(request.Descricao))
         {
-            return BadRequest("Código, descrição e fornecedor são obrigatórios.");
+            return BadRequest("Código e descrição são obrigatórios.");
+        }
+
+        var fornecedor = await _context.Fornecedores.FindAsync(request.FornecedorId);
+        if (fornecedor is null)
+        {
+            return BadRequest("Selecione um fornecedor válido.");
         }
 
         var codigo = request.Codigo.Trim();
@@ -158,7 +166,7 @@ public class ApiProductsController : ControllerBase
         existing.Validade = request.Validade;
         existing.ValorCompra = request.ValorCompra;
         existing.ValorVenda = request.ValorVenda;
-        existing.Fornecedor = request.Fornecedor.Trim();
+        existing.Fornecedor = fornecedor;
 
         await _context.SaveChangesAsync();
         return NoContent();
@@ -193,11 +201,12 @@ public class ApiProductsController : ControllerBase
             product.ValorCompra,
             product.ValorVenda,
             percentualLucro,
-            product.Fornecedor,
+            product.FornecedorId ?? 0,
+            product.Fornecedor?.Nome ?? "—",
             product.CreatedAt);
     }
 }
 
-public sealed record ProductRequest(string Codigo, string Descricao, DateTime Validade, decimal ValorCompra, decimal ValorVenda, string Fornecedor);
+public sealed record ProductRequest(string Codigo, string Descricao, DateTime Validade, decimal ValorCompra, decimal ValorVenda, int FornecedorId);
 
-public sealed record ProductResponse(int Id, string Codigo, string Descricao, DateTime Validade, decimal ValorCompra, decimal ValorVenda, decimal PercentualLucro, string Fornecedor, DateTime CreatedAt);
+public sealed record ProductResponse(int Id, string Codigo, string Descricao, DateTime Validade, decimal ValorCompra, decimal ValorVenda, decimal PercentualLucro, int FornecedorId, string FornecedorNome, DateTime CreatedAt);

@@ -114,6 +114,7 @@ public class ApiClientesController : ControllerBase
         cliente.TipoPessoa = request.TipoPessoa.Trim();
         cliente.CpfCnpj = request.CpfCnpj.Trim();
         cliente.Email = request.Email.Trim();
+        cliente.Site = request.Site.Trim();
         cliente.Telefone = request.Telefone.Trim();
         cliente.Cep = request.Cep.Trim();
         cliente.Endereco = request.Endereco.Trim();
@@ -130,18 +131,18 @@ public class ApiClientesController : ControllerBase
     private static ClienteResponse ToResponse(Cliente cliente)
     {
         return new ClienteResponse(
-            cliente.Id, cliente.Nome, cliente.TipoPessoa, cliente.CpfCnpj, cliente.Email, cliente.Telefone,
+            cliente.Id, cliente.Nome, cliente.TipoPessoa, cliente.CpfCnpj, cliente.Email, cliente.Site, cliente.Telefone,
             cliente.Cep, cliente.Endereco, cliente.Numero, cliente.Complemento, cliente.Bairro, cliente.Cidade, cliente.Uf,
             cliente.UltimaCompraData, cliente.UltimaCompraValor, cliente.CreatedAt);
     }
 }
 
 public sealed record ClienteRequest(
-    string Nome, string TipoPessoa, string CpfCnpj, string Email, string Telefone,
+    string Nome, string TipoPessoa, string CpfCnpj, string Email, string Site, string Telefone,
     string Cep, string Endereco, string Numero, string Complemento, string Bairro, string Cidade, string Uf,
     DateTime? UltimaCompraData, decimal? UltimaCompraValor);
 
 public sealed record ClienteResponse(
-    int Id, string Nome, string TipoPessoa, string CpfCnpj, string Email, string Telefone,
+    int Id, string Nome, string TipoPessoa, string CpfCnpj, string Email, string Site, string Telefone,
     string Cep, string Endereco, string Numero, string Complemento, string Bairro, string Cidade, string Uf,
     DateTime? UltimaCompraData, decimal? UltimaCompraValor, DateTime CreatedAt);

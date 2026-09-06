@@ -19,7 +19,7 @@
                 <div><label for="valorCompra">Valor de compra</label><input id="valorCompra" type="number" step="0.01" min="0" required /></div>
                 <div><label for="valorVenda">Valor de venda</label><input id="valorVenda" type="number" step="0.01" min="0" required /></div>
                 <div><label for="percentualLucro">% de lucro</label><input id="percentualLucro" type="text" readonly disabled /></div>
-                <div><label for="fornecedor">Fornecedor</label><input id="fornecedor" required /></div>
+                <div><label for="fornecedorId">Fornecedor</label><select id="fornecedorId" required><option value="">Selecione...</option></select></div>
                 <div class="user-form-actions"><button type="submit" class="button button-primary">Salvar</button><button type="button" id="cancelEdit" class="button button-outline hidden">Cancelar</button></div>
             </div>
         </form>
@@ -54,7 +54,7 @@
         const valorCompra = document.getElementById('valorCompra');
         const valorVenda = document.getElementById('valorVenda');
         const percentualLucro = document.getElementById('percentualLucro');
-        const fornecedor = document.getElementById('fornecedor');
+        const fornecedorId = document.getElementById('fornecedorId');
         const cancelEdit = document.getElementById('cancelEdit');
         const tableBody = document.getElementById('productTableBody');
         const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
@@ -81,6 +81,18 @@
             percentualLucro.value = formatPercent(calcularLucro(compra, venda));
         }
 
+        async function loadFornecedoresOptions() {
+            const response = await fetch('/api/fornecedores');
+            if (!response.ok) {
+                throw new Error('Erro ao carregar fornecedores.');
+            }
+
+            const data = await response.json();
+            fornecedorId.innerHTML = '<option value="">Selecione...</option>' + data.map(item =>
+                `<option value="${item.id}">${item.nome} — ${item.cpfCnpj}</option>`
+            ).join('');
+        }
+
         async function loadProducts() {
             const response = await fetch('/api/products');
             if (!response.ok) {
@@ -96,7 +108,7 @@
                     <td>${formatCurrency(item.valorCompra)}</td>
                     <td>${formatCurrency(item.valorVenda)}</td>
                     <td>${formatPercent(item.percentualLucro)}</td>
-                    <td>${item.fornecedor}</td>
+                    <td>${item.fornecedorNome}</td>
                     <td>
                         <button class="table-action" data-edit="${item.id}">Editar</button>
                         <button class="table-action danger" data-delete="${item.id}">Excluir</button>
@@ -122,7 +134,7 @@
             validade.value = data.validade.slice(0, 10);
             valorCompra.value = data.valorCompra;
             valorVenda.value = data.valorVenda;
-            fornecedor.value = data.fornecedor;
+            fornecedorId.value = data.fornecedorId;
             updateLucroPreview();
             cancelEdit.classList.remove('hidden');
             codigo.focus();
@@ -148,7 +160,7 @@
                 validade: validade.value,
                 valorCompra: Number(valorCompra.value),
                 valorVenda: Number(valorVenda.value),
-                fornecedor: fornecedor.value.trim()
+                fornecedorId: Number(fornecedorId.value)
             };
 
             const method = payload.id ? 'PUT' : 'POST';
@@ -182,6 +194,8 @@
         valorCompra.addEventListener('input', updateLucroPreview);
         valorVenda.addEventListener('input', updateLucroPreview);
 
-        loadProducts().catch(error => console.error(error));
+        loadFornecedoresOptions()
+            .then(loadProducts)
+            .catch(error => console.error(error));
     </script>
 }

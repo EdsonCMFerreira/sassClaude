@@ -24,6 +24,9 @@ public class Fornecedor
     [StringLength(150)]
     public string Email { get; set; } = string.Empty;
 
+    [StringLength(200)]
+    public string Site { get; set; } = string.Empty;
+
     [StringLength(20)]
     public string Telefone { get; set; } = string.Empty;
 

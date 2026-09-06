@@ -164,6 +164,7 @@ using (var scope = app.Services.CreateScope())
                 TipoPessoa TEXT NOT NULL,
                 CpfCnpj TEXT NOT NULL,
                 Email TEXT NOT NULL,
+                Site TEXT NOT NULL,
                 Telefone TEXT NOT NULL,
                 Cep TEXT NOT NULL,
                 Endereco TEXT NOT NULL,
@@ -186,6 +187,7 @@ using (var scope = app.Services.CreateScope())
                 CpfCnpj TEXT NOT NULL,
                 ContatoResponsavel TEXT NOT NULL,
                 Email TEXT NOT NULL,
+                Site TEXT NOT NULL,
                 Telefone TEXT NOT NULL,
                 Cep TEXT NOT NULL,
                 Endereco TEXT NOT NULL,
@@ -200,6 +202,94 @@ using (var scope = app.Services.CreateScope())
             );
             CREATE UNIQUE INDEX IF NOT EXISTS IX_Fornecedores_CpfCnpj ON Fornecedores (CpfCnpj);
             """);
+
+        var productColumnsAfterFornecedores = new List<string>();
+        using (var command = db.Database.GetDbConnection().CreateCommand())
+        {
+            command.CommandText = "PRAGMA table_info(Products);";
+            db.Database.OpenConnection();
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                productColumnsAfterFornecedores.Add(reader.GetString(reader.GetOrdinal("name")));
+            }
+        }
+
+        if (!productColumnsAfterFornecedores.Contains("FornecedorId"))
+        {
+            db.Database.ExecuteSqlRaw("ALTER TABLE Products ADD COLUMN FornecedorId INTEGER NULL;");
+        }
+
+        if (productColumnsAfterFornecedores.Contains("Fornecedor"))
+        {
+            var legacyFornecedorNames = new List<string>();
+            using (var command = db.Database.GetDbConnection().CreateCommand())
+            {
+                command.CommandText = "SELECT DISTINCT Fornecedor FROM Products WHERE FornecedorId IS NULL AND TRIM(Fornecedor) <> '';";
+                using var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    legacyFornecedorNames.Add(reader.GetString(0));
+                }
+            }
+
+            foreach (var legacyName in legacyFornecedorNames)
+            {
+                var trimmedName = legacyName.Trim();
+                var fornecedor = db.Fornecedores.FirstOrDefault(f => f.Nome == trimmedName);
+                if (fornecedor is null)
+                {
+                    fornecedor = new Fornecedor
+                    {
+                        Nome = trimmedName,
+                        TipoPessoa = "Jurídica",
+                        CpfCnpj = $"PENDENTE-{Guid.NewGuid():N}"[..20],
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    db.Fornecedores.Add(fornecedor);
+                    db.SaveChanges();
+                }
+
+                db.Database.ExecuteSqlRaw(
+                    "UPDATE Products SET FornecedorId = {0} WHERE Fornecedor = {1} AND FornecedorId IS NULL;",
+                    fornecedor.Id, legacyName);
+            }
+
+            db.Database.ExecuteSqlRaw("ALTER TABLE Products DROP COLUMN Fornecedor;");
+        }
+
+        var clienteColumns = new List<string>();
+        using (var command = db.Database.GetDbConnection().CreateCommand())
+        {
+            command.CommandText = "PRAGMA table_info(Clientes);";
+            db.Database.OpenConnection();
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                clienteColumns.Add(reader.GetString(reader.GetOrdinal("name")));
+            }
+        }
+
+        if (!clienteColumns.Contains("Site"))
+        {
+            db.Database.ExecuteSqlRaw("ALTER TABLE Clientes ADD COLUMN Site TEXT NOT NULL DEFAULT '';");
+        }
+
+        var fornecedorColumns = new List<string>();
+        using (var command = db.Database.GetDbConnection().CreateCommand())
+        {
+            command.CommandText = "PRAGMA table_info(Fornecedores);";
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                fornecedorColumns.Add(reader.GetString(reader.GetOrdinal("name")));
+            }
+        }
+
+        if (!fornecedorColumns.Contains("Site"))
+        {
+            db.Database.ExecuteSqlRaw("ALTER TABLE Fornecedores ADD COLUMN Site TEXT NOT NULL DEFAULT '';");
+        }
 
         var loginColumns = new List<string>();
         using (var command = db.Database.GetDbConnection().CreateCommand())

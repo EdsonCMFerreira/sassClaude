@@ -115,6 +115,7 @@ public class ApiFornecedoresController : ControllerBase
         fornecedor.CpfCnpj = request.CpfCnpj.Trim();
         fornecedor.ContatoResponsavel = request.ContatoResponsavel.Trim();
         fornecedor.Email = request.Email.Trim();
+        fornecedor.Site = request.Site.Trim();
         fornecedor.Telefone = request.Telefone.Trim();
         fornecedor.Cep = request.Cep.Trim();
         fornecedor.Endereco = request.Endereco.Trim();
@@ -132,18 +133,18 @@ public class ApiFornecedoresController : ControllerBase
     {
         return new FornecedorResponse(
             fornecedor.Id, fornecedor.Nome, fornecedor.TipoPessoa, fornecedor.CpfCnpj, fornecedor.ContatoResponsavel,
-            fornecedor.Email, fornecedor.Telefone, fornecedor.Cep, fornecedor.Endereco, fornecedor.Numero,
+            fornecedor.Email, fornecedor.Site, fornecedor.Telefone, fornecedor.Cep, fornecedor.Endereco, fornecedor.Numero,
             fornecedor.Complemento, fornecedor.Bairro, fornecedor.Cidade, fornecedor.Uf,
             fornecedor.UltimaCompraData, fornecedor.UltimaCompraValor, fornecedor.CreatedAt);
     }
 }
 
 public sealed record FornecedorRequest(
-    string Nome, string TipoPessoa, string CpfCnpj, string ContatoResponsavel, string Email, string Telefone,
+    string Nome, string TipoPessoa, string CpfCnpj, string ContatoResponsavel, string Email, string Site, string Telefone,
     string Cep, string Endereco, string Numero, string Complemento, string Bairro, string Cidade, string Uf,
     DateTime? UltimaCompraData, decimal? UltimaCompraValor);
 
 public sealed record FornecedorResponse(
-    int Id, string Nome, string TipoPessoa, string CpfCnpj, string ContatoResponsavel, string Email, string Telefone,
+    int Id, string Nome, string TipoPessoa, string CpfCnpj, string ContatoResponsavel, string Email, string Site, string Telefone,
     string Cep, string Endereco, string Numero, string Complemento, string Bairro, string Cidade, string Uf,
     DateTime? UltimaCompraData, decimal? UltimaCompraValor, DateTime CreatedAt);

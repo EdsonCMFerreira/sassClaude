@@ -20,9 +20,9 @@ public class Product
 
     public decimal ValorVenda { get; set; }
 
-    [Required]
-    [StringLength(150)]
-    public string Fornecedor { get; set; } = string.Empty;
+    public int? FornecedorId { get; set; }
+
+    public Fornecedor? Fornecedor { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
