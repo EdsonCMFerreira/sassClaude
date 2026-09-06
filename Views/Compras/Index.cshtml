@@ -63,6 +63,7 @@
         const cancelEdit = document.getElementById('cancelEdit');
         const tableBody = document.getElementById('compraTableBody');
         const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        let allProducts = [];
 
         function formatCurrency(value) {
             return Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -88,10 +89,23 @@
 
         async function loadProductsOptions() {
             const response = await fetch('/api/products');
-            const data = await response.json();
-            productId.innerHTML = '<option value="">Selecione...</option>' + data.map(item =>
+            allProducts = await response.json();
+            renderProductOptions();
+        }
+
+        function renderProductOptions(selectedProductId) {
+            const fornecedorSelecionado = Number(fornecedorId.value) || 0;
+            const produtosDoFornecedor = fornecedorSelecionado
+                ? allProducts.filter(item => item.fornecedorId === fornecedorSelecionado)
+                : allProducts;
+
+            productId.innerHTML = '<option value="">Selecione...</option>' + produtosDoFornecedor.map(item =>
                 `<option value="${item.id}">${item.codigo} — ${item.descricao}</option>`
             ).join('');
+
+            if (selectedProductId) {
+                productId.value = selectedProductId;
+            }
         }
 
         async function loadCompras() {
@@ -131,7 +145,7 @@
             const data = await response.json();
             compraId.value = data.id;
             fornecedorId.value = data.fornecedorId;
-            productId.value = data.productId;
+            renderProductOptions(data.productId);
             quantidade.value = data.quantidade;
             valorUnitario.value = data.valorUnitario;
             dataCompra.value = data.dataCompra.slice(0, 10);
@@ -196,10 +210,12 @@
             compraId.value = '';
             valorTotal.value = '';
             cancelEdit.classList.add('hidden');
+            renderProductOptions();
         });
 
         quantidade.addEventListener('input', updateValorTotalPreview);
         valorUnitario.addEventListener('input', updateValorTotalPreview);
+        fornecedorId.addEventListener('change', () => renderProductOptions());
 
         Promise.all([loadFornecedoresOptions(), loadProductsOptions()])
             .then(loadCompras)
