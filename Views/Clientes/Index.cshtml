@@ -1,0 +1,194 @@
+@{
+    ViewData["Title"] = "Clientes";
+}
+
+<div class="page-heading">
+    <div><span class="eyebrow">Cadastro</span><h1>Clientes.</h1><p class="muted">Ficha cadastral completa e dados da última compra.</p></div>
+</div>
+<div class="surface-card users-card">
+    <div class="section-heading"><div><h2>Clientes cadastrados</h2><p class="muted">Dados pessoais, endereço e última compra.</p></div></div>
+    <div class="user-form-wrap">
+        <form id="clienteForm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" id="clienteId" />
+            <div class="user-form-grid">
+                <div><label for="nome">Nome / Razão social</label><input id="nome" required /></div>
+                <div><label for="tipoPessoa">Tipo de pessoa</label><select id="tipoPessoa"><option value="Física">Física</option><option value="Jurídica">Jurídica</option></select></div>
+                <div><label for="cpfCnpj">CPF/CNPJ</label><input id="cpfCnpj" required /></div>
+                <div><label for="email">E-mail</label><input id="email" type="email" /></div>
+                <div><label for="telefone">Telefone</label><input id="telefone" /></div>
+                <div><label for="cep">CEP</label><input id="cep" /></div>
+                <div><label for="endereco">Endereço</label><input id="endereco" /></div>
+                <div><label for="numero">Número</label><input id="numero" /></div>
+                <div><label for="complemento">Complemento</label><input id="complemento" /></div>
+                <div><label for="bairro">Bairro</label><input id="bairro" /></div>
+                <div><label for="cidade">Cidade</label><input id="cidade" /></div>
+                <div><label for="uf">UF</label><input id="uf" maxlength="2" /></div>
+                <div><label for="ultimaCompraData">Data da última compra</label><input id="ultimaCompraData" type="date" /></div>
+                <div><label for="ultimaCompraValor">Valor da última compra</label><input id="ultimaCompraValor" type="number" step="0.01" min="0" /></div>
+                <div class="user-form-actions"><button type="submit" class="button button-primary">Salvar</button><button type="button" id="cancelEdit" class="button button-outline hidden">Cancelar</button></div>
+            </div>
+        </form>
+    </div>
+
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead class="table-light">
+                <tr>
+                    <th>Nome</th>
+                    <th>CPF/CNPJ</th>
+                    <th>Telefone</th>
+                    <th>Cidade/UF</th>
+                    <th>Última compra</th>
+                    <th>Valor</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody id="clienteTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const form = document.getElementById('clienteForm');
+        const clienteId = document.getElementById('clienteId');
+        const nome = document.getElementById('nome');
+        const tipoPessoa = document.getElementById('tipoPessoa');
+        const cpfCnpj = document.getElementById('cpfCnpj');
+        const email = document.getElementById('email');
+        const telefone = document.getElementById('telefone');
+        const cep = document.getElementById('cep');
+        const endereco = document.getElementById('endereco');
+        const numero = document.getElementById('numero');
+        const complemento = document.getElementById('complemento');
+        const bairro = document.getElementById('bairro');
+        const cidade = document.getElementById('cidade');
+        const uf = document.getElementById('uf');
+        const ultimaCompraData = document.getElementById('ultimaCompraData');
+        const ultimaCompraValor = document.getElementById('ultimaCompraValor');
+        const cancelEdit = document.getElementById('cancelEdit');
+        const tableBody = document.getElementById('clienteTableBody');
+        const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+        function formatCurrency(value) {
+            return value === null || value === undefined ? '—' : Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
+        function formatDate(value) {
+            return value ? new Date(value).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '—';
+        }
+
+        async function loadClientes() {
+            const response = await fetch('/api/clientes');
+            if (!response.ok) {
+                throw new Error('Erro ao carregar clientes.');
+            }
+
+            const data = await response.json();
+            tableBody.innerHTML = data.map(item => `
+                <tr>
+                    <td>${item.nome}</td>
+                    <td>${item.cpfCnpj}</td>
+                    <td>${item.telefone || '—'}</td>
+                    <td>${[item.cidade, item.uf].filter(Boolean).join('/') || '—'}</td>
+                    <td>${formatDate(item.ultimaCompraData)}</td>
+                    <td>${formatCurrency(item.ultimaCompraValor)}</td>
+                    <td>
+                        <button class="table-action" data-edit="${item.id}">Editar</button>
+                        <button class="table-action danger" data-delete="${item.id}">Excluir</button>
+                    </td>
+                </tr>
+            `).join('') || '<tr><td colspan="7" class="muted">Nenhum cliente cadastrado ainda.</td></tr>';
+
+            tableBody.querySelectorAll('[data-edit]').forEach(button => {
+                button.addEventListener('click', () => editCliente(Number(button.dataset.edit)));
+            });
+
+            tableBody.querySelectorAll('[data-delete]').forEach(button => {
+                button.addEventListener('click', () => deleteCliente(Number(button.dataset.delete)));
+            });
+        }
+
+        async function editCliente(id) {
+            const response = await fetch(`/api/clientes/${id}`);
+            const data = await response.json();
+            clienteId.value = data.id;
+            nome.value = data.nome;
+            tipoPessoa.value = data.tipoPessoa;
+            cpfCnpj.value = data.cpfCnpj;
+            email.value = data.email;
+            telefone.value = data.telefone;
+            cep.value = data.cep;
+            endereco.value = data.endereco;
+            numero.value = data.numero;
+            complemento.value = data.complemento;
+            bairro.value = data.bairro;
+            cidade.value = data.cidade;
+            uf.value = data.uf;
+            ultimaCompraData.value = data.ultimaCompraData ? data.ultimaCompraData.slice(0, 10) : '';
+            ultimaCompraValor.value = data.ultimaCompraValor ?? '';
+            cancelEdit.classList.remove('hidden');
+            nome.focus();
+        }
+
+        async function deleteCliente(id) {
+            const confirmed = confirm('Deseja excluir este cliente?');
+            if (!confirmed) return;
+
+            const response = await fetch(`/api/clientes/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': csrfToken } });
+            if (response.ok) {
+                await loadClientes();
+            }
+        }
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const payload = {
+                id: Number(clienteId.value || 0),
+                nome: nome.value.trim(),
+                tipoPessoa: tipoPessoa.value,
+                cpfCnpj: cpfCnpj.value.trim(),
+                email: email.value.trim(),
+                telefone: telefone.value.trim(),
+                cep: cep.value.trim(),
+                endereco: endereco.value.trim(),
+                numero: numero.value.trim(),
+                complemento: complemento.value.trim(),
+                bairro: bairro.value.trim(),
+                cidade: cidade.value.trim(),
+                uf: uf.value.trim(),
+                ultimaCompraData: ultimaCompraData.value || null,
+                ultimaCompraValor: ultimaCompraValor.value ? Number(ultimaCompraValor.value) : null
+            };
+
+            const method = payload.id ? 'PUT' : 'POST';
+            const url = payload.id ? `/api/clientes/${payload.id}` : '/api/clientes';
+
+            const response = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                form.reset();
+                clienteId.value = '';
+                cancelEdit.classList.add('hidden');
+                await loadClientes();
+            } else {
+                const errorText = await response.text();
+                alert(errorText || 'Erro ao salvar cliente.');
+            }
+        });
+
+        cancelEdit.addEventListener('click', () => {
+            form.reset();
+            clienteId.value = '';
+            cancelEdit.classList.add('hidden');
+        });
+
+        loadClientes().catch(error => console.error(error));
+    </script>
+}

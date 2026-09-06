@@ -15,6 +15,8 @@ public class SassDbContext : DbContext
     public DbSet<WorkspaceInvite> WorkspaceInvites => Set<WorkspaceInvite>();
     public DbSet<Invoice> Invoices => Set<Invoice>();
     public DbSet<Product> Products => Set<Product>();
+    public DbSet<Cliente> Clientes => Set<Cliente>();
+    public DbSet<Fornecedor> Fornecedores => Set<Fornecedor>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -81,6 +83,26 @@ public class SassDbContext : DbContext
             entity.Property(x => x.ValorCompra).HasColumnType("decimal(10,2)");
             entity.Property(x => x.ValorVenda).HasColumnType("decimal(10,2)");
             entity.HasIndex(x => x.Codigo).IsUnique();
+        });
+
+        modelBuilder.Entity<Cliente>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Nome).IsRequired().HasMaxLength(150);
+            entity.Property(x => x.TipoPessoa).IsRequired().HasMaxLength(20);
+            entity.Property(x => x.CpfCnpj).IsRequired().HasMaxLength(20);
+            entity.Property(x => x.UltimaCompraValor).HasColumnType("decimal(10,2)");
+            entity.HasIndex(x => x.CpfCnpj).IsUnique();
+        });
+
+        modelBuilder.Entity<Fornecedor>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Nome).IsRequired().HasMaxLength(150);
+            entity.Property(x => x.TipoPessoa).IsRequired().HasMaxLength(20);
+            entity.Property(x => x.CpfCnpj).IsRequired().HasMaxLength(20);
+            entity.Property(x => x.UltimaCompraValor).HasColumnType("decimal(10,2)");
+            entity.HasIndex(x => x.CpfCnpj).IsUnique();
         });
     }
 }

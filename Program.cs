@@ -157,6 +157,50 @@ using (var scope = app.Services.CreateScope())
             db.Database.ExecuteSqlRaw("ALTER TABLE Products ADD COLUMN ValorVenda TEXT NOT NULL DEFAULT '0';");
         }
 
+        db.Database.ExecuteSqlRaw("""
+            CREATE TABLE IF NOT EXISTS Clientes (
+                Id INTEGER NOT NULL CONSTRAINT PK_Clientes PRIMARY KEY AUTOINCREMENT,
+                Nome TEXT NOT NULL,
+                TipoPessoa TEXT NOT NULL,
+                CpfCnpj TEXT NOT NULL,
+                Email TEXT NOT NULL,
+                Telefone TEXT NOT NULL,
+                Cep TEXT NOT NULL,
+                Endereco TEXT NOT NULL,
+                Numero TEXT NOT NULL,
+                Complemento TEXT NOT NULL,
+                Bairro TEXT NOT NULL,
+                Cidade TEXT NOT NULL,
+                Uf TEXT NOT NULL,
+                UltimaCompraData TEXT NULL,
+                UltimaCompraValor TEXT NULL,
+                CreatedAt TEXT NOT NULL
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS IX_Clientes_CpfCnpj ON Clientes (CpfCnpj);
+            """);
+        db.Database.ExecuteSqlRaw("""
+            CREATE TABLE IF NOT EXISTS Fornecedores (
+                Id INTEGER NOT NULL CONSTRAINT PK_Fornecedores PRIMARY KEY AUTOINCREMENT,
+                Nome TEXT NOT NULL,
+                TipoPessoa TEXT NOT NULL,
+                CpfCnpj TEXT NOT NULL,
+                ContatoResponsavel TEXT NOT NULL,
+                Email TEXT NOT NULL,
+                Telefone TEXT NOT NULL,
+                Cep TEXT NOT NULL,
+                Endereco TEXT NOT NULL,
+                Numero TEXT NOT NULL,
+                Complemento TEXT NOT NULL,
+                Bairro TEXT NOT NULL,
+                Cidade TEXT NOT NULL,
+                Uf TEXT NOT NULL,
+                UltimaCompraData TEXT NULL,
+                UltimaCompraValor TEXT NULL,
+                CreatedAt TEXT NOT NULL
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS IX_Fornecedores_CpfCnpj ON Fornecedores (CpfCnpj);
+            """);
+
         var loginColumns = new List<string>();
         using (var command = db.Database.GetDbConnection().CreateCommand())
         {
