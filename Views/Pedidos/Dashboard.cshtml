@@ -1,0 +1,119 @@
+@model PedidoDashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard de pedidos";
+    var ptBr = new System.Globalization.CultureInfo("pt-BR");
+}
+<div class="page-heading">
+    <div><span class="eyebrow">Movimentação</span><h1>Dashboard de pedidos.</h1><p class="muted">Faturamento, status e produtos mais pedidos.</p></div>
+    <a class="button button-outline" asp-controller="Pedidos" asp-action="Index">← Ver pedidos</a>
+</div>
+
+<div class="metric-grid">
+    <article class="metric-card metric-highlight"><span class="metric-label">Pedidos registrados</span><strong>@Model.TotalPedidos</strong><span class="metric-caption">no total</span></article>
+    <article class="metric-card"><span class="metric-label">Pendentes</span><strong>@Model.PedidosPendentes</strong><span class="metric-caption">aguardando conclusão</span></article>
+    <article class="metric-card"><span class="metric-label">Faturamento (concluídos)</span><strong>@Model.ValorTotalConcluidos.ToString("C", ptBr)</strong><span class="metric-caption">todos os pedidos concluídos</span></article>
+    <article class="metric-card"><span class="metric-label">Ticket médio</span><strong>@Model.TicketMedio.ToString("C", ptBr)</strong><span class="metric-caption">por pedido concluído</span></article>
+</div>
+
+<div class="content-grid">
+    <section class="surface-card activity-card">
+        <div class="section-heading"><div><span class="eyebrow">Faturamento</span><h2>Últimos 6 meses</h2></div></div>
+        <div style="height:280px;"><canvas id="graficoFaturamento"></canvas></div>
+    </section>
+    <aside class="settings-stack">
+        <div class="surface-card settings-card">
+            <span class="eyebrow">Status</span>
+            <h2>Pedidos por status</h2>
+            <div style="height:220px;"><canvas id="graficoStatus"></canvas></div>
+        </div>
+        <div class="surface-card settings-card">
+            <span class="eyebrow">Produtos</span>
+            <h2>Mais pedidos</h2>
+            @if (!Model.ProdutosMaisPedidos.Any())
+            {
+                <p class="muted">Nenhum item de pedido registrado ainda.</p>
+            }
+            else
+            {
+                <div style="height:220px;"><canvas id="graficoProdutos"></canvas></div>
+            }
+        </div>
+    </aside>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script>
+        const ptBrCurrency = value => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+        const faturamentoLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.FaturamentoMensal.Select(m => m.Mes.ToString("MMM/yyyy", ptBr))));
+        const faturamentoValores = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.FaturamentoMensal.Select(m => m.Total)));
+
+        new Chart(document.getElementById('graficoFaturamento'), {
+            type: 'bar',
+            data: {
+                labels: faturamentoLabels,
+                datasets: [{
+                    label: 'Faturamento',
+                    data: faturamentoValores,
+                    backgroundColor: '#1769e0',
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: ctx => ptBrCurrency(ctx.parsed.y) } }
+                },
+                scales: {
+                    y: { ticks: { callback: value => ptBrCurrency(value) } }
+                }
+            }
+        });
+
+        const statusLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PorStatus.Select(s => s.Status)));
+        const statusValores = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PorStatus.Select(s => s.Quantidade)));
+        const statusCores = { 'Concluída': '#218351', 'Pendente': '#1769e0', 'Cancelada': '#ff755e' };
+
+        new Chart(document.getElementById('graficoStatus'), {
+            type: 'doughnut',
+            data: {
+                labels: statusLabels,
+                datasets: [{
+                    data: statusValores,
+                    backgroundColor: statusLabels.map(s => statusCores[s] || '#6d7882')
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+
+        const produtosCanvas = document.getElementById('graficoProdutos');
+        if (produtosCanvas) {
+            const produtosLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ProdutosMaisPedidos.Select(p => p.ProdutoNome)));
+            const produtosValores = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ProdutosMaisPedidos.Select(p => p.QuantidadeTotal)));
+
+            new Chart(produtosCanvas, {
+                type: 'bar',
+                data: {
+                    labels: produtosLabels,
+                    datasets: [{
+                        label: 'Quantidade pedida',
+                        data: produtosValores,
+                        backgroundColor: '#218351',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { ticks: { precision: 0 } } }
+                }
+            });
+        }
+    </script>
+}

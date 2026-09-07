@@ -21,6 +21,60 @@ public class PedidosController : Controller
 
     public IActionResult Index() => View();
 
+    public async Task<IActionResult> Dashboard()
+    {
+        var pedidos = await _context.Pedidos
+            .Include(p => p.Itens).ThenInclude(i => i.Product)
+            .ToListAsync();
+
+        decimal ValorComDesconto(Pedido p)
+        {
+            var total = p.Itens.Sum(i => i.Quantidade * i.ValorUnitario);
+            return Math.Round(total * (1 - p.PercentualDesconto / 100), 2);
+        }
+
+        var concluidos = pedidos.Where(p => p.Status == "Concluída").ToList();
+
+        var porStatus = pedidos
+            .GroupBy(p => p.Status)
+            .Select(g => new StatusBreakdownRow(g.Key, g.Count()))
+            .OrderByDescending(x => x.Quantidade)
+            .ToList();
+
+        var hoje = DateTime.UtcNow.Date;
+        var faturamentoMensal = Enumerable.Range(0, 6)
+            .Select(i => new DateTime(hoje.Year, hoje.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(-i))
+            .OrderBy(d => d)
+            .Select(mes => new FaturamentoMensalRow(
+                mes,
+                concluidos.Where(p => p.DataPedido.Year == mes.Year && p.DataPedido.Month == mes.Month).Sum(ValorComDesconto)))
+            .ToList();
+
+        var produtosMaisPedidos = pedidos
+            .SelectMany(p => p.Itens)
+            .Where(i => i.Product is not null)
+            .GroupBy(i => i.Product!.Descricao)
+            .Select(g => new ProdutoMaisPedidoRow(g.Key, g.Sum(i => i.Quantidade)))
+            .OrderByDescending(x => x.QuantidadeTotal)
+            .Take(5)
+            .ToList();
+
+        var valorTotalConcluidos = concluidos.Sum(ValorComDesconto);
+
+        var model = new PedidoDashboardViewModel
+        {
+            TotalPedidos = pedidos.Count,
+            PedidosPendentes = pedidos.Count(p => p.Status == "Pendente"),
+            ValorTotalConcluidos = valorTotalConcluidos,
+            TicketMedio = concluidos.Count > 0 ? Math.Round(valorTotalConcluidos / concluidos.Count, 2) : 0m,
+            PorStatus = porStatus,
+            FaturamentoMensal = faturamentoMensal,
+            ProdutosMaisPedidos = produtosMaisPedidos
+        };
+
+        return View(model);
+    }
+
     public async Task<IActionResult> Recibo(int id)
     {
         var pedido = await _context.Pedidos
