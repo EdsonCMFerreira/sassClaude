@@ -103,6 +103,11 @@ public class ApiProductsController : ControllerBase
             return BadRequest("Código e descrição são obrigatórios.");
         }
 
+        if (request.ValorVenda <= request.ValorCompra)
+        {
+            return BadRequest("O valor de venda deve ser maior que o valor de compra.");
+        }
+
         var fornecedor = await _context.Fornecedores.FindAsync(request.FornecedorId);
         if (fornecedor is null)
         {
@@ -146,6 +151,11 @@ public class ApiProductsController : ControllerBase
         if (string.IsNullOrWhiteSpace(request.Codigo) || string.IsNullOrWhiteSpace(request.Descricao))
         {
             return BadRequest("Código e descrição são obrigatórios.");
+        }
+
+        if (request.ValorVenda <= request.ValorCompra)
+        {
+            return BadRequest("O valor de venda deve ser maior que o valor de compra.");
         }
 
         var fornecedor = await _context.Fornecedores.FindAsync(request.FornecedorId);

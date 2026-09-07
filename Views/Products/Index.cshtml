@@ -155,6 +155,11 @@
         form.addEventListener('submit', async (event) => {
             event.preventDefault();
 
+            if (Number(valorVenda.value) <= Number(valorCompra.value)) {
+                alert('O valor de venda deve ser maior que o valor de compra.');
+                return;
+            }
+
             const payload = {
                 id: Number(productId.value || 0),
                 codigo: codigo.value.trim(),
