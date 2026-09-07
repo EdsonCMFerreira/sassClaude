@@ -10,13 +10,7 @@ public class Venda
 
     public Cliente? Cliente { get; set; }
 
-    public int? ProductId { get; set; }
-
-    public Product? Product { get; set; }
-
-    public int Quantidade { get; set; } = 1;
-
-    public decimal ValorUnitario { get; set; }
+    public List<VendaItem> Itens { get; set; } = new();
 
     public DateTime DataVenda { get; set; }
 

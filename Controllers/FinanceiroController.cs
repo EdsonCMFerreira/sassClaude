@@ -18,7 +18,7 @@ public class FinanceiroController : Controller
 
     public async Task<IActionResult> Index()
     {
-        var vendas = await _context.Vendas.Where(v => v.Status == "Concluída").ToListAsync();
+        var vendas = await _context.Vendas.Include(v => v.Itens).Where(v => v.Status == "Concluída").ToListAsync();
 
         var hoje = DateTime.UtcNow.Date;
         var meses = Enumerable.Range(0, 6)
@@ -40,7 +40,7 @@ public class FinanceiroController : Controller
 
     private static decimal ValorLiquido(Venda venda)
     {
-        var valorTotal = venda.Quantidade * venda.ValorUnitario;
+        var valorTotal = venda.Itens.Sum(i => i.Quantidade * i.ValorUnitario);
         return Math.Round(valorTotal * (1 - venda.PercentualDesconto / 100), 2);
     }
 }

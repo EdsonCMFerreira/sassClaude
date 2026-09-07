@@ -6,26 +6,45 @@
     <div><span class="eyebrow">Movimentação</span><h1>Vendas.</h1><p class="muted">Registre as vendas feitas aos clientes.</p></div>
 </div>
 <div class="surface-card users-card">
-    <div class="section-heading"><div><h2>Vendas registradas</h2><p class="muted">Cliente, produto, quantidade, valores e data.</p></div></div>
+    <div class="section-heading"><div><h2>Vendas registradas</h2><p class="muted">Cliente, produtos, quantidades, valores e data. Uma venda pode ter um ou mais produtos.</p></div></div>
     <div class="user-form-wrap">
         <form id="vendaForm">
             @Html.AntiForgeryToken()
             <input type="hidden" id="vendaId" />
             <div class="user-form-grid">
                 <div><label for="clienteId">Cliente</label><select id="clienteId" required><option value="">Selecione...</option></select></div>
-                <div><label for="productId">Produto</label><select id="productId" required><option value="">Selecione...</option></select></div>
-                <div><label for="fornecedorNome">Fornecedor</label><input id="fornecedorNome" type="text" readonly disabled /></div>
-                <div><label for="saldoDisponivel">Saldo disponível</label><input id="saldoDisponivel" type="text" readonly disabled /></div>
-                <div><label for="quantidade">Quantidade</label><input id="quantidade" type="number" min="1" step="1" value="1" required /></div>
-                <div><label for="valorUnitario">Valor unitário</label><input id="valorUnitario" type="number" step="0.01" min="0" required /></div>
-                <div><label for="valorTotal">Valor total</label><input id="valorTotal" type="text" readonly disabled /></div>
                 <div><label for="dataVenda">Data da venda</label><input id="dataVenda" type="date" required /></div>
                 <div><label for="numeroNota">Número da nota</label><input id="numeroNota" /></div>
                 <div><label for="formaPagamento">Forma de pagamento</label><select id="formaPagamento"><option value="">Selecione...</option><option>Dinheiro</option><option>Cartão de crédito</option><option>Cartão de débito</option><option>PIX</option><option>Boleto</option><option>Transferência</option></select></div>
                 <div><label for="status">Status</label><select id="status"><option>Pendente</option><option>Concluída</option><option>Cancelada</option></select></div>
                 <div><label for="percentualDesconto">Desconto (%)</label><input id="percentualDesconto" type="number" step="0.01" min="0" max="100" value="0" /></div>
-                <div><label for="valorComDesconto">Valor com desconto</label><input id="valorComDesconto" type="text" readonly disabled /></div>
                 <div><label for="observacoes">Observações</label><input id="observacoes" /></div>
+            </div>
+
+            <div class="items-section">
+                <div class="section-heading"><div><h3>Produtos da venda</h3></div></div>
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Produto</th>
+                                <th>Fornecedor</th>
+                                <th>Saldo disp.</th>
+                                <th>Quantidade</th>
+                                <th>Valor unitário</th>
+                                <th>Subtotal</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="itensTableBody"></tbody>
+                    </table>
+                </div>
+                <button type="button" id="addItemButton" class="button button-outline">+ Adicionar produto</button>
+            </div>
+
+            <div class="user-form-grid">
+                <div><label for="valorTotal">Valor total</label><input id="valorTotal" type="text" readonly disabled /></div>
+                <div><label for="valorComDesconto">Valor com desconto</label><input id="valorComDesconto" type="text" readonly disabled /></div>
                 <div class="user-form-actions"><button type="submit" class="button button-primary">Salvar</button><button type="button" id="cancelEdit" class="button button-outline hidden">Cancelar</button></div>
             </div>
         </form>
@@ -36,9 +55,7 @@
             <thead class="table-light">
                 <tr>
                     <th>Cliente</th>
-                    <th>Produto</th>
-                    <th>Qtd.</th>
-                    <th>Valor unitário</th>
+                    <th>Produtos</th>
                     <th>Valor total</th>
                     <th>Desconto</th>
                     <th>Valor final</th>
@@ -57,25 +74,21 @@
         const form = document.getElementById('vendaForm');
         const vendaId = document.getElementById('vendaId');
         const clienteId = document.getElementById('clienteId');
-        const productId = document.getElementById('productId');
-        const fornecedorNome = document.getElementById('fornecedorNome');
-        const saldoDisponivel = document.getElementById('saldoDisponivel');
-        const quantidade = document.getElementById('quantidade');
-        const valorUnitario = document.getElementById('valorUnitario');
-        const valorTotal = document.getElementById('valorTotal');
         const dataVenda = document.getElementById('dataVenda');
         const numeroNota = document.getElementById('numeroNota');
         const formaPagamento = document.getElementById('formaPagamento');
         const status = document.getElementById('status');
         const percentualDesconto = document.getElementById('percentualDesconto');
-        const valorComDesconto = document.getElementById('valorComDesconto');
         const observacoes = document.getElementById('observacoes');
+        const valorTotalDisplay = document.getElementById('valorTotal');
+        const valorComDescontoDisplay = document.getElementById('valorComDesconto');
         const cancelEdit = document.getElementById('cancelEdit');
         const tableBody = document.getElementById('vendaTableBody');
+        const itensTableBody = document.getElementById('itensTableBody');
+        const addItemButton = document.getElementById('addItemButton');
         const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
         let allProducts = [];
-        let produtoEmEdicaoId = 0;
-        let quantidadeEmEdicao = 0;
+        let itensOriginais = [];
 
         function formatCurrency(value) {
             return Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -85,13 +98,106 @@
             return value ? new Date(value).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '—';
         }
 
-        function updateValorTotalPreview() {
-            const qtd = Number(quantidade.value) || 0;
-            const unitario = Number(valorUnitario.value) || 0;
-            const bruto = qtd * unitario;
-            valorTotal.value = formatCurrency(bruto);
+        function optionsProdutosHtml(selectedId) {
+            return '<option value="">Selecione...</option>' + allProducts.map(p =>
+                `<option value="${p.id}" ${p.id === selectedId ? 'selected' : ''}>${p.codigo} — ${p.descricao}</option>`
+            ).join('');
+        }
+
+        function saldoEfetivoParaProduto(productId, trAtual) {
+            const produto = allProducts.find(p => p.id === productId);
+            if (!produto) return null;
+
+            let efetivo = produto.saldo;
+            efetivo += itensOriginais
+                .filter(i => i.productId === productId)
+                .reduce((soma, i) => soma + i.quantidade, 0);
+
+            itensTableBody.querySelectorAll('tr').forEach(tr => {
+                if (tr === trAtual) return;
+                const pid = Number(tr.querySelector('.item-produto').value) || 0;
+                if (pid === productId) {
+                    efetivo -= Number(tr.querySelector('.item-quantidade').value) || 0;
+                }
+            });
+
+            return efetivo;
+        }
+
+        function atualizarTotais() {
+            let total = 0;
+            itensTableBody.querySelectorAll('tr').forEach(tr => {
+                const qtd = Number(tr.querySelector('.item-quantidade').value) || 0;
+                const unitario = Number(tr.querySelector('.item-valor-unitario').value) || 0;
+                total += qtd * unitario;
+            });
+
+            valorTotalDisplay.value = formatCurrency(total);
             const desconto = Number(percentualDesconto.value) || 0;
-            valorComDesconto.value = formatCurrency(bruto * (1 - desconto / 100));
+            valorComDescontoDisplay.value = formatCurrency(total * (1 - desconto / 100));
+        }
+
+        function atualizarLinha(tr) {
+            const produtoSelect = tr.querySelector('.item-produto');
+            const fornecedorInput = tr.querySelector('.item-fornecedor');
+            const saldoInput = tr.querySelector('.item-saldo');
+            const quantidadeInput = tr.querySelector('.item-quantidade');
+            const valorUnitarioInput = tr.querySelector('.item-valor-unitario');
+            const subtotalInput = tr.querySelector('.item-subtotal');
+
+            const productId = Number(produtoSelect.value) || 0;
+            const produto = allProducts.find(p => p.id === productId);
+            fornecedorInput.value = produto ? produto.fornecedorNome : '';
+
+            const efetivo = productId ? saldoEfetivoParaProduto(productId, tr) : null;
+            saldoInput.value = efetivo === null ? '' : `${efetivo} unidade(s)`;
+
+            const qtd = Number(quantidadeInput.value) || 0;
+            const unitario = Number(valorUnitarioInput.value) || 0;
+            subtotalInput.value = formatCurrency(qtd * unitario);
+
+            atualizarTotais();
+        }
+
+        function addItemRow(initial) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><select class="item-produto" required>${optionsProdutosHtml(initial ? initial.productId : null)}</select></td>
+                <td><input class="item-fornecedor" type="text" readonly disabled /></td>
+                <td><input class="item-saldo" type="text" readonly disabled /></td>
+                <td><input class="item-quantidade" type="number" min="1" step="1" value="${initial ? initial.quantidade : 1}" required /></td>
+                <td><input class="item-valor-unitario" type="number" step="0.01" min="0" value="${initial ? initial.valorUnitario : ''}" required /></td>
+                <td><input class="item-subtotal" type="text" readonly disabled /></td>
+                <td><button type="button" class="table-action danger item-remove">Remover</button></td>
+            `;
+            itensTableBody.appendChild(tr);
+
+            tr.querySelector('.item-produto').addEventListener('change', () => {
+                const produto = allProducts.find(p => p.id === Number(tr.querySelector('.item-produto').value));
+                if (produto) {
+                    tr.querySelector('.item-valor-unitario').value = produto.valorVenda;
+                }
+                atualizarLinha(tr);
+            });
+            tr.querySelector('.item-quantidade').addEventListener('input', () => atualizarLinha(tr));
+            tr.querySelector('.item-valor-unitario').addEventListener('input', () => atualizarLinha(tr));
+            tr.querySelector('.item-remove').addEventListener('click', () => {
+                tr.remove();
+                atualizarTotais();
+            });
+
+            atualizarLinha(tr);
+        }
+
+        function resetForm() {
+            form.reset();
+            vendaId.value = '';
+            itensOriginais = [];
+            itensTableBody.innerHTML = '';
+            addItemRow();
+            valorTotalDisplay.value = '';
+            valorComDescontoDisplay.value = '';
+            cancelEdit.classList.add('hidden');
         }
 
         async function loadClientesOptions() {
@@ -105,35 +211,6 @@
         async function loadProductsOptions() {
             const response = await fetch('/api/products');
             allProducts = await response.json();
-            productId.innerHTML = '<option value="">Selecione...</option>' + allProducts.map(item =>
-                `<option value="${item.id}">${item.codigo} — ${item.descricao}</option>`
-            ).join('');
-        }
-
-        function updateFornecedorPreview() {
-            const produto = allProducts.find(item => item.id === Number(productId.value));
-            fornecedorNome.value = produto ? produto.fornecedorNome : '';
-        }
-
-        function updateSaldoDisponivelPreview() {
-            const produto = allProducts.find(item => item.id === Number(productId.value));
-            if (!produto) {
-                saldoDisponivel.value = '';
-                return;
-            }
-
-            const efetivo = produto.id === produtoEmEdicaoId ? produto.saldo + quantidadeEmEdicao : produto.saldo;
-            saldoDisponivel.value = `${efetivo} unidade(s)`;
-        }
-
-        function onProductSelected() {
-            const produto = allProducts.find(item => item.id === Number(productId.value));
-            fornecedorNome.value = produto ? produto.fornecedorNome : '';
-            if (produto) {
-                valorUnitario.value = produto.valorVenda;
-            }
-            updateSaldoDisponivelPreview();
-            updateValorTotalPreview();
         }
 
         async function loadVendas() {
@@ -146,9 +223,7 @@
             tableBody.innerHTML = data.map(item => `
                 <tr>
                     <td>${item.clienteNome}</td>
-                    <td>${item.productNome}</td>
-                    <td>${item.quantidade}</td>
-                    <td>${formatCurrency(item.valorUnitario)}</td>
+                    <td>${item.itens.map(i => `${i.productNome} (x${i.quantidade})`).join(', ')}</td>
                     <td>${formatCurrency(item.valorTotal)}</td>
                     <td>${item.percentualDesconto > 0 ? item.percentualDesconto.toLocaleString('pt-BR') + '%' : '—'}</td>
                     <td>${formatCurrency(item.valorComDesconto)}</td>
@@ -160,7 +235,7 @@
                         <button class="table-action danger" data-delete="${item.id}">Excluir</button>
                     </td>
                 </tr>
-            `).join('') || '<tr><td colspan="10" class="muted">Nenhuma venda registrada ainda.</td></tr>';
+            `).join('') || '<tr><td colspan="8" class="muted">Nenhuma venda registrada ainda.</td></tr>';
 
             tableBody.querySelectorAll('[data-edit]').forEach(button => {
                 button.addEventListener('click', () => editVenda(Number(button.dataset.edit)));
@@ -176,20 +251,17 @@
             const data = await response.json();
             vendaId.value = data.id;
             clienteId.value = data.clienteId;
-            productId.value = data.productId;
-            produtoEmEdicaoId = data.productId;
-            quantidadeEmEdicao = data.quantidade;
-            updateFornecedorPreview();
-            updateSaldoDisponivelPreview();
-            quantidade.value = data.quantidade;
-            valorUnitario.value = data.valorUnitario;
             dataVenda.value = data.dataVenda.slice(0, 10);
             numeroNota.value = data.numeroNota;
             formaPagamento.value = data.formaPagamento;
             status.value = data.status;
             percentualDesconto.value = data.percentualDesconto;
             observacoes.value = data.observacoes;
-            updateValorTotalPreview();
+
+            itensOriginais = data.itens.map(i => ({ productId: i.productId, quantidade: i.quantidade }));
+            itensTableBody.innerHTML = '';
+            data.itens.forEach(item => addItemRow({ productId: item.productId, quantidade: item.quantidade, valorUnitario: item.valorUnitario }));
+
             cancelEdit.classList.remove('hidden');
             clienteId.focus();
         }
@@ -204,15 +276,33 @@
             }
         }
 
+        addItemButton.addEventListener('click', () => addItemRow());
+        percentualDesconto.addEventListener('input', atualizarTotais);
+
         form.addEventListener('submit', async (event) => {
             event.preventDefault();
+
+            const linhas = Array.from(itensTableBody.querySelectorAll('tr'));
+            if (linhas.length === 0) {
+                alert('Adicione ao menos um produto à venda.');
+                return;
+            }
+
+            const itens = linhas.map(tr => ({
+                productId: Number(tr.querySelector('.item-produto').value) || 0,
+                quantidade: Number(tr.querySelector('.item-quantidade').value) || 0,
+                valorUnitario: Number(tr.querySelector('.item-valor-unitario').value) || 0
+            }));
+
+            if (itens.some(i => !i.productId)) {
+                alert('Selecione um produto em todas as linhas.');
+                return;
+            }
 
             const payload = {
                 id: Number(vendaId.value || 0),
                 clienteId: Number(clienteId.value),
-                productId: Number(productId.value),
-                quantidade: Number(quantidade.value),
-                valorUnitario: Number(valorUnitario.value),
+                itens,
                 dataVenda: dataVenda.value,
                 numeroNota: numeroNota.value.trim(),
                 formaPagamento: formaPagamento.value,
@@ -231,14 +321,7 @@
             });
 
             if (response.ok) {
-                form.reset();
-                vendaId.value = '';
-                valorTotal.value = '';
-                fornecedorNome.value = '';
-                saldoDisponivel.value = '';
-                produtoEmEdicaoId = 0;
-                quantidadeEmEdicao = 0;
-                cancelEdit.classList.add('hidden');
+                resetForm();
                 await loadVendas();
             } else {
                 const errorText = await response.text();
@@ -246,23 +329,13 @@
             }
         });
 
-        cancelEdit.addEventListener('click', () => {
-            form.reset();
-            vendaId.value = '';
-            valorTotal.value = '';
-            fornecedorNome.value = '';
-            saldoDisponivel.value = '';
-            produtoEmEdicaoId = 0;
-            quantidadeEmEdicao = 0;
-            cancelEdit.classList.add('hidden');
-        });
-
-        quantidade.addEventListener('input', updateValorTotalPreview);
-        valorUnitario.addEventListener('input', updateValorTotalPreview);
-        productId.addEventListener('change', onProductSelected);
+        cancelEdit.addEventListener('click', resetForm);
 
         Promise.all([loadClientesOptions(), loadProductsOptions()])
-            .then(loadVendas)
+            .then(() => {
+                addItemRow();
+                return loadVendas();
+            })
             .catch(error => console.error(error));
     </script>
 }
