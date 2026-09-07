@@ -1,12 +1,12 @@
 namespace sassClaude.Models;
 
-public class VendaItem
+public class PedidoItem
 {
     public int Id { get; set; }
 
-    public int VendaId { get; set; }
+    public int PedidoId { get; set; }
 
-    public Venda? Venda { get; set; }
+    public Pedido? Pedido { get; set; }
 
     public int? ProductId { get; set; }
 

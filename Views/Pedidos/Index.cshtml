@@ -1,5 +1,5 @@
 @{
-    ViewData["Title"] = "Vendas";
+    ViewData["Title"] = "Pedidos";
 }
 
 <style>
@@ -30,17 +30,17 @@
 </style>
 
 <div class="page-heading">
-    <div><span class="eyebrow">Movimentação</span><h1>Vendas.</h1><p class="muted">Registre as vendas feitas aos clientes.</p></div>
+    <div><span class="eyebrow">Movimentação</span><h1>Pedidos.</h1><p class="muted">Registre os pedidos feitos pelos clientes.</p></div>
 </div>
 <div class="surface-card users-card">
-    <div class="section-heading"><div><h2>Vendas registradas</h2><p class="muted">Cliente, produtos, quantidades, valores e data. Uma venda pode ter um ou mais produtos.</p></div></div>
+    <div class="section-heading"><div><h2>Pedidos registrados</h2><p class="muted">Cliente, produtos, quantidades, valores e data. Um pedido pode ter um ou mais produtos.</p></div></div>
     <div class="user-form-wrap">
-        <form id="vendaForm">
+        <form id="pedidoForm">
             @Html.AntiForgeryToken()
-            <input type="hidden" id="vendaId" />
+            <input type="hidden" id="pedidoId" />
             <div class="user-form-grid">
                 <div><label for="clienteId">Cliente</label><select id="clienteId" required><option value="">Selecione...</option></select></div>
-                <div><label for="dataVenda">Data da venda</label><input id="dataVenda" type="date" required /></div>
+                <div><label for="dataPedido">Data do pedido</label><input id="dataPedido" type="date" required /></div>
                 <div><label for="numeroNota">Número da nota</label><input id="numeroNota" /></div>
                 <div><label for="formaPagamento">Forma de pagamento</label><select id="formaPagamento"><option value="">Selecione...</option><option>Dinheiro</option><option>Cartão de crédito</option><option>Cartão de débito</option><option>PIX</option><option>Boleto</option><option>Transferência</option></select></div>
                 <div><label for="status">Status</label><select id="status"><option>Pendente</option><option>Concluída</option><option>Cancelada</option></select></div>
@@ -49,7 +49,7 @@
             </div>
 
             <div class="items-section">
-                <div class="section-heading"><div><h3>Produtos da venda</h3></div></div>
+                <div class="section-heading"><div><h3>Produtos do pedido</h3></div></div>
                 <div class="table-wrap">
                     <table class="data-table">
                         <thead class="table-light">
@@ -79,6 +79,7 @@
         <table class="data-table">
             <thead class="table-light">
                 <tr>
+                    <th>Nº do pedido</th>
                     <th>Cliente</th>
                     <th>Produtos</th>
                     <th>Valor total</th>
@@ -89,17 +90,17 @@
                     <th>Ações</th>
                 </tr>
             </thead>
-            <tbody id="vendaTableBody"></tbody>
+            <tbody id="pedidoTableBody"></tbody>
         </table>
     </div>
 </div>
 
 @section Scripts {
     <script>
-        const form = document.getElementById('vendaForm');
-        const vendaId = document.getElementById('vendaId');
+        const form = document.getElementById('pedidoForm');
+        const pedidoId = document.getElementById('pedidoId');
         const clienteId = document.getElementById('clienteId');
-        const dataVenda = document.getElementById('dataVenda');
+        const dataPedido = document.getElementById('dataPedido');
         const numeroNota = document.getElementById('numeroNota');
         const formaPagamento = document.getElementById('formaPagamento');
         const status = document.getElementById('status');
@@ -108,7 +109,7 @@
         const valorTotalDisplay = document.getElementById('valorTotal');
         const valorComDescontoDisplay = document.getElementById('valorComDesconto');
         const cancelEdit = document.getElementById('cancelEdit');
-        const tableBody = document.getElementById('vendaTableBody');
+        const tableBody = document.getElementById('pedidoTableBody');
         const itensTableBody = document.getElementById('itensTableBody');
         const addItemButton = document.getElementById('addItemButton');
         const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
@@ -228,7 +229,7 @@
 
         function resetForm() {
             form.reset();
-            vendaId.value = '';
+            pedidoId.value = '';
             itensOriginais = [];
             itensTableBody.innerHTML = '';
             addItemRow();
@@ -250,45 +251,46 @@
             allProducts = await response.json();
         }
 
-        async function loadVendas() {
-            const response = await fetch('/api/vendas');
+        async function loadPedidos() {
+            const response = await fetch('/api/pedidos');
             if (!response.ok) {
-                throw new Error('Erro ao carregar vendas.');
+                throw new Error('Erro ao carregar pedidos.');
             }
 
             const data = await response.json();
             tableBody.innerHTML = data.map(item => `
                 <tr>
+                    <td>${item.numeroPedido}</td>
                     <td>${item.clienteNome}</td>
                     <td>${item.itens.map(i => `${i.productNome} (x${i.quantidade})`).join(', ')}</td>
                     <td>${formatCurrency(item.valorTotal)}</td>
                     <td>${item.percentualDesconto > 0 ? item.percentualDesconto.toLocaleString('pt-BR') + '%' : '—'}</td>
                     <td>${formatCurrency(item.valorComDesconto)}</td>
-                    <td>${formatDate(item.dataVenda)}</td>
+                    <td>${formatDate(item.dataPedido)}</td>
                     <td>${item.status}</td>
                     <td>
-                        <a class="table-action" href="/Vendas/Recibo/${item.id}" target="_blank" rel="noopener">Recibo</a>
+                        <a class="table-action" href="/Pedidos/Recibo/${item.id}" target="_blank" rel="noopener">Recibo</a>
                         <button class="table-action" data-edit="${item.id}">Editar</button>
                         <button class="table-action danger" data-delete="${item.id}">Excluir</button>
                     </td>
                 </tr>
-            `).join('') || '<tr><td colspan="8" class="muted">Nenhuma venda registrada ainda.</td></tr>';
+            `).join('') || '<tr><td colspan="9" class="muted">Nenhum pedido registrado ainda.</td></tr>';
 
             tableBody.querySelectorAll('[data-edit]').forEach(button => {
-                button.addEventListener('click', () => editVenda(Number(button.dataset.edit)));
+                button.addEventListener('click', () => editPedido(Number(button.dataset.edit)));
             });
 
             tableBody.querySelectorAll('[data-delete]').forEach(button => {
-                button.addEventListener('click', () => deleteVenda(Number(button.dataset.delete)));
+                button.addEventListener('click', () => deletePedido(Number(button.dataset.delete)));
             });
         }
 
-        async function editVenda(id) {
-            const response = await fetch(`/api/vendas/${id}`);
+        async function editPedido(id) {
+            const response = await fetch(`/api/pedidos/${id}`);
             const data = await response.json();
-            vendaId.value = data.id;
+            pedidoId.value = data.id;
             clienteId.value = data.clienteId;
-            dataVenda.value = data.dataVenda.slice(0, 10);
+            dataPedido.value = data.dataPedido.slice(0, 10);
             numeroNota.value = data.numeroNota;
             formaPagamento.value = data.formaPagamento;
             status.value = data.status;
@@ -303,13 +305,13 @@
             clienteId.focus();
         }
 
-        async function deleteVenda(id) {
-            const confirmed = confirm('Deseja excluir esta venda?');
+        async function deletePedido(id) {
+            const confirmed = confirm('Deseja excluir este pedido?');
             if (!confirmed) return;
 
-            const response = await fetch(`/api/vendas/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': csrfToken } });
+            const response = await fetch(`/api/pedidos/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': csrfToken } });
             if (response.ok) {
-                await loadVendas();
+                await loadPedidos();
             }
         }
 
@@ -321,7 +323,7 @@
 
             const linhas = Array.from(itensTableBody.querySelectorAll('tr'));
             if (linhas.length === 0) {
-                alert('Adicione ao menos um produto à venda.');
+                alert('Adicione ao menos um produto ao pedido.');
                 return;
             }
 
@@ -337,10 +339,10 @@
             }
 
             const payload = {
-                id: Number(vendaId.value || 0),
+                id: Number(pedidoId.value || 0),
                 clienteId: Number(clienteId.value),
                 itens,
-                dataVenda: dataVenda.value,
+                dataPedido: dataPedido.value,
                 numeroNota: numeroNota.value.trim(),
                 formaPagamento: formaPagamento.value,
                 status: status.value,
@@ -349,7 +351,7 @@
             };
 
             const method = payload.id ? 'PUT' : 'POST';
-            const url = payload.id ? `/api/vendas/${payload.id}` : '/api/vendas';
+            const url = payload.id ? `/api/pedidos/${payload.id}` : '/api/pedidos';
 
             const response = await fetch(url, {
                 method,
@@ -359,10 +361,10 @@
 
             if (response.ok) {
                 resetForm();
-                await loadVendas();
+                await loadPedidos();
             } else {
                 const errorText = await response.text();
-                alert(errorText || 'Erro ao salvar venda.');
+                alert(errorText || 'Erro ao salvar pedido.');
             }
         });
 
@@ -371,7 +373,7 @@
         Promise.all([loadClientesOptions(), loadProductsOptions()])
             .then(() => {
                 addItemRow();
-                return loadVendas();
+                return loadPedidos();
             })
             .catch(error => console.error(error));
     </script>

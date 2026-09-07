@@ -350,64 +350,89 @@ using (var scope = app.Services.CreateScope())
             db.Database.ExecuteSqlRaw("ALTER TABLE Fornecedores DROP COLUMN UltimaCompraValor;");
         }
 
+        var tableNames = new List<string>();
+        using (var command = db.Database.GetDbConnection().CreateCommand())
+        {
+            command.CommandText = "SELECT name FROM sqlite_master WHERE type='table';";
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                tableNames.Add(reader.GetString(0));
+            }
+        }
+
+        // "Vendas"/"VendaItens" foram renomeadas para "Pedidos"/"PedidoItens" (terminologia do
+        // negócio); o rename preserva todo o histórico já gravado nessas tabelas.
+        if (tableNames.Contains("Vendas") && !tableNames.Contains("Pedidos"))
+        {
+            db.Database.ExecuteSqlRaw("ALTER TABLE Vendas RENAME TO Pedidos;");
+        }
+
+        if (tableNames.Contains("VendaItens") && !tableNames.Contains("PedidoItens"))
+        {
+            db.Database.ExecuteSqlRaw("ALTER TABLE VendaItens RENAME TO PedidoItens;");
+            db.Database.ExecuteSqlRaw("ALTER TABLE PedidoItens RENAME COLUMN VendaId TO PedidoId;");
+        }
+
         db.Database.ExecuteSqlRaw("""
-            CREATE TABLE IF NOT EXISTS Vendas (
-                Id INTEGER NOT NULL CONSTRAINT PK_Vendas PRIMARY KEY AUTOINCREMENT,
+            CREATE TABLE IF NOT EXISTS Pedidos (
+                Id INTEGER NOT NULL CONSTRAINT PK_Pedidos PRIMARY KEY AUTOINCREMENT,
+                NumeroPedido INTEGER NOT NULL DEFAULT 0,
                 ClienteId INTEGER NULL,
-                DataVenda TEXT NOT NULL,
+                DataPedido TEXT NOT NULL,
                 NumeroNota TEXT NOT NULL,
                 FormaPagamento TEXT NOT NULL,
                 Status TEXT NOT NULL,
                 PercentualDesconto TEXT NOT NULL DEFAULT '0',
                 Observacoes TEXT NOT NULL,
                 CreatedAt TEXT NOT NULL,
-                CONSTRAINT FK_Vendas_Clientes_ClienteId FOREIGN KEY (ClienteId) REFERENCES Clientes (Id) ON DELETE SET NULL
+                CONSTRAINT FK_Pedidos_Clientes_ClienteId FOREIGN KEY (ClienteId) REFERENCES Clientes (Id) ON DELETE SET NULL
             );
             """);
 
-        var vendaColumns = new List<string>();
+        var pedidoColumns = new List<string>();
         using (var command = db.Database.GetDbConnection().CreateCommand())
         {
-            command.CommandText = "PRAGMA table_info(Vendas);";
+            command.CommandText = "PRAGMA table_info(Pedidos);";
             using var reader = command.ExecuteReader();
             while (reader.Read())
             {
-                vendaColumns.Add(reader.GetString(reader.GetOrdinal("name")));
+                pedidoColumns.Add(reader.GetString(reader.GetOrdinal("name")));
             }
         }
 
-        if (!vendaColumns.Contains("PercentualDesconto"))
+        if (!pedidoColumns.Contains("PercentualDesconto"))
         {
-            db.Database.ExecuteSqlRaw("ALTER TABLE Vendas ADD COLUMN PercentualDesconto TEXT NOT NULL DEFAULT '0';");
+            db.Database.ExecuteSqlRaw("ALTER TABLE Pedidos ADD COLUMN PercentualDesconto TEXT NOT NULL DEFAULT '0';");
         }
 
         db.Database.ExecuteSqlRaw("""
-            CREATE TABLE IF NOT EXISTS VendaItens (
-                Id INTEGER NOT NULL CONSTRAINT PK_VendaItens PRIMARY KEY AUTOINCREMENT,
-                VendaId INTEGER NOT NULL,
+            CREATE TABLE IF NOT EXISTS PedidoItens (
+                Id INTEGER NOT NULL CONSTRAINT PK_PedidoItens PRIMARY KEY AUTOINCREMENT,
+                PedidoId INTEGER NOT NULL,
                 ProductId INTEGER NULL,
                 Quantidade INTEGER NOT NULL,
                 ValorUnitario TEXT NOT NULL,
-                CONSTRAINT FK_VendaItens_Vendas_VendaId FOREIGN KEY (VendaId) REFERENCES Vendas (Id) ON DELETE CASCADE,
-                CONSTRAINT FK_VendaItens_Products_ProductId FOREIGN KEY (ProductId) REFERENCES Products (Id) ON DELETE SET NULL
+                CONSTRAINT FK_PedidoItens_Pedidos_PedidoId FOREIGN KEY (PedidoId) REFERENCES Pedidos (Id) ON DELETE CASCADE,
+                CONSTRAINT FK_PedidoItens_Products_ProductId FOREIGN KEY (ProductId) REFERENCES Products (Id) ON DELETE SET NULL
             );
             """);
 
-        if (vendaColumns.Contains("ProductId"))
+        if (pedidoColumns.Contains("ProductId"))
         {
-            // Os itens são copiados para uma tabela temporária (sem FK) antes de recriar Vendas:
-            // como o Microsoft.Data.Sqlite habilita PRAGMA foreign_keys, um DROP TABLE Vendas
-            // dispara a ação ON DELETE CASCADE de VendaItens.VendaId, apagando os itens já inseridos.
+            // Os itens são copiados para uma tabela temporária (sem FK) antes de recriar Pedidos:
+            // como o Microsoft.Data.Sqlite habilita PRAGMA foreign_keys, um DROP TABLE Pedidos
+            // dispara a ação ON DELETE CASCADE de PedidoItens.PedidoId, apagando os itens já inseridos.
             db.Database.ExecuteSqlRaw("""
-                CREATE TEMP TABLE VendaItensStaging AS
-                SELECT Id AS VendaId, ProductId, Quantidade, ValorUnitario FROM Vendas;
+                CREATE TEMP TABLE PedidoItensStaging AS
+                SELECT Id AS PedidoId, ProductId, Quantidade, ValorUnitario FROM Pedidos;
                 """);
 
             // SQLite recusa DROP COLUMN em coluna usada numa FK da própria tabela (ProductId),
             // por isso a tabela precisa ser recriada em vez de alterada coluna a coluna.
             db.Database.ExecuteSqlRaw("""
-                CREATE TABLE VendasNovo (
-                    Id INTEGER NOT NULL CONSTRAINT PK_Vendas PRIMARY KEY AUTOINCREMENT,
+                CREATE TABLE PedidosNovo (
+                    Id INTEGER NOT NULL CONSTRAINT PK_Pedidos PRIMARY KEY AUTOINCREMENT,
                     ClienteId INTEGER NULL,
                     DataVenda TEXT NOT NULL,
                     NumeroNota TEXT NOT NULL,
@@ -416,20 +441,48 @@ using (var scope = app.Services.CreateScope())
                     PercentualDesconto TEXT NOT NULL DEFAULT '0',
                     Observacoes TEXT NOT NULL,
                     CreatedAt TEXT NOT NULL,
-                    CONSTRAINT FK_Vendas_Clientes_ClienteId FOREIGN KEY (ClienteId) REFERENCES Clientes (Id) ON DELETE SET NULL
+                    CONSTRAINT FK_Pedidos_Clientes_ClienteId FOREIGN KEY (ClienteId) REFERENCES Clientes (Id) ON DELETE SET NULL
                 );
-                INSERT INTO VendasNovo (Id, ClienteId, DataVenda, NumeroNota, FormaPagamento, Status, PercentualDesconto, Observacoes, CreatedAt)
-                SELECT Id, ClienteId, DataVenda, NumeroNota, FormaPagamento, Status, PercentualDesconto, Observacoes, CreatedAt FROM Vendas;
-                DROP TABLE Vendas;
-                ALTER TABLE VendasNovo RENAME TO Vendas;
+                INSERT INTO PedidosNovo (Id, ClienteId, DataVenda, NumeroNota, FormaPagamento, Status, PercentualDesconto, Observacoes, CreatedAt)
+                SELECT Id, ClienteId, DataVenda, NumeroNota, FormaPagamento, Status, PercentualDesconto, Observacoes, CreatedAt FROM Pedidos;
+                DROP TABLE Pedidos;
+                ALTER TABLE PedidosNovo RENAME TO Pedidos;
                 """);
 
             db.Database.ExecuteSqlRaw("""
-                INSERT INTO VendaItens (VendaId, ProductId, Quantidade, ValorUnitario)
-                SELECT VendaId, ProductId, Quantidade, ValorUnitario FROM VendaItensStaging;
+                INSERT INTO PedidoItens (PedidoId, ProductId, Quantidade, ValorUnitario)
+                SELECT PedidoId, ProductId, Quantidade, ValorUnitario FROM PedidoItensStaging;
                 """);
-            db.Database.ExecuteSqlRaw("DROP TABLE VendaItensStaging;");
+            db.Database.ExecuteSqlRaw("DROP TABLE PedidoItensStaging;");
+
+            pedidoColumns = new List<string>();
+            using (var command = db.Database.GetDbConnection().CreateCommand())
+            {
+                command.CommandText = "PRAGMA table_info(Pedidos);";
+                using var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    pedidoColumns.Add(reader.GetString(reader.GetOrdinal("name")));
+                }
+            }
         }
+
+        if (pedidoColumns.Contains("DataVenda") && !pedidoColumns.Contains("DataPedido"))
+        {
+            db.Database.ExecuteSqlRaw("ALTER TABLE Pedidos RENAME COLUMN DataVenda TO DataPedido;");
+        }
+
+        if (!pedidoColumns.Contains("NumeroPedido"))
+        {
+            db.Database.ExecuteSqlRaw("ALTER TABLE Pedidos ADD COLUMN NumeroPedido INTEGER NOT NULL DEFAULT 0;");
+            db.Database.ExecuteSqlRaw("""
+                UPDATE Pedidos SET NumeroPedido = (
+                    SELECT COUNT(*) FROM Pedidos AS p2 WHERE p2.Id <= Pedidos.Id
+                );
+                """);
+        }
+
+        db.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_Pedidos_NumeroPedido ON Pedidos (NumeroPedido);");
 
         var productColumnsForSaldo = new List<string>();
         using (var command = db.Database.GetDbConnection().CreateCommand())
@@ -446,7 +499,7 @@ using (var scope = app.Services.CreateScope())
         {
             db.Database.ExecuteSqlRaw("ALTER TABLE Products ADD COLUMN Saldo INTEGER NOT NULL DEFAULT 0;");
             db.Database.ExecuteSqlRaw("""
-                UPDATE Products SET Saldo = -COALESCE((SELECT SUM(Quantidade) FROM VendaItens WHERE VendaItens.ProductId = Products.Id), 0);
+                UPDATE Products SET Saldo = -COALESCE((SELECT SUM(Quantidade) FROM PedidoItens WHERE PedidoItens.ProductId = Products.Id), 0);
                 """);
         }
 

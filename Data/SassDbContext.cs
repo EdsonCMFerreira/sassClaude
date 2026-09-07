@@ -10,7 +10,7 @@ public class SassDbContext : DbContext
 {
     private static readonly Type[] AuditableTypes =
     [
-        typeof(Product), typeof(Cliente), typeof(Fornecedor), typeof(Venda), typeof(Login)
+        typeof(Product), typeof(Cliente), typeof(Fornecedor), typeof(Pedido), typeof(Login)
     ];
 
     private readonly IHttpContextAccessor? _httpContextAccessor;
@@ -28,8 +28,8 @@ public class SassDbContext : DbContext
     public DbSet<Product> Products => Set<Product>();
     public DbSet<Cliente> Clientes => Set<Cliente>();
     public DbSet<Fornecedor> Fornecedores => Set<Fornecedor>();
-    public DbSet<Venda> Vendas => Set<Venda>();
-    public DbSet<VendaItem> VendaItens => Set<VendaItem>();
+    public DbSet<Pedido> Pedidos => Set<Pedido>();
+    public DbSet<PedidoItem> PedidoItens => Set<PedidoItem>();
     public DbSet<AuditLogEntry> AuditLogEntries => Set<AuditLogEntry>();
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
@@ -201,24 +201,26 @@ public class SassDbContext : DbContext
             entity.HasIndex(x => x.CpfCnpj).IsUnique();
         });
 
-        modelBuilder.Entity<Venda>(entity =>
+        modelBuilder.Entity<Pedido>(entity =>
         {
             entity.HasKey(x => x.Id);
+            entity.Property(x => x.NumeroPedido).IsRequired();
             entity.Property(x => x.Status).IsRequired().HasMaxLength(20);
             entity.Property(x => x.PercentualDesconto).HasColumnType("decimal(5,2)");
+            entity.HasIndex(x => x.NumeroPedido).IsUnique();
             entity.HasOne(x => x.Cliente)
                 .WithMany()
                 .HasForeignKey(x => x.ClienteId)
                 .OnDelete(DeleteBehavior.SetNull);
         });
 
-        modelBuilder.Entity<VendaItem>(entity =>
+        modelBuilder.Entity<PedidoItem>(entity =>
         {
             entity.HasKey(x => x.Id);
             entity.Property(x => x.ValorUnitario).HasColumnType("decimal(10,2)");
-            entity.HasOne(x => x.Venda)
+            entity.HasOne(x => x.Pedido)
                 .WithMany(x => x.Itens)
-                .HasForeignKey(x => x.VendaId)
+                .HasForeignKey(x => x.PedidoId)
                 .OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(x => x.Product)
                 .WithMany()

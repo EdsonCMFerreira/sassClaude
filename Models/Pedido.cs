@@ -2,17 +2,19 @@ using System.ComponentModel.DataAnnotations;
 
 namespace sassClaude.Models;
 
-public class Venda
+public class Pedido
 {
     public int Id { get; set; }
+
+    public int NumeroPedido { get; set; }
 
     public int? ClienteId { get; set; }
 
     public Cliente? Cliente { get; set; }
 
-    public List<VendaItem> Itens { get; set; } = new();
+    public List<PedidoItem> Itens { get; set; } = new();
 
-    public DateTime DataVenda { get; set; }
+    public DateTime DataPedido { get; set; }
 
     [StringLength(50)]
     public string NumeroNota { get; set; } = string.Empty;

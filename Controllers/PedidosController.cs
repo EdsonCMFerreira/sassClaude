@@ -10,11 +10,11 @@ using sassClaude.Models;
 namespace sassClaude.Controllers;
 
 [Authorize]
-public class VendasController : Controller
+public class PedidosController : Controller
 {
     private readonly SassDbContext _context;
 
-    public VendasController(SassDbContext context)
+    public PedidosController(SassDbContext context)
     {
         _context = context;
     }
@@ -23,17 +23,17 @@ public class VendasController : Controller
 
     public async Task<IActionResult> Recibo(int id)
     {
-        var venda = await _context.Vendas
+        var pedido = await _context.Pedidos
             .Include(x => x.Cliente)
             .Include(x => x.Itens).ThenInclude(x => x.Product)
             .FirstOrDefaultAsync(x => x.Id == id);
-        if (venda is null)
+        if (pedido is null)
         {
             return NotFound();
         }
 
-        var valorTotal = venda.Itens.Sum(i => i.Quantidade * i.ValorUnitario);
-        var valorComDesconto = Math.Round(valorTotal * (1 - venda.PercentualDesconto / 100), 2);
+        var valorTotal = pedido.Itens.Sum(i => i.Quantidade * i.ValorUnitario);
+        var valorComDesconto = Math.Round(valorTotal * (1 - pedido.PercentualDesconto / 100), 2);
         var ptBr = new System.Globalization.CultureInfo("pt-BR");
 
         var document = Document.Create(container =>
@@ -47,25 +47,25 @@ public class VendasController : Controller
                 page.Header().Column(column =>
                 {
                     column.Item().Text("sassClaude").FontSize(20).Bold();
-                    column.Item().Text("Recibo de venda").FontSize(14).FontColor(Colors.Grey.Darken1);
+                    column.Item().Text("Recibo de pedido").FontSize(14).FontColor(Colors.Grey.Darken1);
                 });
 
                 page.Content().PaddingVertical(20).Column(column =>
                 {
                     column.Spacing(8);
-                    column.Item().Text($"Recibo Nº {venda.Id}");
-                    column.Item().Text($"Data: {venda.DataVenda:dd/MM/yyyy}");
-                    if (!string.IsNullOrWhiteSpace(venda.NumeroNota))
+                    column.Item().Text($"Pedido Nº {pedido.NumeroPedido}");
+                    column.Item().Text($"Data: {pedido.DataPedido:dd/MM/yyyy}");
+                    if (!string.IsNullOrWhiteSpace(pedido.NumeroNota))
                     {
-                        column.Item().Text($"Nota: {venda.NumeroNota}");
+                        column.Item().Text($"Nota: {pedido.NumeroNota}");
                     }
 
                     column.Item().PaddingTop(10).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
 
-                    column.Item().PaddingTop(10).Text($"Cliente: {venda.Cliente?.Nome ?? "—"}");
-                    if (venda.Cliente is not null && !string.IsNullOrWhiteSpace(venda.Cliente.CpfCnpj))
+                    column.Item().PaddingTop(10).Text($"Cliente: {pedido.Cliente?.Nome ?? "—"}");
+                    if (pedido.Cliente is not null && !string.IsNullOrWhiteSpace(pedido.Cliente.CpfCnpj))
                     {
-                        column.Item().Text($"CPF/CNPJ: {venda.Cliente.CpfCnpj}");
+                        column.Item().Text($"CPF/CNPJ: {pedido.Cliente.CpfCnpj}");
                     }
 
                     column.Item().PaddingTop(10).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
@@ -88,7 +88,7 @@ public class VendasController : Controller
                             header.Cell().Text("Total").Bold();
                         });
 
-                        foreach (var item in venda.Itens)
+                        foreach (var item in pedido.Itens)
                         {
                             table.Cell().Text(item.Product?.Descricao ?? "—");
                             table.Cell().Text(item.Quantidade.ToString());
@@ -99,10 +99,10 @@ public class VendasController : Controller
 
                     column.Item().PaddingTop(10).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
 
-                    if (venda.PercentualDesconto > 0)
+                    if (pedido.PercentualDesconto > 0)
                     {
                         column.Item().PaddingTop(10).AlignRight().Text($"Subtotal: {valorTotal.ToString("C", ptBr)}");
-                        column.Item().AlignRight().Text($"Desconto: {venda.PercentualDesconto.ToString("0.##", ptBr)}%");
+                        column.Item().AlignRight().Text($"Desconto: {pedido.PercentualDesconto.ToString("0.##", ptBr)}%");
                         column.Item().AlignRight().Text($"Valor total: {valorComDesconto.ToString("C", ptBr)}").FontSize(14).Bold();
                     }
                     else
@@ -110,12 +110,12 @@ public class VendasController : Controller
                         column.Item().PaddingTop(10).AlignRight().Text($"Valor total: {valorTotal.ToString("C", ptBr)}").FontSize(14).Bold();
                     }
 
-                    column.Item().Text($"Forma de pagamento: {(string.IsNullOrWhiteSpace(venda.FormaPagamento) ? "—" : venda.FormaPagamento)}");
-                    column.Item().Text($"Status: {venda.Status}");
+                    column.Item().Text($"Forma de pagamento: {(string.IsNullOrWhiteSpace(pedido.FormaPagamento) ? "—" : pedido.FormaPagamento)}");
+                    column.Item().Text($"Status: {pedido.Status}");
 
-                    if (!string.IsNullOrWhiteSpace(venda.Observacoes))
+                    if (!string.IsNullOrWhiteSpace(pedido.Observacoes))
                     {
-                        column.Item().PaddingTop(10).Text($"Observações: {venda.Observacoes}");
+                        column.Item().PaddingTop(10).Text($"Observações: {pedido.Observacoes}");
                     }
                 });
 
@@ -124,55 +124,55 @@ public class VendasController : Controller
         });
 
         var pdfBytes = document.GeneratePdf();
-        return File(pdfBytes, "application/pdf", $"recibo-venda-{venda.Id}.pdf");
+        return File(pdfBytes, "application/pdf", $"recibo-pedido-{pedido.NumeroPedido}.pdf");
     }
 }
 
 [ApiController]
 [Authorize]
-[Route("api/vendas")]
-public class ApiVendasController : ControllerBase
+[Route("api/pedidos")]
+public class ApiPedidosController : ControllerBase
 {
     private readonly SassDbContext _context;
 
-    public ApiVendasController(SassDbContext context)
+    public ApiPedidosController(SassDbContext context)
     {
         _context = context;
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<VendaResponse>>> GetVendas()
+    public async Task<ActionResult<IEnumerable<PedidoResponse>>> GetPedidos()
     {
-        var vendas = await _context.Vendas
+        var pedidos = await _context.Pedidos
             .Include(x => x.Cliente)
             .Include(x => x.Itens).ThenInclude(x => x.Product)
-            .OrderByDescending(x => x.DataVenda)
+            .OrderByDescending(x => x.DataPedido)
             .ToListAsync();
-        return vendas.Select(ToResponse).ToList();
+        return pedidos.Select(ToResponse).ToList();
     }
 
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<VendaResponse>> GetVenda(int id)
+    public async Task<ActionResult<PedidoResponse>> GetPedido(int id)
     {
-        var venda = await _context.Vendas
+        var pedido = await _context.Pedidos
             .Include(x => x.Cliente)
             .Include(x => x.Itens).ThenInclude(x => x.Product)
             .FirstOrDefaultAsync(x => x.Id == id);
-        if (venda is null)
+        if (pedido is null)
         {
             return NotFound();
         }
 
-        return ToResponse(venda);
+        return ToResponse(pedido);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<ActionResult<VendaResponse>> PostVenda(VendaRequest request)
+    public async Task<ActionResult<PedidoResponse>> PostPedido(PedidoRequest request)
     {
         if (request.Itens is null || request.Itens.Count == 0)
         {
-            return BadRequest("Adicione ao menos um produto à venda.");
+            return BadRequest("Adicione ao menos um produto ao pedido.");
         }
 
         if (request.Itens.Any(i => i.Quantidade <= 0))
@@ -209,10 +209,13 @@ public class ApiVendasController : ControllerBase
             produtosPorId[grupo.Key] = product;
         }
 
-        var venda = new Venda
+        var proximoNumero = await _context.Pedidos.MaxAsync(p => (int?)p.NumeroPedido) ?? 0;
+
+        var pedido = new Pedido
         {
+            NumeroPedido = proximoNumero + 1,
             Cliente = cliente,
-            DataVenda = request.DataVenda,
+            DataPedido = request.DataPedido,
             NumeroNota = request.NumeroNota.Trim(),
             FormaPagamento = request.FormaPagamento.Trim(),
             Status = request.Status.Trim(),
@@ -223,7 +226,7 @@ public class ApiVendasController : ControllerBase
 
         foreach (var item in request.Itens)
         {
-            venda.Itens.Add(new VendaItem
+            pedido.Itens.Add(new PedidoItem
             {
                 Product = produtosPorId[item.ProductId],
                 Quantidade = item.Quantidade,
@@ -236,23 +239,23 @@ public class ApiVendasController : ControllerBase
             produtosPorId[grupo.Key].Saldo -= grupo.Sum(i => i.Quantidade);
         }
 
-        _context.Vendas.Add(venda);
+        _context.Pedidos.Add(pedido);
         await _context.SaveChangesAsync();
         await RecalcularUltimaCompraCliente(cliente.Id);
 
-        var vendaCompleta = await _context.Vendas
+        var pedidoCompleto = await _context.Pedidos
             .Include(x => x.Cliente)
             .Include(x => x.Itens).ThenInclude(x => x.Product)
-            .FirstAsync(x => x.Id == venda.Id);
+            .FirstAsync(x => x.Id == pedido.Id);
 
-        return CreatedAtAction(nameof(GetVenda), new { id = venda.Id }, ToResponse(vendaCompleta));
+        return CreatedAtAction(nameof(GetPedido), new { id = pedido.Id }, ToResponse(pedidoCompleto));
     }
 
     [HttpPut("{id:int}")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> PutVenda(int id, VendaRequest request)
+    public async Task<IActionResult> PutPedido(int id, PedidoRequest request)
     {
-        var existing = await _context.Vendas
+        var existing = await _context.Pedidos
             .Include(x => x.Itens)
             .FirstOrDefaultAsync(x => x.Id == id);
         if (existing is null)
@@ -262,7 +265,7 @@ public class ApiVendasController : ControllerBase
 
         if (request.Itens is null || request.Itens.Count == 0)
         {
-            return BadRequest("Adicione ao menos um produto à venda.");
+            return BadRequest("Adicione ao menos um produto ao pedido.");
         }
 
         if (request.Itens.Any(i => i.Quantidade <= 0))
@@ -321,8 +324,8 @@ public class ApiVendasController : ControllerBase
 
         var clienteAnteriorId = existing.ClienteId;
 
-        _context.VendaItens.RemoveRange(itensAntigos);
-        existing.Itens = request.Itens.Select(item => new VendaItem
+        _context.PedidoItens.RemoveRange(itensAntigos);
+        existing.Itens = request.Itens.Select(item => new PedidoItem
         {
             Product = produtosPorId[item.ProductId],
             Quantidade = item.Quantidade,
@@ -330,7 +333,7 @@ public class ApiVendasController : ControllerBase
         }).ToList();
 
         existing.Cliente = cliente;
-        existing.DataVenda = request.DataVenda;
+        existing.DataPedido = request.DataPedido;
         existing.NumeroNota = request.NumeroNota.Trim();
         existing.FormaPagamento = request.FormaPagamento.Trim();
         existing.Status = request.Status.Trim();
@@ -350,19 +353,19 @@ public class ApiVendasController : ControllerBase
 
     [HttpDelete("{id:int}")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteVenda(int id)
+    public async Task<IActionResult> DeletePedido(int id)
     {
-        var venda = await _context.Vendas
+        var pedido = await _context.Pedidos
             .Include(x => x.Itens)
             .FirstOrDefaultAsync(x => x.Id == id);
-        if (venda is null)
+        if (pedido is null)
         {
             return NotFound();
         }
 
-        var clienteId = venda.ClienteId;
+        var clienteId = pedido.ClienteId;
 
-        foreach (var grupo in venda.Itens.Where(i => i.ProductId.HasValue).GroupBy(i => i.ProductId!.Value))
+        foreach (var grupo in pedido.Itens.Where(i => i.ProductId.HasValue).GroupBy(i => i.ProductId!.Value))
         {
             var produto = await _context.Products.FindAsync(grupo.Key);
             if (produto is not null)
@@ -371,7 +374,7 @@ public class ApiVendasController : ControllerBase
             }
         }
 
-        _context.Vendas.Remove(venda);
+        _context.Pedidos.Remove(pedido);
         await _context.SaveChangesAsync();
 
         if (clienteId.HasValue)
@@ -390,20 +393,20 @@ public class ApiVendasController : ControllerBase
             return;
         }
 
-        var ultima = await _context.Vendas
-            .Include(v => v.Itens)
-            .Where(v => v.ClienteId == clienteId)
-            .OrderByDescending(v => v.DataVenda)
+        var ultimo = await _context.Pedidos
+            .Include(p => p.Itens)
+            .Where(p => p.ClienteId == clienteId)
+            .OrderByDescending(p => p.DataPedido)
             .FirstOrDefaultAsync();
 
-        cliente.UltimaCompraData = ultima?.DataVenda;
-        cliente.UltimaCompraValor = ultima is null ? null : CalcularValorComDesconto(ValorTotalVenda(ultima), ultima.PercentualDesconto);
+        cliente.UltimaCompraData = ultimo?.DataPedido;
+        cliente.UltimaCompraValor = ultimo is null ? null : CalcularValorComDesconto(ValorTotalPedido(ultimo), ultimo.PercentualDesconto);
         await _context.SaveChangesAsync();
     }
 
-    private static decimal ValorTotalVenda(Venda venda)
+    private static decimal ValorTotalPedido(Pedido pedido)
     {
-        return venda.Itens.Sum(i => i.Quantidade * i.ValorUnitario);
+        return pedido.Itens.Sum(i => i.Quantidade * i.ValorUnitario);
     }
 
     private static decimal CalcularValorComDesconto(decimal valorTotal, decimal percentualDesconto)
@@ -411,9 +414,9 @@ public class ApiVendasController : ControllerBase
         return Math.Round(valorTotal * (1 - percentualDesconto / 100), 2);
     }
 
-    private static VendaResponse ToResponse(Venda venda)
+    private static PedidoResponse ToResponse(Pedido pedido)
     {
-        var itens = venda.Itens.Select(i => new VendaItemResponse(
+        var itens = pedido.Itens.Select(i => new PedidoItemResponse(
             i.Id,
             i.ProductId ?? 0,
             i.Product?.Descricao ?? "—",
@@ -423,32 +426,33 @@ public class ApiVendasController : ControllerBase
 
         var valorTotal = itens.Sum(i => i.ValorTotal);
 
-        return new VendaResponse(
-            venda.Id,
-            venda.ClienteId ?? 0,
-            venda.Cliente?.Nome ?? "—",
+        return new PedidoResponse(
+            pedido.Id,
+            pedido.NumeroPedido,
+            pedido.ClienteId ?? 0,
+            pedido.Cliente?.Nome ?? "—",
             itens,
             valorTotal,
-            venda.PercentualDesconto,
-            CalcularValorComDesconto(valorTotal, venda.PercentualDesconto),
-            venda.DataVenda,
-            venda.NumeroNota,
-            venda.FormaPagamento,
-            venda.Status,
-            venda.Observacoes,
-            venda.CreatedAt);
+            pedido.PercentualDesconto,
+            CalcularValorComDesconto(valorTotal, pedido.PercentualDesconto),
+            pedido.DataPedido,
+            pedido.NumeroNota,
+            pedido.FormaPagamento,
+            pedido.Status,
+            pedido.Observacoes,
+            pedido.CreatedAt);
     }
 }
 
-public sealed record VendaItemRequest(int ProductId, int Quantidade, decimal ValorUnitario);
+public sealed record PedidoItemRequest(int ProductId, int Quantidade, decimal ValorUnitario);
 
-public sealed record VendaRequest(
-    int ClienteId, List<VendaItemRequest> Itens, DateTime DataVenda,
+public sealed record PedidoRequest(
+    int ClienteId, List<PedidoItemRequest> Itens, DateTime DataPedido,
     string NumeroNota, string FormaPagamento, string Status, decimal PercentualDesconto, string Observacoes);
 
-public sealed record VendaItemResponse(int Id, int ProductId, string ProductNome, int Quantidade, decimal ValorUnitario, decimal ValorTotal);
+public sealed record PedidoItemResponse(int Id, int ProductId, string ProductNome, int Quantidade, decimal ValorUnitario, decimal ValorTotal);
 
-public sealed record VendaResponse(
-    int Id, int ClienteId, string ClienteNome, List<VendaItemResponse> Itens,
-    decimal ValorTotal, decimal PercentualDesconto, decimal ValorComDesconto, DateTime DataVenda,
+public sealed record PedidoResponse(
+    int Id, int NumeroPedido, int ClienteId, string ClienteNome, List<PedidoItemResponse> Itens,
+    decimal ValorTotal, decimal PercentualDesconto, decimal ValorComDesconto, DateTime DataPedido,
     string NumeroNota, string FormaPagamento, string Status, string Observacoes, DateTime CreatedAt);

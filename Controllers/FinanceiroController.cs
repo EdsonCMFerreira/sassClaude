@@ -18,7 +18,7 @@ public class FinanceiroController : Controller
 
     public async Task<IActionResult> Index()
     {
-        var vendas = await _context.Vendas.Include(v => v.Itens).Where(v => v.Status == "Concluída").ToListAsync();
+        var pedidos = await _context.Pedidos.Include(p => p.Itens).Where(p => p.Status == "Concluída").ToListAsync();
 
         var hoje = DateTime.UtcNow.Date;
         var meses = Enumerable.Range(0, 6)
@@ -26,21 +26,21 @@ public class FinanceiroController : Controller
             .OrderBy(d => d)
             .Select(mes => new DreRow(
                 mes,
-                vendas.Where(v => v.DataVenda.Year == mes.Year && v.DataVenda.Month == mes.Month).Sum(ValorLiquido)))
+                pedidos.Where(p => p.DataPedido.Year == mes.Year && p.DataPedido.Month == mes.Month).Sum(ValorLiquido)))
             .ToList();
 
         var model = new FinanceiroViewModel
         {
-            TotalEntradas = vendas.Sum(ValorLiquido),
+            TotalEntradas = pedidos.Sum(ValorLiquido),
             Meses = meses
         };
 
         return View(model);
     }
 
-    private static decimal ValorLiquido(Venda venda)
+    private static decimal ValorLiquido(Pedido pedido)
     {
-        var valorTotal = venda.Itens.Sum(i => i.Quantidade * i.ValorUnitario);
-        return Math.Round(valorTotal * (1 - venda.PercentualDesconto / 100), 2);
+        var valorTotal = pedido.Itens.Sum(i => i.Quantidade * i.ValorUnitario);
+        return Math.Round(valorTotal * (1 - pedido.PercentualDesconto / 100), 2);
     }
 }
