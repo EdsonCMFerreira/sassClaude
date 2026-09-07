@@ -2,6 +2,33 @@
     ViewData["Title"] = "Vendas";
 }
 
+<style>
+    .items-section .data-table select,
+    .items-section .data-table input {
+        background: #fff;
+        border: 1px solid #dce2e6;
+        border-radius: 7px;
+        box-sizing: border-box;
+        font: inherit;
+        font-size: 13px;
+        outline: none;
+        padding: 11px 12px;
+        width: 100%;
+    }
+
+    .items-section .data-table select:focus,
+    .items-section .data-table input:focus {
+        border-color: var(--blue);
+        box-shadow: 0 0 0 3px rgba(23,105,224,.12);
+    }
+
+    .items-section .table-action {
+        display: block;
+        margin: 0 0 6px;
+        text-align: left;
+    }
+</style>
+
 <div class="page-heading">
     <div><span class="eyebrow">Movimentação</span><h1>Vendas.</h1><p class="muted">Registre as vendas feitas aos clientes.</p></div>
 </div>
@@ -28,18 +55,16 @@
                         <thead class="table-light">
                             <tr>
                                 <th>Produto</th>
-                                <th>Fornecedor</th>
-                                <th>Saldo disp.</th>
-                                <th>Quantidade</th>
-                                <th>Valor unitário</th>
-                                <th>Subtotal</th>
-                                <th></th>
+                                <th style="width:110px;">Quantidade</th>
+                                <th style="width:130px;">Valor unitário</th>
+                                <th style="width:130px;">Subtotal</th>
+                                <th style="width:140px;"></th>
                             </tr>
                         </thead>
                         <tbody id="itensTableBody"></tbody>
                     </table>
                 </div>
-                <button type="button" id="addItemButton" class="button button-outline">+ Adicionar produto</button>
+                <button type="button" id="addItemButton" class="button button-outline" style="margin-top:14px;">+ Adicionar produto</button>
             </div>
 
             <div class="user-form-grid">
@@ -139,18 +164,20 @@
 
         function atualizarLinha(tr) {
             const produtoSelect = tr.querySelector('.item-produto');
-            const fornecedorInput = tr.querySelector('.item-fornecedor');
-            const saldoInput = tr.querySelector('.item-saldo');
+            const infoText = tr.querySelector('.item-info');
             const quantidadeInput = tr.querySelector('.item-quantidade');
             const valorUnitarioInput = tr.querySelector('.item-valor-unitario');
             const subtotalInput = tr.querySelector('.item-subtotal');
 
             const productId = Number(produtoSelect.value) || 0;
             const produto = allProducts.find(p => p.id === productId);
-            fornecedorInput.value = produto ? produto.fornecedorNome : '';
 
-            const efetivo = productId ? saldoEfetivoParaProduto(productId, tr) : null;
-            saldoInput.value = efetivo === null ? '' : `${efetivo} unidade(s)`;
+            if (!produto) {
+                infoText.textContent = '';
+            } else {
+                const efetivo = saldoEfetivoParaProduto(productId, tr);
+                infoText.textContent = `Fornecedor: ${produto.fornecedorNome || '—'} · Saldo disponível: ${efetivo} unidade(s)`;
+            }
 
             const qtd = Number(quantidadeInput.value) || 0;
             const unitario = Number(valorUnitarioInput.value) || 0;
@@ -159,18 +186,27 @@
             atualizarTotais();
         }
 
-        function addItemRow(initial) {
+        function addItemRow(initial, afterRow) {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td><select class="item-produto" required>${optionsProdutosHtml(initial ? initial.productId : null)}</select></td>
-                <td><input class="item-fornecedor" type="text" readonly disabled /></td>
-                <td><input class="item-saldo" type="text" readonly disabled /></td>
+                <td>
+                    <select class="item-produto" required>${optionsProdutosHtml(initial ? initial.productId : null)}</select>
+                    <small class="item-info muted" style="display:block;margin-top:4px;"></small>
+                </td>
                 <td><input class="item-quantidade" type="number" min="1" step="1" value="${initial ? initial.quantidade : 1}" required /></td>
                 <td><input class="item-valor-unitario" type="number" step="0.01" min="0" value="${initial ? initial.valorUnitario : ''}" required /></td>
                 <td><input class="item-subtotal" type="text" readonly disabled /></td>
-                <td><button type="button" class="table-action danger item-remove">Remover</button></td>
+                <td>
+                    <button type="button" class="table-action item-add">+ Adicionar</button>
+                    <button type="button" class="table-action danger item-remove">Remover</button>
+                </td>
             `;
-            itensTableBody.appendChild(tr);
+
+            if (afterRow) {
+                afterRow.after(tr);
+            } else {
+                itensTableBody.appendChild(tr);
+            }
 
             tr.querySelector('.item-produto').addEventListener('change', () => {
                 const produto = allProducts.find(p => p.id === Number(tr.querySelector('.item-produto').value));
@@ -181,6 +217,7 @@
             });
             tr.querySelector('.item-quantidade').addEventListener('input', () => atualizarLinha(tr));
             tr.querySelector('.item-valor-unitario').addEventListener('input', () => atualizarLinha(tr));
+            tr.querySelector('.item-add').addEventListener('click', () => addItemRow(null, tr));
             tr.querySelector('.item-remove').addEventListener('click', () => {
                 tr.remove();
                 atualizarTotais();
