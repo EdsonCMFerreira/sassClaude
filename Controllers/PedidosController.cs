@@ -32,6 +32,11 @@ public class PedidosController : Controller
             return NotFound();
         }
 
+        if (pedido.Status != "Concluída")
+        {
+            return BadRequest("O recibo só pode ser gerado para pedidos concluídos.");
+        }
+
         var valorTotal = pedido.Itens.Sum(i => i.Quantidade * i.ValorUnitario);
         var valorComDesconto = Math.Round(valorTotal * (1 - pedido.PercentualDesconto / 100), 2);
         var ptBr = new System.Globalization.CultureInfo("pt-BR");
