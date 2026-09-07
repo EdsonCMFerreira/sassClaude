@@ -222,6 +222,7 @@ public class SassDbContext : DbContext
             entity.HasKey(x => x.Id);
             entity.Property(x => x.Status).IsRequired().HasMaxLength(20);
             entity.Property(x => x.ValorUnitario).HasColumnType("decimal(10,2)");
+            entity.Property(x => x.PercentualDesconto).HasColumnType("decimal(5,2)");
             entity.HasOne(x => x.Cliente)
                 .WithMany()
                 .HasForeignKey(x => x.ClienteId)

@@ -30,6 +30,8 @@ public class Venda
     [StringLength(20)]
     public string Status { get; set; } = "Pendente";
 
+    public decimal PercentualDesconto { get; set; }
+
     [StringLength(500)]
     public string Observacoes { get; set; } = string.Empty;
 

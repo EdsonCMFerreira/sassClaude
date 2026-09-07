@@ -27,13 +27,13 @@ public class FinanceiroController : Controller
             .OrderBy(d => d)
             .Select(mes => new DreRow(
                 mes,
-                vendas.Where(v => v.DataVenda.Year == mes.Year && v.DataVenda.Month == mes.Month).Sum(v => v.Quantidade * v.ValorUnitario),
+                vendas.Where(v => v.DataVenda.Year == mes.Year && v.DataVenda.Month == mes.Month).Sum(ValorLiquido),
                 compras.Where(c => c.DataCompra.Year == mes.Year && c.DataCompra.Month == mes.Month).Sum(c => c.Quantidade * c.ValorUnitario),
                 0m))
             .Select(row => row with { Resultado = row.Entradas - row.Saidas })
             .ToList();
 
-        var totalEntradas = vendas.Sum(v => v.Quantidade * v.ValorUnitario);
+        var totalEntradas = vendas.Sum(ValorLiquido);
         var totalSaidas = compras.Sum(c => c.Quantidade * c.ValorUnitario);
 
         var model = new FinanceiroViewModel
@@ -45,5 +45,11 @@ public class FinanceiroController : Controller
         };
 
         return View(model);
+    }
+
+    private static decimal ValorLiquido(Venda venda)
+    {
+        var valorTotal = venda.Quantidade * venda.ValorUnitario;
+        return Math.Round(valorTotal * (1 - venda.PercentualDesconto / 100), 2);
     }
 }

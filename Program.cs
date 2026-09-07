@@ -397,6 +397,22 @@ using (var scope = app.Services.CreateScope())
                 """);
         }
 
+        var vendaColumns = new List<string>();
+        using (var command = db.Database.GetDbConnection().CreateCommand())
+        {
+            command.CommandText = "PRAGMA table_info(Vendas);";
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                vendaColumns.Add(reader.GetString(reader.GetOrdinal("name")));
+            }
+        }
+
+        if (!vendaColumns.Contains("PercentualDesconto"))
+        {
+            db.Database.ExecuteSqlRaw("ALTER TABLE Vendas ADD COLUMN PercentualDesconto TEXT NOT NULL DEFAULT '0';");
+        }
+
         var loginColumns = new List<string>();
         using (var command = db.Database.GetDbConnection().CreateCommand())
         {

@@ -33,6 +33,7 @@ public class VendasController : Controller
         }
 
         var valorTotal = venda.Quantidade * venda.ValorUnitario;
+        var valorComDesconto = Math.Round(valorTotal * (1 - venda.PercentualDesconto / 100), 2);
         var ptBr = new System.Globalization.CultureInfo("pt-BR");
 
         var document = Document.Create(container =>
@@ -95,7 +96,17 @@ public class VendasController : Controller
 
                     column.Item().PaddingTop(10).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
 
-                    column.Item().PaddingTop(10).AlignRight().Text($"Valor total: {valorTotal.ToString("C", ptBr)}").FontSize(14).Bold();
+                    if (venda.PercentualDesconto > 0)
+                    {
+                        column.Item().PaddingTop(10).AlignRight().Text($"Subtotal: {valorTotal.ToString("C", ptBr)}");
+                        column.Item().AlignRight().Text($"Desconto: {venda.PercentualDesconto.ToString("0.##", ptBr)}%");
+                        column.Item().AlignRight().Text($"Valor total: {valorComDesconto.ToString("C", ptBr)}").FontSize(14).Bold();
+                    }
+                    else
+                    {
+                        column.Item().PaddingTop(10).AlignRight().Text($"Valor total: {valorTotal.ToString("C", ptBr)}").FontSize(14).Bold();
+                    }
+
                     column.Item().Text($"Forma de pagamento: {(string.IsNullOrWhiteSpace(venda.FormaPagamento) ? "—" : venda.FormaPagamento)}");
                     column.Item().Text($"Status: {venda.Status}");
 
@@ -161,6 +172,11 @@ public class ApiVendasController : ControllerBase
             return BadRequest("A quantidade deve ser maior que zero.");
         }
 
+        if (request.PercentualDesconto < 0 || request.PercentualDesconto > 100)
+        {
+            return BadRequest("O desconto deve estar entre 0 e 100%.");
+        }
+
         var cliente = await _context.Clientes.FindAsync(request.ClienteId);
         if (cliente is null)
         {
@@ -188,6 +204,7 @@ public class ApiVendasController : ControllerBase
             NumeroNota = request.NumeroNota.Trim(),
             FormaPagamento = request.FormaPagamento.Trim(),
             Status = request.Status.Trim(),
+            PercentualDesconto = request.PercentualDesconto,
             Observacoes = request.Observacoes.Trim(),
             CreatedAt = DateTime.UtcNow
         };
@@ -213,6 +230,11 @@ public class ApiVendasController : ControllerBase
         if (request.Quantidade <= 0)
         {
             return BadRequest("A quantidade deve ser maior que zero.");
+        }
+
+        if (request.PercentualDesconto < 0 || request.PercentualDesconto > 100)
+        {
+            return BadRequest("O desconto deve estar entre 0 e 100%.");
         }
 
         var cliente = await _context.Clientes.FindAsync(request.ClienteId);
@@ -247,6 +269,7 @@ public class ApiVendasController : ControllerBase
         existing.NumeroNota = request.NumeroNota.Trim();
         existing.FormaPagamento = request.FormaPagamento.Trim();
         existing.Status = request.Status.Trim();
+        existing.PercentualDesconto = request.PercentualDesconto;
         existing.Observacoes = request.Observacoes.Trim();
 
         if (produtoAnteriorId.HasValue && produtoAnteriorId != product.Id)
@@ -323,12 +346,18 @@ public class ApiVendasController : ControllerBase
             .FirstOrDefaultAsync();
 
         cliente.UltimaCompraData = ultima?.DataVenda;
-        cliente.UltimaCompraValor = ultima is null ? null : ultima.Quantidade * ultima.ValorUnitario;
+        cliente.UltimaCompraValor = ultima is null ? null : CalcularValorComDesconto(ultima.Quantidade * ultima.ValorUnitario, ultima.PercentualDesconto);
         await _context.SaveChangesAsync();
+    }
+
+    private static decimal CalcularValorComDesconto(decimal valorTotal, decimal percentualDesconto)
+    {
+        return Math.Round(valorTotal * (1 - percentualDesconto / 100), 2);
     }
 
     private static VendaResponse ToResponse(Venda venda)
     {
+        var valorTotal = venda.Quantidade * venda.ValorUnitario;
         return new VendaResponse(
             venda.Id,
             venda.ClienteId ?? 0,
@@ -337,7 +366,9 @@ public class ApiVendasController : ControllerBase
             venda.Product?.Descricao ?? "—",
             venda.Quantidade,
             venda.ValorUnitario,
-            venda.Quantidade * venda.ValorUnitario,
+            valorTotal,
+            venda.PercentualDesconto,
+            CalcularValorComDesconto(valorTotal, venda.PercentualDesconto),
             venda.DataVenda,
             venda.NumeroNota,
             venda.FormaPagamento,
@@ -349,9 +380,9 @@ public class ApiVendasController : ControllerBase
 
 public sealed record VendaRequest(
     int ClienteId, int ProductId, int Quantidade, decimal ValorUnitario, DateTime DataVenda,
-    string NumeroNota, string FormaPagamento, string Status, string Observacoes);
+    string NumeroNota, string FormaPagamento, string Status, decimal PercentualDesconto, string Observacoes);
 
 public sealed record VendaResponse(
     int Id, int ClienteId, string ClienteNome, int ProductId, string ProductNome,
-    int Quantidade, decimal ValorUnitario, decimal ValorTotal, DateTime DataVenda,
+    int Quantidade, decimal ValorUnitario, decimal ValorTotal, decimal PercentualDesconto, decimal ValorComDesconto, DateTime DataVenda,
     string NumeroNota, string FormaPagamento, string Status, string Observacoes, DateTime CreatedAt);

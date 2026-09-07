@@ -23,6 +23,8 @@
                 <div><label for="numeroNota">Número da nota</label><input id="numeroNota" /></div>
                 <div><label for="formaPagamento">Forma de pagamento</label><select id="formaPagamento"><option value="">Selecione...</option><option>Dinheiro</option><option>Cartão de crédito</option><option>Cartão de débito</option><option>PIX</option><option>Boleto</option><option>Transferência</option></select></div>
                 <div><label for="status">Status</label><select id="status"><option>Pendente</option><option>Concluída</option><option>Cancelada</option></select></div>
+                <div><label for="percentualDesconto">Desconto (%)</label><input id="percentualDesconto" type="number" step="0.01" min="0" max="100" value="0" /></div>
+                <div><label for="valorComDesconto">Valor com desconto</label><input id="valorComDesconto" type="text" readonly disabled /></div>
                 <div><label for="observacoes">Observações</label><input id="observacoes" /></div>
                 <div class="user-form-actions"><button type="submit" class="button button-primary">Salvar</button><button type="button" id="cancelEdit" class="button button-outline hidden">Cancelar</button></div>
             </div>
@@ -38,6 +40,8 @@
                     <th>Qtd.</th>
                     <th>Valor unitário</th>
                     <th>Valor total</th>
+                    <th>Desconto</th>
+                    <th>Valor final</th>
                     <th>Data</th>
                     <th>Status</th>
                     <th>Ações</th>
@@ -63,6 +67,8 @@
         const numeroNota = document.getElementById('numeroNota');
         const formaPagamento = document.getElementById('formaPagamento');
         const status = document.getElementById('status');
+        const percentualDesconto = document.getElementById('percentualDesconto');
+        const valorComDesconto = document.getElementById('valorComDesconto');
         const observacoes = document.getElementById('observacoes');
         const cancelEdit = document.getElementById('cancelEdit');
         const tableBody = document.getElementById('vendaTableBody');
@@ -82,7 +88,10 @@
         function updateValorTotalPreview() {
             const qtd = Number(quantidade.value) || 0;
             const unitario = Number(valorUnitario.value) || 0;
-            valorTotal.value = formatCurrency(qtd * unitario);
+            const bruto = qtd * unitario;
+            valorTotal.value = formatCurrency(bruto);
+            const desconto = Number(percentualDesconto.value) || 0;
+            valorComDesconto.value = formatCurrency(bruto * (1 - desconto / 100));
         }
 
         async function loadClientesOptions() {
@@ -141,6 +150,8 @@
                     <td>${item.quantidade}</td>
                     <td>${formatCurrency(item.valorUnitario)}</td>
                     <td>${formatCurrency(item.valorTotal)}</td>
+                    <td>${item.percentualDesconto > 0 ? item.percentualDesconto.toLocaleString('pt-BR') + '%' : '—'}</td>
+                    <td>${formatCurrency(item.valorComDesconto)}</td>
                     <td>${formatDate(item.dataVenda)}</td>
                     <td>${item.status}</td>
                     <td>
@@ -149,7 +160,7 @@
                         <button class="table-action danger" data-delete="${item.id}">Excluir</button>
                     </td>
                 </tr>
-            `).join('') || '<tr><td colspan="8" class="muted">Nenhuma venda registrada ainda.</td></tr>';
+            `).join('') || '<tr><td colspan="10" class="muted">Nenhuma venda registrada ainda.</td></tr>';
 
             tableBody.querySelectorAll('[data-edit]').forEach(button => {
                 button.addEventListener('click', () => editVenda(Number(button.dataset.edit)));
@@ -176,6 +187,7 @@
             numeroNota.value = data.numeroNota;
             formaPagamento.value = data.formaPagamento;
             status.value = data.status;
+            percentualDesconto.value = data.percentualDesconto;
             observacoes.value = data.observacoes;
             updateValorTotalPreview();
             cancelEdit.classList.remove('hidden');
@@ -205,6 +217,7 @@
                 numeroNota: numeroNota.value.trim(),
                 formaPagamento: formaPagamento.value,
                 status: status.value,
+                percentualDesconto: Number(percentualDesconto.value) || 0,
                 observacoes: observacoes.value.trim()
             };
 
