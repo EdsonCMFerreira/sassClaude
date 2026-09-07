@@ -205,10 +205,11 @@ public class ApiPedidosController : ControllerBase
                 return BadRequest("Selecione um produto válido.");
             }
 
+            var saldoDisponivel = await SaldoDisponivelAsync(product.Id, product.Quantidade);
             var quantidadeTotal = grupo.Sum(i => i.Quantidade);
-            if (quantidadeTotal > product.Saldo)
+            if (quantidadeTotal > saldoDisponivel)
             {
-                return BadRequest($"Estoque insuficiente. Saldo disponível de \"{product.Descricao}\": {product.Saldo}.");
+                return BadRequest($"Estoque insuficiente. Saldo disponível de \"{product.Descricao}\": {saldoDisponivel}.");
             }
 
             produtosPorId[grupo.Key] = product;
@@ -237,11 +238,6 @@ public class ApiPedidosController : ControllerBase
                 Quantidade = item.Quantidade,
                 ValorUnitario = item.ValorUnitario
             });
-        }
-
-        foreach (var grupo in request.Itens.GroupBy(i => i.ProductId))
-        {
-            produtosPorId[grupo.Key].Saldo -= grupo.Sum(i => i.Quantidade);
         }
 
         _context.Pedidos.Add(pedido);
@@ -289,47 +285,28 @@ public class ApiPedidosController : ControllerBase
             return BadRequest("Selecione um cliente válido.");
         }
 
-        var itensAntigos = existing.Itens.ToList();
         var produtosPorId = new Dictionary<int, Product>();
-
-        foreach (var grupo in itensAntigos.Where(i => i.ProductId.HasValue).GroupBy(i => i.ProductId!.Value))
+        foreach (var grupo in request.Itens.GroupBy(i => i.ProductId))
         {
             var product = await _context.Products.FindAsync(grupo.Key);
-            if (product is not null)
+            if (product is null)
             {
-                product.Saldo += grupo.Sum(i => i.Quantidade);
-                produtosPorId[grupo.Key] = product;
-            }
-        }
-
-        foreach (var grupo in request.Itens.GroupBy(i => i.ProductId))
-        {
-            if (!produtosPorId.TryGetValue(grupo.Key, out var product))
-            {
-                product = await _context.Products.FindAsync(grupo.Key);
-                if (product is null)
-                {
-                    return BadRequest("Selecione um produto válido.");
-                }
-
-                produtosPorId[grupo.Key] = product;
+                return BadRequest("Selecione um produto válido.");
             }
 
+            var saldoDisponivel = await SaldoDisponivelAsync(product.Id, product.Quantidade, existing.Id);
             var quantidadeTotal = grupo.Sum(i => i.Quantidade);
-            if (quantidadeTotal > product.Saldo)
+            if (quantidadeTotal > saldoDisponivel)
             {
-                return BadRequest($"Estoque insuficiente. Saldo disponível de \"{product.Descricao}\": {product.Saldo}.");
+                return BadRequest($"Estoque insuficiente. Saldo disponível de \"{product.Descricao}\": {saldoDisponivel}.");
             }
-        }
 
-        foreach (var grupo in request.Itens.GroupBy(i => i.ProductId))
-        {
-            produtosPorId[grupo.Key].Saldo -= grupo.Sum(i => i.Quantidade);
+            produtosPorId[grupo.Key] = product;
         }
 
         var clienteAnteriorId = existing.ClienteId;
 
-        _context.PedidoItens.RemoveRange(itensAntigos);
+        _context.PedidoItens.RemoveRange(existing.Itens);
         existing.Itens = request.Itens.Select(item => new PedidoItem
         {
             Product = produtosPorId[item.ProductId],
@@ -360,24 +337,13 @@ public class ApiPedidosController : ControllerBase
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeletePedido(int id)
     {
-        var pedido = await _context.Pedidos
-            .Include(x => x.Itens)
-            .FirstOrDefaultAsync(x => x.Id == id);
+        var pedido = await _context.Pedidos.FirstOrDefaultAsync(x => x.Id == id);
         if (pedido is null)
         {
             return NotFound();
         }
 
         var clienteId = pedido.ClienteId;
-
-        foreach (var grupo in pedido.Itens.Where(i => i.ProductId.HasValue).GroupBy(i => i.ProductId!.Value))
-        {
-            var produto = await _context.Products.FindAsync(grupo.Key);
-            if (produto is not null)
-            {
-                produto.Saldo += grupo.Sum(i => i.Quantidade);
-            }
-        }
 
         _context.Pedidos.Remove(pedido);
         await _context.SaveChangesAsync();
@@ -388,6 +354,18 @@ public class ApiPedidosController : ControllerBase
         }
 
         return NoContent();
+    }
+
+    private async Task<int> SaldoDisponivelAsync(int productId, int quantidadeCadastrada, int? excluirPedidoId = null)
+    {
+        var query = _context.PedidoItens.Where(i => i.ProductId == productId);
+        if (excluirPedidoId.HasValue)
+        {
+            query = query.Where(i => i.PedidoId != excluirPedidoId.Value);
+        }
+
+        var totalPedido = await query.SumAsync(i => (int?)i.Quantidade) ?? 0;
+        return quantidadeCadastrada - totalPedido;
     }
 
     private async Task RecalcularUltimaCompraCliente(int clienteId)

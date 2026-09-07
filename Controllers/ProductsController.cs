@@ -79,7 +79,12 @@ public class ApiProductsController : ControllerBase
     public async Task<ActionResult<IEnumerable<ProductResponse>>> GetProducts()
     {
         var products = await _context.Products.Include(x => x.Fornecedor).OrderBy(x => x.Codigo).ToListAsync();
-        return products.Select(ToResponse).ToList();
+        var pedidoQuantidades = await _context.PedidoItens
+            .Where(i => i.ProductId != null)
+            .GroupBy(i => i.ProductId!.Value)
+            .Select(g => new { ProductId = g.Key, Total = g.Sum(i => i.Quantidade) })
+            .ToDictionaryAsync(x => x.ProductId, x => x.Total);
+        return products.Select(p => ToResponse(p, pedidoQuantidades.GetValueOrDefault(p.Id))).ToList();
     }
 
     [HttpGet("{id:int}")]
@@ -91,7 +96,8 @@ public class ApiProductsController : ControllerBase
             return NotFound();
         }
 
-        return ToResponse(product);
+        var pedidoQuantidade = await _context.PedidoItens.Where(i => i.ProductId == id).SumAsync(i => (int?)i.Quantidade) ?? 0;
+        return ToResponse(product, pedidoQuantidade);
     }
 
     [HttpPost]
@@ -106,6 +112,11 @@ public class ApiProductsController : ControllerBase
         if (request.ValorVenda <= request.ValorCompra)
         {
             return BadRequest("O valor de venda deve ser maior que o valor de compra.");
+        }
+
+        if (request.Quantidade < 0)
+        {
+            return BadRequest("A quantidade não pode ser negativa.");
         }
 
         var fornecedor = await _context.Fornecedores.FindAsync(request.FornecedorId);
@@ -128,6 +139,7 @@ public class ApiProductsController : ControllerBase
             Validade = request.Validade,
             ValorCompra = request.ValorCompra,
             ValorVenda = request.ValorVenda,
+            Quantidade = request.Quantidade,
             Fornecedor = fornecedor,
             CreatedAt = DateTime.UtcNow
         };
@@ -135,7 +147,7 @@ public class ApiProductsController : ControllerBase
         _context.Products.Add(product);
         await _context.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, ToResponse(product));
+        return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, ToResponse(product, 0));
     }
 
     [HttpPut("{id:int}")]
@@ -158,6 +170,11 @@ public class ApiProductsController : ControllerBase
             return BadRequest("O valor de venda deve ser maior que o valor de compra.");
         }
 
+        if (request.Quantidade < 0)
+        {
+            return BadRequest("A quantidade não pode ser negativa.");
+        }
+
         var fornecedor = await _context.Fornecedores.FindAsync(request.FornecedorId);
         if (fornecedor is null)
         {
@@ -176,6 +193,7 @@ public class ApiProductsController : ControllerBase
         existing.Validade = request.Validade;
         existing.ValorCompra = request.ValorCompra;
         existing.ValorVenda = request.ValorVenda;
+        existing.Quantidade = request.Quantidade;
         existing.Fornecedor = fornecedor;
 
         await _context.SaveChangesAsync();
@@ -197,7 +215,7 @@ public class ApiProductsController : ControllerBase
         return NoContent();
     }
 
-    private static ProductResponse ToResponse(Product product)
+    private static ProductResponse ToResponse(Product product, int quantidadePedida)
     {
         var percentualLucro = product.ValorCompra > 0
             ? Math.Round((product.ValorVenda - product.ValorCompra) / product.ValorCompra * 100, 2)
@@ -213,11 +231,12 @@ public class ApiProductsController : ControllerBase
             percentualLucro,
             product.FornecedorId ?? 0,
             product.Fornecedor?.Nome ?? "—",
-            product.Saldo,
+            product.Quantidade,
+            product.Quantidade - quantidadePedida,
             product.CreatedAt);
     }
 }
 
-public sealed record ProductRequest(string Codigo, string Descricao, DateTime Validade, decimal ValorCompra, decimal ValorVenda, int FornecedorId);
+public sealed record ProductRequest(string Codigo, string Descricao, DateTime Validade, decimal ValorCompra, decimal ValorVenda, int FornecedorId, int Quantidade);
 
-public sealed record ProductResponse(int Id, string Codigo, string Descricao, DateTime Validade, decimal ValorCompra, decimal ValorVenda, decimal PercentualLucro, int FornecedorId, string FornecedorNome, int Saldo, DateTime CreatedAt);
+public sealed record ProductResponse(int Id, string Codigo, string Descricao, DateTime Validade, decimal ValorCompra, decimal ValorVenda, decimal PercentualLucro, int FornecedorId, string FornecedorNome, int Quantidade, int Saldo, DateTime CreatedAt);

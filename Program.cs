@@ -503,6 +503,33 @@ using (var scope = app.Services.CreateScope())
                 """);
         }
 
+        // "Saldo" (contador incrementado/decrementado a cada pedido) foi substituído por
+        // "Quantidade" (quantidade cadastrada do produto); o saldo disponível passa a ser
+        // calculado sob demanda como Quantidade - soma de itens de pedidos.
+        var productColumnsForQuantidade = new List<string>();
+        using (var command = db.Database.GetDbConnection().CreateCommand())
+        {
+            command.CommandText = "PRAGMA table_info(Products);";
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                productColumnsForQuantidade.Add(reader.GetString(reader.GetOrdinal("name")));
+            }
+        }
+
+        if (!productColumnsForQuantidade.Contains("Quantidade"))
+        {
+            db.Database.ExecuteSqlRaw("ALTER TABLE Products ADD COLUMN Quantidade INTEGER NOT NULL DEFAULT 0;");
+            db.Database.ExecuteSqlRaw("""
+                UPDATE Products SET Quantidade = Saldo + COALESCE((SELECT SUM(Quantidade) FROM PedidoItens WHERE PedidoItens.ProductId = Products.Id), 0);
+                """);
+        }
+
+        if (productColumnsForQuantidade.Contains("Saldo"))
+        {
+            db.Database.ExecuteSqlRaw("ALTER TABLE Products DROP COLUMN Saldo;");
+        }
+
         var loginColumns = new List<string>();
         using (var command = db.Database.GetDbConnection().CreateCommand())
         {

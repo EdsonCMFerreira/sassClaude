@@ -24,7 +24,7 @@ public class Product
 
     public Fornecedor? Fornecedor { get; set; }
 
-    public int Saldo { get; set; }
+    public int Quantidade { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
