@@ -495,7 +495,7 @@ using (var scope = app.Services.CreateScope())
             }
         }
 
-        if (!productColumnsForSaldo.Contains("Saldo"))
+        if (!productColumnsForSaldo.Contains("Saldo") && !productColumnsForSaldo.Contains("Quantidade"))
         {
             db.Database.ExecuteSqlRaw("ALTER TABLE Products ADD COLUMN Saldo INTEGER NOT NULL DEFAULT 0;");
             db.Database.ExecuteSqlRaw("""
