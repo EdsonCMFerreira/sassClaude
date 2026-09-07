@@ -17,9 +17,14 @@
             <div class="app-nav-links">
                 <a asp-controller="Dashboard" asp-action="Index">Visão geral</a>
                 <a asp-controller="Workspace" asp-action="Index">Workspace</a>
-                <a asp-controller="Products" asp-action="Index">Produtos</a>
-                <a asp-controller="Clientes" asp-action="Index">Clientes</a>
-                <a asp-controller="Fornecedores" asp-action="Index">Fornecedores</a>
+                <div class="nav-dropdown">
+                    <button type="button" class="nav-dropdown-toggle" onclick="this.closest('.nav-dropdown').classList.toggle('open')">Cadastros <span class="nav-dropdown-caret">▾</span></button>
+                    <div class="nav-dropdown-menu">
+                        <a asp-controller="Products" asp-action="Index">Produtos</a>
+                        <a asp-controller="Clientes" asp-action="Index">Clientes</a>
+                        <a asp-controller="Fornecedores" asp-action="Index">Fornecedores</a>
+                    </div>
+                </div>
                 <a asp-controller="Pedidos" asp-action="Index">Pedidos</a>
                 @if (User.IsInRole("Admin"))
                 {
