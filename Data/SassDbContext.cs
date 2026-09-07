@@ -10,7 +10,7 @@ public class SassDbContext : DbContext
 {
     private static readonly Type[] AuditableTypes =
     [
-        typeof(Product), typeof(Cliente), typeof(Fornecedor), typeof(Compra), typeof(Venda), typeof(Login)
+        typeof(Product), typeof(Cliente), typeof(Fornecedor), typeof(Venda), typeof(Login)
     ];
 
     private readonly IHttpContextAccessor? _httpContextAccessor;
@@ -28,7 +28,6 @@ public class SassDbContext : DbContext
     public DbSet<Product> Products => Set<Product>();
     public DbSet<Cliente> Clientes => Set<Cliente>();
     public DbSet<Fornecedor> Fornecedores => Set<Fornecedor>();
-    public DbSet<Compra> Compras => Set<Compra>();
     public DbSet<Venda> Vendas => Set<Venda>();
     public DbSet<AuditLogEntry> AuditLogEntries => Set<AuditLogEntry>();
 
@@ -198,23 +197,7 @@ public class SassDbContext : DbContext
             entity.Property(x => x.Nome).IsRequired().HasMaxLength(150);
             entity.Property(x => x.TipoPessoa).IsRequired().HasMaxLength(20);
             entity.Property(x => x.CpfCnpj).IsRequired().HasMaxLength(20);
-            entity.Property(x => x.UltimaCompraValor).HasColumnType("decimal(10,2)");
             entity.HasIndex(x => x.CpfCnpj).IsUnique();
-        });
-
-        modelBuilder.Entity<Compra>(entity =>
-        {
-            entity.HasKey(x => x.Id);
-            entity.Property(x => x.Status).IsRequired().HasMaxLength(20);
-            entity.Property(x => x.ValorUnitario).HasColumnType("decimal(10,2)");
-            entity.HasOne(x => x.Fornecedor)
-                .WithMany()
-                .HasForeignKey(x => x.FornecedorId)
-                .OnDelete(DeleteBehavior.SetNull);
-            entity.HasOne(x => x.Product)
-                .WithMany()
-                .HasForeignKey(x => x.ProductId)
-                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<Venda>(entity =>

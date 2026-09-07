@@ -340,23 +340,16 @@ using (var scope = app.Services.CreateScope())
             db.Database.ExecuteSqlRaw("ALTER TABLE Fornecedores ADD COLUMN Observacoes TEXT NOT NULL DEFAULT '';");
         }
 
-        db.Database.ExecuteSqlRaw("""
-            CREATE TABLE IF NOT EXISTS Compras (
-                Id INTEGER NOT NULL CONSTRAINT PK_Compras PRIMARY KEY AUTOINCREMENT,
-                FornecedorId INTEGER NULL,
-                ProductId INTEGER NULL,
-                Quantidade INTEGER NOT NULL,
-                ValorUnitario TEXT NOT NULL,
-                DataCompra TEXT NOT NULL,
-                NumeroNota TEXT NOT NULL,
-                FormaPagamento TEXT NOT NULL,
-                Status TEXT NOT NULL,
-                Observacoes TEXT NOT NULL,
-                CreatedAt TEXT NOT NULL,
-                CONSTRAINT FK_Compras_Fornecedores_FornecedorId FOREIGN KEY (FornecedorId) REFERENCES Fornecedores (Id) ON DELETE SET NULL,
-                CONSTRAINT FK_Compras_Products_ProductId FOREIGN KEY (ProductId) REFERENCES Products (Id) ON DELETE SET NULL
-            );
-            """);
+        if (fornecedorColumns.Contains("UltimaCompraData"))
+        {
+            db.Database.ExecuteSqlRaw("ALTER TABLE Fornecedores DROP COLUMN UltimaCompraData;");
+        }
+
+        if (fornecedorColumns.Contains("UltimaCompraValor"))
+        {
+            db.Database.ExecuteSqlRaw("ALTER TABLE Fornecedores DROP COLUMN UltimaCompraValor;");
+        }
+
         db.Database.ExecuteSqlRaw("""
             CREATE TABLE IF NOT EXISTS Vendas (
                 Id INTEGER NOT NULL CONSTRAINT PK_Vendas PRIMARY KEY AUTOINCREMENT,
@@ -390,10 +383,7 @@ using (var scope = app.Services.CreateScope())
         {
             db.Database.ExecuteSqlRaw("ALTER TABLE Products ADD COLUMN Saldo INTEGER NOT NULL DEFAULT 0;");
             db.Database.ExecuteSqlRaw("""
-                UPDATE Products SET Saldo = (
-                    COALESCE((SELECT SUM(Quantidade) FROM Compras WHERE Compras.ProductId = Products.Id), 0) -
-                    COALESCE((SELECT SUM(Quantidade) FROM Vendas WHERE Vendas.ProductId = Products.Id), 0)
-                );
+                UPDATE Products SET Saldo = -COALESCE((SELECT SUM(Quantidade) FROM Vendas WHERE Vendas.ProductId = Products.Id), 0);
                 """);
         }
 

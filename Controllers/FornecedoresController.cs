@@ -135,7 +135,7 @@ public class ApiFornecedoresController : ControllerBase
             fornecedor.Email, fornecedor.Site, fornecedor.Telefone, fornecedor.Cep, fornecedor.Endereco, fornecedor.Numero,
             fornecedor.Complemento, fornecedor.Bairro, fornecedor.Cidade, fornecedor.Uf,
             fornecedor.Observacoes,
-            fornecedor.UltimaCompraData, fornecedor.UltimaCompraValor, fornecedor.CreatedAt);
+            fornecedor.CreatedAt);
     }
 }
 
@@ -147,5 +147,4 @@ public sealed record FornecedorRequest(
 public sealed record FornecedorResponse(
     int Id, string Nome, string TipoPessoa, string CpfCnpj, string ContatoResponsavel, string Email, string Site, string Telefone,
     string Cep, string Endereco, string Numero, string Complemento, string Bairro, string Cidade, string Uf,
-    string Observacoes,
-    DateTime? UltimaCompraData, decimal? UltimaCompraValor, DateTime CreatedAt);
+    string Observacoes, DateTime CreatedAt);

@@ -4,25 +4,21 @@
     var ptBr = new System.Globalization.CultureInfo("pt-BR");
 }
 <div class="page-heading">
-    <div><span class="eyebrow">Financeiro</span><h1>DRE simples.</h1><p class="muted">Entradas (vendas concluídas) x saídas (compras concluídas).</p></div>
+    <div><span class="eyebrow">Financeiro</span><h1>Resumo de vendas.</h1><p class="muted">Entradas a partir das vendas concluídas, já com desconto aplicado.</p></div>
 </div>
 
 <div class="metric-grid">
-    <article class="metric-card"><span class="metric-label">Total de entradas</span><strong>@Model.TotalEntradas.ToString("C", ptBr)</strong><span class="metric-caption">vendas concluídas</span></article>
-    <article class="metric-card"><span class="metric-label">Total de saídas</span><strong>@Model.TotalSaidas.ToString("C", ptBr)</strong><span class="metric-caption">compras concluídas</span></article>
-    <article class="metric-card metric-highlight"><span class="metric-label">Resultado</span><strong class="@(Model.ResultadoTotal < 0 ? "text-negative" : "")">@Model.ResultadoTotal.ToString("C", ptBr)</strong><span class="metric-caption">entradas − saídas</span></article>
+    <article class="metric-card metric-highlight"><span class="metric-label">Total de entradas</span><strong>@Model.TotalEntradas.ToString("C", ptBr)</strong><span class="metric-caption">vendas concluídas</span></article>
 </div>
 
 <div class="surface-card users-card">
-    <div class="section-heading"><div><h2>Últimos 6 meses</h2><p class="muted">Só entram no cálculo movimentações com status "Concluída".</p></div></div>
+    <div class="section-heading"><div><h2>Últimos 6 meses</h2><p class="muted">Só entram no cálculo vendas com status "Concluída".</p></div></div>
     <div class="table-wrap">
         <table class="data-table">
             <thead class="table-light">
                 <tr>
                     <th>Mês</th>
                     <th>Entradas</th>
-                    <th>Saídas</th>
-                    <th>Resultado</th>
                 </tr>
             </thead>
             <tbody>
@@ -31,8 +27,6 @@
                     <tr>
                         <td>@row.Mes.ToString("MMMM/yyyy", ptBr)</td>
                         <td>@row.Entradas.ToString("C", ptBr)</td>
-                        <td>@row.Saidas.ToString("C", ptBr)</td>
-                        <td class="@(row.Resultado < 0 ? "text-negative" : "")">@row.Resultado.ToString("C", ptBr)</td>
                     </tr>
                 }
             </tbody>

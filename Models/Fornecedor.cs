@@ -54,9 +54,5 @@ public class Fornecedor
     [StringLength(1000)]
     public string Observacoes { get; set; } = string.Empty;
 
-    public DateTime? UltimaCompraData { get; set; }
-
-    public decimal? UltimaCompraValor { get; set; }
-
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
