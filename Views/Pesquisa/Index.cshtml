@@ -1,0 +1,98 @@
+@{
+    ViewData["Title"] = "Pesquisa";
+}
+
+<div class="page-heading">
+    <div><span class="eyebrow">Ferramentas</span><h1>Pesquisa.</h1><p class="muted">Encontre um produto e compare preços e condições de pagamento em sites de compra.</p></div>
+</div>
+<div class="surface-card users-card">
+    <div class="section-heading"><div><h2>Buscar produto</h2><p class="muted">Digite o nome do produto ou selecione um item já cadastrado, depois escolha onde pesquisar.</p></div></div>
+    <div class="user-form-wrap">
+        <div class="user-form-grid">
+            <div><label for="produtoCadastrado">Produto cadastrado (opcional)</label><select id="produtoCadastrado"><option value="">Selecione...</option></select></div>
+            <div class="field-full"><label for="termoPesquisa">O que você quer pesquisar?</label><input id="termoPesquisa" placeholder="Ex: caneta esferográfica azul" /></div>
+        </div>
+        <div class="user-form-actions" style="margin-top:14px;">
+            <button type="button" id="pesquisarButton" class="button button-primary">Pesquisar</button>
+        </div>
+    </div>
+
+    <div id="resultadosWrap" class="table-wrap" hidden>
+        <p class="muted" style="margin-bottom:14px;">Os links abrem em uma nova aba. Compare o preço e as condições de pagamento (parcelamento, frete) diretamente em cada site.</p>
+        <div id="resultadosLista" style="display:flex; flex-direction:column; gap:10px;"></div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const produtoCadastrado = document.getElementById('produtoCadastrado');
+        const termoPesquisa = document.getElementById('termoPesquisa');
+        const pesquisarButton = document.getElementById('pesquisarButton');
+        const resultadosWrap = document.getElementById('resultadosWrap');
+        const resultadosLista = document.getElementById('resultadosLista');
+
+        const SITES = [
+            {
+                nome: 'Google Shopping',
+                descricao: 'Comparação geral de preços em várias lojas',
+                url: termo => `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(termo)}`
+            },
+            {
+                nome: 'Buscapé',
+                descricao: 'Comparador de preços e condições de pagamento',
+                url: termo => `https://www.buscape.com.br/busca?q=${encodeURIComponent(termo)}`
+            },
+            {
+                nome: 'Mercado Livre',
+                descricao: 'Maior marketplace do Brasil',
+                url: termo => `https://www.mercadolivre.com.br/jm/search?as_word=${encodeURIComponent(termo)}`
+            },
+            {
+                nome: 'Amazon Brasil',
+                descricao: 'Marketplace internacional',
+                url: termo => `https://www.amazon.com.br/s?k=${encodeURIComponent(termo)}`
+            }
+        ];
+
+        async function loadProdutosOptions() {
+            const response = await fetch('/api/products');
+            if (!response.ok) return;
+            const data = await response.json();
+            produtoCadastrado.innerHTML = '<option value="">Selecione...</option>' + data.map(item =>
+                `<option value="${item.descricao.replace(/"/g, '&quot;')}">${item.codigo} — ${item.descricao}</option>`
+            ).join('');
+        }
+
+        produtoCadastrado.addEventListener('change', () => {
+            if (produtoCadastrado.value) {
+                termoPesquisa.value = produtoCadastrado.value;
+            }
+        });
+
+        function mostrarResultados() {
+            const termo = termoPesquisa.value.trim();
+            if (!termo) {
+                alert('Digite ou selecione um produto para pesquisar.');
+                return;
+            }
+
+            resultadosLista.innerHTML = SITES.map(site => `
+                <a class="table-action" href="${site.url(termo)}" target="_blank" rel="noopener" style="display:flex; align-items:baseline; gap:8px;">
+                    <span>Pesquisar em ${site.nome}</span>
+                    <span class="muted" style="font-weight:400; color:var(--muted);">${site.descricao}</span>
+                </a>
+            `).join('');
+            resultadosWrap.hidden = false;
+        }
+
+        pesquisarButton.addEventListener('click', mostrarResultados);
+        termoPesquisa.addEventListener('keydown', event => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                mostrarResultados();
+            }
+        });
+
+        loadProdutosOptions().catch(error => console.error(error));
+    </script>
+}
