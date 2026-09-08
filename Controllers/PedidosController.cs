@@ -21,6 +21,8 @@ public class PedidosController : Controller
 
     public IActionResult Index() => View();
 
+    public IActionResult Pendentes() => View();
+
     public async Task<IActionResult> Dashboard()
     {
         var pedidos = await _context.Pedidos
@@ -200,13 +202,19 @@ public class ApiPedidosController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<PedidoResponse>>> GetPedidos()
+    public async Task<ActionResult<IEnumerable<PedidoResponse>>> GetPedidos([FromQuery] string? status)
     {
-        var pedidos = await _context.Pedidos
+        var query = _context.Pedidos
             .Include(x => x.Cliente)
             .Include(x => x.Itens).ThenInclude(x => x.Product)
-            .OrderByDescending(x => x.DataPedido)
-            .ToListAsync();
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            query = query.Where(x => x.Status == status);
+        }
+
+        var pedidos = await query.OrderByDescending(x => x.DataPedido).ToListAsync();
         return pedidos.Select(ToResponse).ToList();
     }
 

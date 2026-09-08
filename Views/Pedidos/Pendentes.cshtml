@@ -1,0 +1,63 @@
+@{
+    ViewData["Title"] = "Pedidos pendentes";
+}
+
+<div class="page-heading">
+    <div><span class="eyebrow">Movimentação</span><h1>Pedidos pendentes.</h1><p class="muted">Pedidos que ainda aguardam conclusão, do mais antigo para o mais novo.</p></div>
+    <div class="hero-actions"><a class="button button-outline" style="color:var(--blue);" asp-controller="Pedidos" asp-action="Index">← Ver todos os pedidos</a></div>
+</div>
+<div class="surface-card users-card">
+    <div class="section-heading"><div><h2>Aguardando conclusão</h2><p class="muted">Clique em "Editar" para abrir o pedido na tela de Pedidos.</p></div></div>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead class="table-light">
+                <tr>
+                    <th>Nº do pedido</th>
+                    <th>Cliente</th>
+                    <th>Produtos</th>
+                    <th>Valor total</th>
+                    <th>Data</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody id="pedidoTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const tableBody = document.getElementById('pedidoTableBody');
+
+        function formatCurrency(value) {
+            return Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
+        function formatDate(value) {
+            return value ? new Date(value).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '—';
+        }
+
+        async function loadPendentes() {
+            const response = await fetch('/api/pedidos?status=Pendente');
+            if (!response.ok) {
+                throw new Error('Erro ao carregar pedidos pendentes.');
+            }
+
+            const data = await response.json();
+            data.sort((a, b) => new Date(a.dataPedido) - new Date(b.dataPedido));
+
+            tableBody.innerHTML = data.map(item => `
+                <tr>
+                    <td>${item.numeroPedido}</td>
+                    <td>${item.clienteNome}</td>
+                    <td>${item.itens.map(i => `${i.productNome} (x${i.quantidade})`).join(', ')}</td>
+                    <td>${formatCurrency(item.valorComDesconto)}</td>
+                    <td>${formatDate(item.dataPedido)}</td>
+                    <td><a class="table-action" href="/Pedidos?editar=${item.id}">Editar</a></td>
+                </tr>
+            `).join('') || '<tr><td colspan="6" class="muted">Nenhum pedido pendente no momento.</td></tr>';
+        }
+
+        loadPendentes().catch(error => console.error(error));
+    </script>
+}
