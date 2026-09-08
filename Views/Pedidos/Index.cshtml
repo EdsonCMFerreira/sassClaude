@@ -39,8 +39,11 @@
 
 <div class="page-heading">
     <div><span class="eyebrow">Movimentação</span><h1>Pedidos.</h1><p class="muted">Registre os pedidos feitos pelos clientes.</p></div>
-    <div class="hero-actions">
+    <div class="hero-actions" style="flex-wrap:wrap;">
         <a class="button button-outline" style="color:var(--blue);" asp-controller="Pedidos" asp-action="Pendentes">Ver pendentes <span>→</span></a>
+        <a class="button button-outline" style="color:var(--blue);" asp-controller="Pedidos" asp-action="Concluidos">Ver concluídos <span>→</span></a>
+        <a class="button button-outline" style="color:var(--blue);" asp-controller="Pedidos" asp-action="Cancelados">Ver cancelados <span>→</span></a>
+        <a class="button button-outline" style="color:var(--blue);" asp-controller="Pedidos" asp-action="Devolvidos">Ver devolvidos <span>→</span></a>
         <a class="button button-outline" style="color:var(--blue);" asp-controller="Pedidos" asp-action="Dashboard">Ver dashboard <span>→</span></a>
     </div>
 </div>

@@ -21,7 +21,21 @@ public class PedidosController : Controller
 
     public IActionResult Index() => View();
 
-    public IActionResult Pendentes() => View();
+    public IActionResult Pendentes() => View("PorStatus", new PedidoStatusPageViewModel(
+        "Pendente", "Pedidos pendentes", "Pedidos que ainda aguardam conclusão, do mais antigo para o mais novo.",
+        OrdenarAscendente: true, MostrarRecibo: false));
+
+    public IActionResult Concluidos() => View("PorStatus", new PedidoStatusPageViewModel(
+        "Concluída", "Pedidos concluídos", "Pedidos já concluídos, do mais recente para o mais antigo.",
+        OrdenarAscendente: false, MostrarRecibo: true));
+
+    public IActionResult Cancelados() => View("PorStatus", new PedidoStatusPageViewModel(
+        "Cancelada", "Pedidos cancelados", "Pedidos cancelados, do mais recente para o mais antigo.",
+        OrdenarAscendente: false, MostrarRecibo: false));
+
+    public IActionResult Devolvidos() => View("PorStatus", new PedidoStatusPageViewModel(
+        "Devolução", "Pedidos devolvidos", "Pedidos com devolução registrada, do mais recente para o mais antigo.",
+        OrdenarAscendente: false, MostrarRecibo: false));
 
     public async Task<IActionResult> Dashboard()
     {
