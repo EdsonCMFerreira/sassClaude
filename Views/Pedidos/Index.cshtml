@@ -239,7 +239,7 @@
         }
 
         function atualizarCampoDesconto() {
-            if (status.value === 'Devolução') {
+            if (status.value === 'Devolução' || status.value === 'Cancelada') {
                 percentualDesconto.value = 0;
                 percentualDesconto.disabled = true;
             } else {

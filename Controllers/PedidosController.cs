@@ -453,7 +453,7 @@ public class ApiPedidosController : ControllerBase
 
     private static decimal PercentualDescontoEfetivo(string status, decimal percentualDesconto)
     {
-        return status == "Devolução" ? 0 : percentualDesconto;
+        return status is "Devolução" or "Cancelada" ? 0 : percentualDesconto;
     }
 
     private static PedidoResponse ToResponse(Pedido pedido)
