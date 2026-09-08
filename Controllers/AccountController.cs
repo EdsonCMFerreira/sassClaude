@@ -50,8 +50,12 @@ public class AccountController : Controller
         }
 
         var identifier = model.Identifier.Trim();
-        var login = await _context.Logins.FirstOrDefaultAsync(item =>
-            item.Username == identifier || item.Email == identifier);
+        var login = await _context.Logins.FirstOrDefaultAsync(item => item.Email == identifier);
+        if (login is null)
+        {
+            var byUsername = await _context.Logins.Where(item => item.Username == identifier).Take(2).ToListAsync();
+            login = byUsername.Count == 1 ? byUsername[0] : null;
+        }
 
         if (login is null || _passwordHasher.VerifyHashedPassword(login, login.Password, model.Password)
             == PasswordVerificationResult.Failed)
@@ -172,6 +176,20 @@ public class AccountController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Register(RegisterViewModel model, CancellationToken cancellationToken)
     {
+        WorkspaceInvite? pendingInvite = null;
+        if (!string.IsNullOrWhiteSpace(model.InviteToken))
+        {
+            pendingInvite = await FindValidInvite(model.InviteToken, cancellationToken);
+            if (pendingInvite is null)
+            {
+                ModelState.AddModelError(string.Empty, "Convite inválido ou expirado.");
+            }
+        }
+        else if (string.IsNullOrWhiteSpace(model.NomeEmpresa))
+        {
+            ModelState.AddModelError(nameof(model.NomeEmpresa), "Informe o nome da sua empresa.");
+        }
+
         if (!ModelState.IsValid)
         {
             return View(model);
@@ -179,34 +197,61 @@ public class AccountController : Controller
 
         var username = model.Username.Trim();
         var email = model.Email.Trim().ToLowerInvariant();
-        var alreadyExists = await _context.Logins.AnyAsync(item =>
-            item.Username == username || item.Email == email);
 
-        if (alreadyExists)
+        var emailTaken = await _context.Logins.AnyAsync(item => item.Email == email, cancellationToken);
+        if (emailTaken)
         {
             ModelState.AddModelError(string.Empty, "Usuário ou e-mail já cadastrado.");
             return View(model);
         }
 
-        var login = new Login
+        Login login;
+        if (pendingInvite is not null)
         {
-            Username = username,
-            Email = email,
-            CreatedAt = DateTime.UtcNow
-        };
-        login.Password = _passwordHasher.HashPassword(login, model.Password);
-
-        _context.Logins.Add(login);
-        await _context.SaveChangesAsync(cancellationToken);
-
-        if (!string.IsNullOrWhiteSpace(model.InviteToken))
-        {
-            var pendingInvite = await FindValidInvite(model.InviteToken, cancellationToken);
-            if (pendingInvite is not null)
+            var usernameTaken = await _context.Logins.AnyAsync(item =>
+                item.Username == username && item.EmpresaId == pendingInvite.EmpresaId, cancellationToken);
+            if (usernameTaken)
             {
-                pendingInvite.AcceptedAt = DateTime.UtcNow;
-                await _context.SaveChangesAsync(cancellationToken);
+                ModelState.AddModelError(string.Empty, "Usuário ou e-mail já cadastrado.");
+                return View(model);
             }
+
+            login = new Login
+            {
+                EmpresaId = pendingInvite.EmpresaId,
+                Username = username,
+                Email = email,
+                Role = "Colaborador",
+                CreatedAt = DateTime.UtcNow
+            };
+            login.Password = _passwordHasher.HashPassword(login, model.Password);
+
+            _context.Logins.Add(login);
+            pendingInvite.AcceptedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        else
+        {
+            await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+
+            var empresa = new Empresa { Nome = model.NomeEmpresa.Trim() };
+            _context.Empresas.Add(empresa);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            login = new Login
+            {
+                EmpresaId = empresa.Id,
+                Username = username,
+                Email = email,
+                Role = "Admin",
+                CreatedAt = DateTime.UtcNow
+            };
+            login.Password = _passwordHasher.HashPassword(login, model.Password);
+
+            _context.Logins.Add(login);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            await transaction.CommitAsync(cancellationToken);
         }
 
         try
@@ -295,7 +340,9 @@ public class AccountController : Controller
             new Claim(ClaimTypes.NameIdentifier, login.Id.ToString()),
             new Claim(ClaimTypes.Name, login.Username),
             new Claim(ClaimTypes.Email, login.Email),
-            new Claim(ClaimTypes.Role, login.Role)
+            new Claim(ClaimTypes.Role, login.Role),
+            new Claim(TenantClaimTypes.EmpresaId, login.EmpresaId.ToString()),
+            new Claim(TenantClaimTypes.IsSuperAdmin, login.IsSuperAdmin ? "true" : "false")
         };
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         await HttpContext.SignInAsync(

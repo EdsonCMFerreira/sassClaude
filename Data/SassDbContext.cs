@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using sassClaude.Models;
+using sassClaude.Services;
 
 namespace sassClaude.Data;
 
@@ -14,12 +15,15 @@ public class SassDbContext : DbContext
     ];
 
     private readonly IHttpContextAccessor? _httpContextAccessor;
+    private readonly ICurrentTenantAccessor? _currentTenantAccessor;
 
-    public SassDbContext(DbContextOptions<SassDbContext> options, IHttpContextAccessor? httpContextAccessor = null) : base(options)
+    public SassDbContext(DbContextOptions<SassDbContext> options, IHttpContextAccessor? httpContextAccessor = null, ICurrentTenantAccessor? currentTenantAccessor = null) : base(options)
     {
         _httpContextAccessor = httpContextAccessor;
+        _currentTenantAccessor = currentTenantAccessor;
     }
 
+    public DbSet<Empresa> Empresas => Set<Empresa>();
     public DbSet<Login> Logins => Set<Login>();
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
     public DbSet<EmailVerificationToken> EmailVerificationTokens => Set<EmailVerificationToken>();
@@ -39,7 +43,18 @@ public class SassDbContext : DbContext
 
     public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
-        var pending = new List<(EntityEntry Entry, string EntityName, string Action, string Details)>();
+        foreach (var entry in ChangeTracker.Entries<ITenantScoped>())
+        {
+            if (entry.State != EntityState.Added || entry.Entity.EmpresaId != 0)
+            {
+                continue;
+            }
+
+            entry.Entity.EmpresaId = _currentTenantAccessor?.EmpresaId
+                ?? throw new InvalidOperationException($"Tenant não identificado ao salvar {entry.Entity.GetType().Name}.");
+        }
+
+        var pending = new List<(EntityEntry Entry, string EntityName, string Action, string Details, int EmpresaId)>();
 
         foreach (var entry in ChangeTracker.Entries())
         {
@@ -67,7 +82,8 @@ public class SassDbContext : DbContext
                 continue;
             }
 
-            pending.Add((entry, entityName, action, BuildDetails(entry, action)));
+            var entityEmpresaId = Convert.ToInt32(entry.Property(nameof(ITenantScoped.EmpresaId)).CurrentValue);
+            pending.Add((entry, entityName, action, BuildDetails(entry, action), entityEmpresaId));
         }
 
         var result = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
@@ -80,6 +96,7 @@ public class SassDbContext : DbContext
                 var entityId = Convert.ToInt32(item.Entry.Property("Id").CurrentValue);
                 AuditLogEntries.Add(new AuditLogEntry
                 {
+                    EmpresaId = item.EmpresaId,
                     EntityName = item.EntityName,
                     EntityId = entityId,
                     Action = item.Action,
@@ -113,6 +130,13 @@ public class SassDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<Empresa>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Nome).IsRequired().HasMaxLength(150);
+            entity.Property(x => x.Plano).IsRequired().HasMaxLength(20);
+        });
+
         modelBuilder.Entity<Login>(entity =>
         {
             entity.HasKey(x => x.Id);
@@ -120,6 +144,9 @@ public class SassDbContext : DbContext
             entity.Property(x => x.Password).IsRequired().HasMaxLength(255);
             entity.Property(x => x.Email).IsRequired().HasMaxLength(150);
             entity.Property(x => x.Role).IsRequired().HasMaxLength(20);
+            entity.HasIndex(x => x.Email).IsUnique();
+            entity.HasIndex(x => new { x.EmpresaId, x.Username }).IsUnique();
+            entity.HasQueryFilter(x => !_currentTenantAccessor!.EmpresaId.HasValue || x.EmpresaId == _currentTenantAccessor!.EmpresaId);
         });
 
         modelBuilder.Entity<PasswordResetToken>(entity =>
@@ -154,6 +181,7 @@ public class SassDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(x => x.InvitedByLoginId)
                 .OnDelete(DeleteBehavior.Cascade);
+            entity.HasQueryFilter(x => !_currentTenantAccessor!.EmpresaId.HasValue || x.EmpresaId == _currentTenantAccessor!.EmpresaId);
         });
 
         modelBuilder.Entity<Invoice>(entity =>
@@ -166,6 +194,7 @@ public class SassDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(x => x.LoginId)
                 .OnDelete(DeleteBehavior.Cascade);
+            entity.HasQueryFilter(x => !_currentTenantAccessor!.EmpresaId.HasValue || x.EmpresaId == _currentTenantAccessor!.EmpresaId);
         });
 
         modelBuilder.Entity<Produto>(entity =>
@@ -175,11 +204,12 @@ public class SassDbContext : DbContext
             entity.Property(x => x.Descricao).IsRequired().HasMaxLength(200);
             entity.Property(x => x.ValorCompra).HasColumnType("decimal(10,2)");
             entity.Property(x => x.ValorVenda).HasColumnType("decimal(10,2)");
-            entity.HasIndex(x => x.Codigo).IsUnique();
+            entity.HasIndex(x => new { x.EmpresaId, x.Codigo }).IsUnique();
             entity.HasOne(x => x.Fornecedor)
                 .WithMany()
                 .HasForeignKey(x => x.FornecedorId)
                 .OnDelete(DeleteBehavior.SetNull);
+            entity.HasQueryFilter(x => !_currentTenantAccessor!.EmpresaId.HasValue || x.EmpresaId == _currentTenantAccessor!.EmpresaId);
         });
 
         modelBuilder.Entity<Cliente>(entity =>
@@ -189,7 +219,8 @@ public class SassDbContext : DbContext
             entity.Property(x => x.TipoPessoa).IsRequired().HasMaxLength(20);
             entity.Property(x => x.CpfCnpj).IsRequired().HasMaxLength(20);
             entity.Property(x => x.UltimaCompraValor).HasColumnType("decimal(10,2)");
-            entity.HasIndex(x => x.CpfCnpj).IsUnique();
+            entity.HasIndex(x => new { x.EmpresaId, x.CpfCnpj }).IsUnique();
+            entity.HasQueryFilter(x => !_currentTenantAccessor!.EmpresaId.HasValue || x.EmpresaId == _currentTenantAccessor!.EmpresaId);
         });
 
         modelBuilder.Entity<Fornecedor>(entity =>
@@ -198,7 +229,8 @@ public class SassDbContext : DbContext
             entity.Property(x => x.Nome).IsRequired().HasMaxLength(150);
             entity.Property(x => x.TipoPessoa).IsRequired().HasMaxLength(20);
             entity.Property(x => x.CpfCnpj).IsRequired().HasMaxLength(20);
-            entity.HasIndex(x => x.CpfCnpj).IsUnique();
+            entity.HasIndex(x => new { x.EmpresaId, x.CpfCnpj }).IsUnique();
+            entity.HasQueryFilter(x => !_currentTenantAccessor!.EmpresaId.HasValue || x.EmpresaId == _currentTenantAccessor!.EmpresaId);
         });
 
         modelBuilder.Entity<Pedido>(entity =>
@@ -207,11 +239,12 @@ public class SassDbContext : DbContext
             entity.Property(x => x.NumeroPedido).IsRequired();
             entity.Property(x => x.Status).IsRequired().HasMaxLength(20);
             entity.Property(x => x.PercentualDesconto).HasColumnType("decimal(5,2)");
-            entity.HasIndex(x => x.NumeroPedido).IsUnique();
+            entity.HasIndex(x => new { x.EmpresaId, x.NumeroPedido }).IsUnique();
             entity.HasOne(x => x.Cliente)
                 .WithMany()
                 .HasForeignKey(x => x.ClienteId)
                 .OnDelete(DeleteBehavior.SetNull);
+            entity.HasQueryFilter(x => !_currentTenantAccessor!.EmpresaId.HasValue || x.EmpresaId == _currentTenantAccessor!.EmpresaId);
         });
 
         modelBuilder.Entity<PedidoItem>(entity =>
@@ -226,6 +259,7 @@ public class SassDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(x => x.ProdutoId)
                 .OnDelete(DeleteBehavior.SetNull);
+            entity.HasQueryFilter(x => !_currentTenantAccessor!.EmpresaId.HasValue || x.EmpresaId == _currentTenantAccessor!.EmpresaId);
         });
 
         modelBuilder.Entity<AuditLogEntry>(entity =>
@@ -235,6 +269,7 @@ public class SassDbContext : DbContext
             entity.Property(x => x.Action).IsRequired().HasMaxLength(20);
             entity.Property(x => x.UserName).IsRequired().HasMaxLength(100);
             entity.Property(x => x.Details).IsRequired().HasMaxLength(1000);
+            entity.HasQueryFilter(x => !_currentTenantAccessor!.EmpresaId.HasValue || x.EmpresaId == _currentTenantAccessor!.EmpresaId);
         });
     }
 }

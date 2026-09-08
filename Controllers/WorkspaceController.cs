@@ -47,7 +47,7 @@ public class WorkspaceController : Controller
         }
 
         var email = model.Form.Email.Trim().ToLowerInvariant();
-        var alreadyMember = await _context.Logins.AnyAsync(item => item.Email == email, cancellationToken);
+        var alreadyMember = await _context.Logins.IgnoreQueryFilters().AnyAsync(item => item.Email == email, cancellationToken);
         if (alreadyMember)
         {
             ModelState.AddModelError("Form.Email", "Essa pessoa já faz parte do workspace.");

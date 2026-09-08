@@ -1,9 +1,9 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using sassClaude.Data;
 using sassClaude.Models;
+using sassClaude.Services;
 
 namespace sassClaude.Controllers;
 
@@ -11,22 +11,24 @@ namespace sassClaude.Controllers;
 public class BillingController : Controller
 {
     private readonly SassDbContext _context;
+    private readonly ICurrentTenantAccessor _currentTenantAccessor;
 
-    public BillingController(SassDbContext context)
+    public BillingController(SassDbContext context, ICurrentTenantAccessor currentTenantAccessor)
     {
         _context = context;
+        _currentTenantAccessor = currentTenantAccessor;
     }
 
     public async Task<IActionResult> Index()
     {
-        var idClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var invoices = int.TryParse(idClaim, out var id)
-            ? await _context.Invoices
-                .Where(item => item.LoginId == id)
-                .OrderByDescending(item => item.IssuedAt)
-                .ToListAsync()
-            : new List<Invoice>();
+        var empresa = _currentTenantAccessor.EmpresaId.HasValue
+            ? await _context.Empresas.FindAsync(_currentTenantAccessor.EmpresaId.Value)
+            : null;
 
-        return View(invoices);
+        var invoices = await _context.Invoices
+            .OrderByDescending(item => item.IssuedAt)
+            .ToListAsync();
+
+        return View(new BillingViewModel { Plano = empresa?.Plano ?? "Starter", Invoices = invoices });
     }
 }

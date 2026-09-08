@@ -54,6 +54,15 @@ public sealed class AuthenticationTests : IClassFixture<WebApplicationFactory<Pr
     }
 
     [Fact]
+    public async Task SuperAdmin_index_redirects_anonymous_user_to_login()
+    {
+        var response = await _client.GetAsync("/SuperAdmin");
+
+        Assert.Equal(System.Net.HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Equal("/Account/Login", response.Headers.Location?.AbsolutePath);
+    }
+
+    [Fact]
     public void PasswordHasher_does_not_store_the_original_password()
     {
         var user = new Login { Username = "teste", Email = "teste@teste.com" };

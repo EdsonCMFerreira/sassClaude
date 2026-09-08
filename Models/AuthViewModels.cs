@@ -38,6 +38,10 @@ public sealed class RegisterViewModel
     [Display(Name = "Confirmar senha")]
     public string ConfirmPassword { get; set; } = string.Empty;
 
+    [StringLength(150)]
+    [Display(Name = "Nome da empresa")]
+    public string NomeEmpresa { get; set; } = string.Empty;
+
     public string? InviteToken { get; set; }
 }
 

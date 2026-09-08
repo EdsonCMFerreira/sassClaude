@@ -1,10 +1,13 @@
 using System.ComponentModel.DataAnnotations;
+using sassClaude.Data;
 
 namespace sassClaude.Models;
 
-public class Fornecedor
+public class Fornecedor : ITenantScoped
 {
     public int Id { get; set; }
+
+    public int EmpresaId { get; set; }
 
     [Required]
     [StringLength(150)]

@@ -39,6 +39,10 @@
                         </div>
                     </div>
                 }
+                @if (User.HasClaim(TenantClaimTypes.IsSuperAdmin, "true"))
+                {
+                    <a asp-controller="SuperAdmin" asp-action="Index">Superadmin</a>
+                }
             </div>
             <div class="app-nav-actions">
                 <a class="nav-icon-link" asp-controller="Settings" asp-action="Index" aria-label="Configurações">⚙</a>

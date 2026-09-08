@@ -1,8 +1,11 @@
+using sassClaude.Data;
+
 namespace sassClaude.Models;
 
-public class WorkspaceInvite
+public class WorkspaceInvite : ITenantScoped
 {
     public int Id { get; set; }
+    public int EmpresaId { get; set; }
     public string Email { get; set; } = string.Empty;
     public string TokenHash { get; set; } = string.Empty;
     public int InvitedByLoginId { get; set; }

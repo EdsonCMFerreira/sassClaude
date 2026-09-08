@@ -184,7 +184,9 @@ public class SettingsController : Controller
             new Claim(ClaimTypes.NameIdentifier, login.Id.ToString()),
             new Claim(ClaimTypes.Name, login.Username),
             new Claim(ClaimTypes.Email, login.Email),
-            new Claim(ClaimTypes.Role, login.Role)
+            new Claim(ClaimTypes.Role, login.Role),
+            new Claim(TenantClaimTypes.EmpresaId, login.EmpresaId.ToString()),
+            new Claim(TenantClaimTypes.IsSuperAdmin, login.IsSuperAdmin ? "true" : "false")
         };
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         await HttpContext.SignInAsync(

@@ -1,8 +1,12 @@
+using sassClaude.Data;
+
 namespace sassClaude.Models;
 
-public class PedidoItem
+public class PedidoItem : ITenantScoped
 {
     public int Id { get; set; }
+
+    public int EmpresaId { get; set; }
 
     public int PedidoId { get; set; }
 

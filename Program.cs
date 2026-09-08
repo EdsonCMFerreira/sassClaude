@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.Extensions.Options;
 using sassClaude.Data;
 using sassClaude.Models;
 using sassClaude.Services;
@@ -47,8 +48,13 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     });
 builder.Services.AddAntiforgery(options => options.HeaderName = "X-CSRF-TOKEN");
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("Email"));
+builder.Services.Configure<SuperAdminOptions>(builder.Configuration.GetSection("SuperAdmin"));
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
-builder.Services.AddAuthorization();
+builder.Services.AddScoped<ICurrentTenantAccessor, HttpContextCurrentTenantAccessor>();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("SuperAdmin", policy => policy.RequireClaim(TenantClaimTypes.IsSuperAdmin, "true"));
+});
 
 var app = builder.Build();
 
@@ -78,6 +84,50 @@ using (var scope = app.Services.CreateScope())
     try
     {
         db.Database.EnsureCreated();
+
+        List<string> GetColumns(string tableName)
+        {
+            var columns = new List<string>();
+            using var command = db.Database.GetDbConnection().CreateCommand();
+            command.CommandText = $"PRAGMA table_info({tableName});";
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                columns.Add(reader.GetString(reader.GetOrdinal("name")));
+            }
+
+            return columns;
+        }
+
+        // Multi-tenancy: cada empresa é uma linha em Empresas; todo dado de negócio já
+        // existente é atribuído à "Empresa Padrão" para preservar o histórico gravado.
+        db.Database.ExecuteSqlRaw("""
+            CREATE TABLE IF NOT EXISTS Empresas (
+                Id INTEGER NOT NULL CONSTRAINT PK_Empresas PRIMARY KEY AUTOINCREMENT,
+                Nome TEXT NOT NULL,
+                CreatedAt TEXT NOT NULL
+            );
+            """);
+        db.Database.ExecuteSqlRaw("""
+            INSERT INTO Empresas (Nome, CreatedAt)
+            SELECT 'Empresa Padrão', CURRENT_TIMESTAMP
+            WHERE NOT EXISTS (SELECT 1 FROM Empresas);
+            """);
+
+        long defaultEmpresaId;
+        using (var command = db.Database.GetDbConnection().CreateCommand())
+        {
+            command.CommandText = "SELECT Id FROM Empresas ORDER BY Id LIMIT 1;";
+            db.Database.OpenConnection();
+            defaultEmpresaId = Convert.ToInt64(command.ExecuteScalar());
+        }
+
+        var empresaColumns = GetColumns("Empresas");
+        if (!empresaColumns.Contains("Plano"))
+        {
+            db.Database.ExecuteSqlRaw("ALTER TABLE Empresas ADD COLUMN Plano TEXT NOT NULL DEFAULT 'Starter';");
+        }
+
         db.Database.ExecuteSqlRaw("""
             CREATE TABLE IF NOT EXISTS PasswordResetTokens (
                 Id INTEGER NOT NULL CONSTRAINT PK_PasswordResetTokens PRIMARY KEY AUTOINCREMENT,
@@ -103,6 +153,7 @@ using (var scope = app.Services.CreateScope())
         db.Database.ExecuteSqlRaw("""
             CREATE TABLE IF NOT EXISTS WorkspaceInvites (
                 Id INTEGER NOT NULL CONSTRAINT PK_WorkspaceInvites PRIMARY KEY AUTOINCREMENT,
+                EmpresaId INTEGER NOT NULL,
                 Email TEXT NOT NULL,
                 TokenHash TEXT NOT NULL,
                 InvitedByLoginId INTEGER NOT NULL,
@@ -116,6 +167,7 @@ using (var scope = app.Services.CreateScope())
         db.Database.ExecuteSqlRaw("""
             CREATE TABLE IF NOT EXISTS Invoices (
                 Id INTEGER NOT NULL CONSTRAINT PK_Invoices PRIMARY KEY AUTOINCREMENT,
+                EmpresaId INTEGER NOT NULL,
                 LoginId INTEGER NOT NULL,
                 IssuedAt TEXT NOT NULL,
                 Amount TEXT NOT NULL,
@@ -165,6 +217,7 @@ using (var scope = app.Services.CreateScope())
         db.Database.ExecuteSqlRaw("""
             CREATE TABLE IF NOT EXISTS Produtos (
                 Id INTEGER NOT NULL CONSTRAINT PK_Produtos PRIMARY KEY AUTOINCREMENT,
+                EmpresaId INTEGER NOT NULL,
                 Codigo TEXT NOT NULL,
                 Descricao TEXT NOT NULL,
                 Validade TEXT NOT NULL,
@@ -198,9 +251,22 @@ using (var scope = app.Services.CreateScope())
             db.Database.ExecuteSqlRaw("ALTER TABLE Produtos ADD COLUMN ValorVenda TEXT NOT NULL DEFAULT '0';");
         }
 
+        if (!productColumns.Contains("EmpresaId"))
+        {
+            db.Database.ExecuteSqlRaw($"ALTER TABLE Produtos ADD COLUMN EmpresaId INTEGER NOT NULL DEFAULT {defaultEmpresaId};");
+        }
+
+        // "IX_Products_Codigo" é o nome original do índice, de antes do rename da tabela
+        // "Products" para "Produtos" — ALTER TABLE RENAME TO não renomeia índices, então
+        // esse nome antigo sobrevive e precisa ser removido explicitamente.
+        db.Database.ExecuteSqlRaw("DROP INDEX IF EXISTS IX_Products_Codigo;");
+        db.Database.ExecuteSqlRaw("DROP INDEX IF EXISTS IX_Produtos_Codigo;");
+        db.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_Produtos_EmpresaId_Codigo ON Produtos (EmpresaId, Codigo);");
+
         db.Database.ExecuteSqlRaw("""
             CREATE TABLE IF NOT EXISTS Clientes (
                 Id INTEGER NOT NULL CONSTRAINT PK_Clientes PRIMARY KEY AUTOINCREMENT,
+                EmpresaId INTEGER NOT NULL,
                 Nome TEXT NOT NULL,
                 TipoPessoa TEXT NOT NULL,
                 CpfCnpj TEXT NOT NULL,
@@ -223,6 +289,7 @@ using (var scope = app.Services.CreateScope())
         db.Database.ExecuteSqlRaw("""
             CREATE TABLE IF NOT EXISTS Fornecedores (
                 Id INTEGER NOT NULL CONSTRAINT PK_Fornecedores PRIMARY KEY AUTOINCREMENT,
+                EmpresaId INTEGER NOT NULL,
                 Nome TEXT NOT NULL,
                 TipoPessoa TEXT NOT NULL,
                 CpfCnpj TEXT NOT NULL,
@@ -282,6 +349,7 @@ using (var scope = app.Services.CreateScope())
                 {
                     fornecedor = new Fornecedor
                     {
+                        EmpresaId = (int)defaultEmpresaId,
                         Nome = trimmedName,
                         TipoPessoa = "Jurídica",
                         CpfCnpj = $"PENDENTE-{Guid.NewGuid():N}"[..20],
@@ -310,6 +378,14 @@ using (var scope = app.Services.CreateScope())
                 clienteColumns.Add(reader.GetString(reader.GetOrdinal("name")));
             }
         }
+
+        if (!clienteColumns.Contains("EmpresaId"))
+        {
+            db.Database.ExecuteSqlRaw($"ALTER TABLE Clientes ADD COLUMN EmpresaId INTEGER NOT NULL DEFAULT {defaultEmpresaId};");
+        }
+
+        db.Database.ExecuteSqlRaw("DROP INDEX IF EXISTS IX_Clientes_CpfCnpj;");
+        db.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_Clientes_EmpresaId_CpfCnpj ON Clientes (EmpresaId, CpfCnpj);");
 
         if (!clienteColumns.Contains("Site"))
         {
@@ -368,6 +444,14 @@ using (var scope = app.Services.CreateScope())
             }
         }
 
+        if (!fornecedorColumns.Contains("EmpresaId"))
+        {
+            db.Database.ExecuteSqlRaw($"ALTER TABLE Fornecedores ADD COLUMN EmpresaId INTEGER NOT NULL DEFAULT {defaultEmpresaId};");
+        }
+
+        db.Database.ExecuteSqlRaw("DROP INDEX IF EXISTS IX_Fornecedores_CpfCnpj;");
+        db.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_Fornecedores_EmpresaId_CpfCnpj ON Fornecedores (EmpresaId, CpfCnpj);");
+
         if (!fornecedorColumns.Contains("Site"))
         {
             db.Database.ExecuteSqlRaw("ALTER TABLE Fornecedores ADD COLUMN Site TEXT NOT NULL DEFAULT '';");
@@ -415,6 +499,7 @@ using (var scope = app.Services.CreateScope())
         db.Database.ExecuteSqlRaw("""
             CREATE TABLE IF NOT EXISTS Pedidos (
                 Id INTEGER NOT NULL CONSTRAINT PK_Pedidos PRIMARY KEY AUTOINCREMENT,
+                EmpresaId INTEGER NOT NULL,
                 NumeroPedido INTEGER NOT NULL DEFAULT 0,
                 ClienteId INTEGER NULL,
                 DataPedido TEXT NOT NULL,
@@ -447,6 +532,7 @@ using (var scope = app.Services.CreateScope())
         db.Database.ExecuteSqlRaw("""
             CREATE TABLE IF NOT EXISTS PedidoItens (
                 Id INTEGER NOT NULL CONSTRAINT PK_PedidoItens PRIMARY KEY AUTOINCREMENT,
+                EmpresaId INTEGER NOT NULL,
                 PedidoId INTEGER NOT NULL,
                 ProdutoId INTEGER NULL,
                 Quantidade INTEGER NOT NULL,
@@ -520,7 +606,23 @@ using (var scope = app.Services.CreateScope())
                 """);
         }
 
-        db.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_Pedidos_NumeroPedido ON Pedidos (NumeroPedido);");
+        if (!pedidoColumns.Contains("EmpresaId"))
+        {
+            db.Database.ExecuteSqlRaw($"ALTER TABLE Pedidos ADD COLUMN EmpresaId INTEGER NOT NULL DEFAULT {defaultEmpresaId};");
+        }
+
+        db.Database.ExecuteSqlRaw("DROP INDEX IF EXISTS IX_Pedidos_NumeroPedido;");
+        db.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_Pedidos_EmpresaId_NumeroPedido ON Pedidos (EmpresaId, NumeroPedido);");
+
+        var pedidoItensColumns = GetColumns("PedidoItens");
+        if (!pedidoItensColumns.Contains("EmpresaId"))
+        {
+            db.Database.ExecuteSqlRaw("ALTER TABLE PedidoItens ADD COLUMN EmpresaId INTEGER NOT NULL DEFAULT 0;");
+            db.Database.ExecuteSqlRaw("""
+                UPDATE PedidoItens SET EmpresaId = (SELECT EmpresaId FROM Pedidos WHERE Pedidos.Id = PedidoItens.PedidoId)
+                WHERE EmpresaId = 0;
+                """);
+        }
 
         var productColumnsForSaldo = new List<string>();
         using (var command = db.Database.GetDbConnection().CreateCommand())
@@ -591,9 +693,47 @@ using (var scope = app.Services.CreateScope())
             db.Database.ExecuteSqlRaw("UPDATE Logins SET Role = 'Admin';");
         }
 
+        if (!loginColumns.Contains("EmpresaId"))
+        {
+            db.Database.ExecuteSqlRaw($"ALTER TABLE Logins ADD COLUMN EmpresaId INTEGER NOT NULL DEFAULT {defaultEmpresaId};");
+        }
+
+        db.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_Logins_Email ON Logins (Email);");
+        db.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_Logins_EmpresaId_Username ON Logins (EmpresaId, Username);");
+
+        if (!loginColumns.Contains("IsSuperAdmin"))
+        {
+            db.Database.ExecuteSqlRaw("ALTER TABLE Logins ADD COLUMN IsSuperAdmin INTEGER NOT NULL DEFAULT 0;");
+        }
+
+        var superAdminOptions = scope.ServiceProvider.GetRequiredService<IOptions<SuperAdminOptions>>().Value;
+        var superAdminEmail = superAdminOptions.Email.Trim().ToLowerInvariant();
+        if (!string.IsNullOrWhiteSpace(superAdminEmail))
+        {
+            var superAdminLogin = db.Logins.IgnoreQueryFilters().FirstOrDefault(login => login.Email == superAdminEmail);
+            if (superAdminLogin is not null && !superAdminLogin.IsSuperAdmin)
+            {
+                superAdminLogin.IsSuperAdmin = true;
+                db.SaveChanges();
+            }
+        }
+
+        var workspaceInviteColumns = GetColumns("WorkspaceInvites");
+        if (!workspaceInviteColumns.Contains("EmpresaId"))
+        {
+            db.Database.ExecuteSqlRaw($"ALTER TABLE WorkspaceInvites ADD COLUMN EmpresaId INTEGER NOT NULL DEFAULT {defaultEmpresaId};");
+        }
+
+        var invoiceColumns = GetColumns("Invoices");
+        if (!invoiceColumns.Contains("EmpresaId"))
+        {
+            db.Database.ExecuteSqlRaw($"ALTER TABLE Invoices ADD COLUMN EmpresaId INTEGER NOT NULL DEFAULT {defaultEmpresaId};");
+        }
+
         db.Database.ExecuteSqlRaw("""
             CREATE TABLE IF NOT EXISTS AuditLogEntries (
                 Id INTEGER NOT NULL CONSTRAINT PK_AuditLogEntries PRIMARY KEY AUTOINCREMENT,
+                EmpresaId INTEGER NOT NULL,
                 EntityName TEXT NOT NULL,
                 EntityId INTEGER NOT NULL,
                 Action TEXT NOT NULL,
@@ -602,6 +742,12 @@ using (var scope = app.Services.CreateScope())
                 Timestamp TEXT NOT NULL
             );
             """);
+
+        var auditLogColumns = GetColumns("AuditLogEntries");
+        if (!auditLogColumns.Contains("EmpresaId"))
+        {
+            db.Database.ExecuteSqlRaw($"ALTER TABLE AuditLogEntries ADD COLUMN EmpresaId INTEGER NOT NULL DEFAULT {defaultEmpresaId};");
+        }
 
         var passwordHasher = new PasswordHasher<Login>();
         var usersWithPlaintextPasswords = db.Logins

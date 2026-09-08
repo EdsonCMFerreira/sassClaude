@@ -1,0 +1,63 @@
+@model SuperAdminViewModel
+@{
+    ViewData["Title"] = "Superadmin";
+}
+<div class="page-heading">
+    <div><span class="eyebrow">Superadmin</span><h1>Visão geral das empresas.</h1><p class="muted">Contadores agregados por empresa — sem acesso aos dados de negócio de cada uma.</p></div>
+</div>
+@if (TempData["SuperAdminMessage"] is string message)
+{
+    <div class="settings-success">@message</div>
+}
+<div class="surface-card users-card">
+    <div class="section-heading">
+        <div><h2>Empresas cadastradas</h2><p class="muted">@Model.Empresas.Count no total.</p></div>
+    </div>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead class="table-light">
+                <tr>
+                    <th>Empresa</th>
+                    <th>Plano</th>
+                    <th>Criada em</th>
+                    <th>Usuários</th>
+                    <th>Produtos</th>
+                    <th>Clientes</th>
+                    <th>Pedidos</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Empresas.Any())
+                {
+                    <tr><td colspan="8" class="muted">Nenhuma empresa cadastrada ainda.</td></tr>
+                }
+                @foreach (var empresa in Model.Empresas)
+                {
+                    <tr>
+                        <td>@empresa.Nome</td>
+                        <td>@empresa.Plano</td>
+                        <td>@empresa.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy")</td>
+                        <td>@empresa.LoginCount</td>
+                        <td>@empresa.ProdutoCount</td>
+                        <td>@empresa.ClienteCount</td>
+                        <td>@empresa.PedidoCount</td>
+                        <td>
+                            <form asp-controller="SuperAdmin" asp-action="SetPlano" method="post" style="display:flex; gap:8px; align-items:center;">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="empresaId" value="@empresa.Id" />
+                                <select name="plano">
+                                    @foreach (var plano in Model.AllowedPlanos)
+                                    {
+                                        <option value="@plano" selected="@(plano == empresa.Plano)">@plano</option>
+                                    }
+                                </select>
+                                <button class="button button-outline" type="submit">Salvar</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

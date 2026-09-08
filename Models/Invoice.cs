@@ -1,8 +1,11 @@
+using sassClaude.Data;
+
 namespace sassClaude.Models;
 
-public class Invoice
+public class Invoice : ITenantScoped
 {
     public int Id { get; set; }
+    public int EmpresaId { get; set; }
     public int LoginId { get; set; }
     public DateTime IssuedAt { get; set; } = DateTime.UtcNow;
     public decimal Amount { get; set; }

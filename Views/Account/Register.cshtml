@@ -27,6 +27,12 @@
             <form asp-action="Register" method="post" class="auth-form">
                 <input asp-for="InviteToken" type="hidden" />
                 <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+                @if (string.IsNullOrWhiteSpace(Model.InviteToken))
+                {
+                    <label asp-for="NomeEmpresa"></label>
+                    <input asp-for="NomeEmpresa" placeholder="Nome da sua empresa" />
+                    <span asp-validation-for="NomeEmpresa" class="field-error"></span>
+                }
                 <label asp-for="Username"></label>
                 <input asp-for="Username" autocomplete="username" placeholder="Como podemos chamar você?" autofocus />
                 <span asp-validation-for="Username" class="field-error"></span>

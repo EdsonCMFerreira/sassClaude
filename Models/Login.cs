@@ -1,10 +1,13 @@
 using System.ComponentModel.DataAnnotations;
+using sassClaude.Data;
 
 namespace sassClaude.Models;
 
-public class Login
+public class Login : ITenantScoped
 {
     public int Id { get; set; }
+
+    public int EmpresaId { get; set; }
 
     [Required]
     [StringLength(100)]
@@ -22,6 +25,8 @@ public class Login
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public bool EmailConfirmed { get; set; }
+
+    public bool IsSuperAdmin { get; set; }
 
     [Required]
     [StringLength(20)]
