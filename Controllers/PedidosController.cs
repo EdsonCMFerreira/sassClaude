@@ -40,7 +40,7 @@ public class PedidosController : Controller
     public async Task<IActionResult> Dashboard()
     {
         var pedidos = await _context.Pedidos
-            .Include(p => p.Itens).ThenInclude(i => i.Product)
+            .Include(p => p.Itens).ThenInclude(i => i.Produto)
             .ToListAsync();
 
         decimal ValorComDesconto(Pedido p)
@@ -68,8 +68,8 @@ public class PedidosController : Controller
 
         var produtosMaisPedidos = pedidos
             .SelectMany(p => p.Itens)
-            .Where(i => i.Product is not null)
-            .GroupBy(i => i.Product!.Descricao)
+            .Where(i => i.Produto is not null)
+            .GroupBy(i => i.Produto!.Descricao)
             .Select(g => new ProdutoMaisPedidoRow(g.Key, g.Sum(i => i.Quantidade)))
             .OrderByDescending(x => x.QuantidadeTotal)
             .Take(5)
@@ -95,7 +95,7 @@ public class PedidosController : Controller
     {
         var pedido = await _context.Pedidos
             .Include(x => x.Cliente)
-            .Include(x => x.Itens).ThenInclude(x => x.Product)
+            .Include(x => x.Itens).ThenInclude(x => x.Produto)
             .FirstOrDefaultAsync(x => x.Id == id);
         if (pedido is null)
         {
@@ -165,7 +165,7 @@ public class PedidosController : Controller
 
                         foreach (var item in pedido.Itens)
                         {
-                            table.Cell().Text(item.Product?.Descricao ?? "—");
+                            table.Cell().Text(item.Produto?.Descricao ?? "—");
                             table.Cell().Text(item.Quantidade.ToString());
                             table.Cell().Text(item.ValorUnitario.ToString("C", ptBr));
                             table.Cell().Text((item.Quantidade * item.ValorUnitario).ToString("C", ptBr));
@@ -220,7 +220,7 @@ public class ApiPedidosController : ControllerBase
     {
         var query = _context.Pedidos
             .Include(x => x.Cliente)
-            .Include(x => x.Itens).ThenInclude(x => x.Product)
+            .Include(x => x.Itens).ThenInclude(x => x.Produto)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(status))
@@ -237,7 +237,7 @@ public class ApiPedidosController : ControllerBase
     {
         var pedido = await _context.Pedidos
             .Include(x => x.Cliente)
-            .Include(x => x.Itens).ThenInclude(x => x.Product)
+            .Include(x => x.Itens).ThenInclude(x => x.Produto)
             .FirstOrDefaultAsync(x => x.Id == id);
         if (pedido is null)
         {
@@ -272,23 +272,23 @@ public class ApiPedidosController : ControllerBase
             return BadRequest("Selecione um cliente válido.");
         }
 
-        var produtosPorId = new Dictionary<int, Product>();
-        foreach (var grupo in request.Itens.GroupBy(i => i.ProductId))
+        var produtosPorId = new Dictionary<int, Produto>();
+        foreach (var grupo in request.Itens.GroupBy(i => i.ProdutoId))
         {
-            var product = await _context.Products.FindAsync(grupo.Key);
-            if (product is null)
+            var produto = await _context.Produtos.FindAsync(grupo.Key);
+            if (produto is null)
             {
                 return BadRequest("Selecione um produto válido.");
             }
 
-            var saldoDisponivel = await SaldoDisponivelAsync(product.Id, product.Quantidade);
+            var saldoDisponivel = await SaldoDisponivelAsync(produto.Id, produto.Quantidade);
             var quantidadeTotal = grupo.Sum(i => i.Quantidade);
             if (quantidadeTotal > saldoDisponivel)
             {
-                return BadRequest($"Estoque insuficiente. Saldo disponível de \"{product.Descricao}\": {saldoDisponivel}.");
+                return BadRequest($"Estoque insuficiente. Saldo disponível de \"{produto.Descricao}\": {saldoDisponivel}.");
             }
 
-            produtosPorId[grupo.Key] = product;
+            produtosPorId[grupo.Key] = produto;
         }
 
         var proximoNumero = await _context.Pedidos.MaxAsync(p => (int?)p.NumeroPedido) ?? 0;
@@ -310,7 +310,7 @@ public class ApiPedidosController : ControllerBase
         {
             pedido.Itens.Add(new PedidoItem
             {
-                Product = produtosPorId[item.ProductId],
+                Produto = produtosPorId[item.ProdutoId],
                 Quantidade = item.Quantidade,
                 ValorUnitario = item.ValorUnitario
             });
@@ -322,7 +322,7 @@ public class ApiPedidosController : ControllerBase
 
         var pedidoCompleto = await _context.Pedidos
             .Include(x => x.Cliente)
-            .Include(x => x.Itens).ThenInclude(x => x.Product)
+            .Include(x => x.Itens).ThenInclude(x => x.Produto)
             .FirstAsync(x => x.Id == pedido.Id);
 
         return CreatedAtAction(nameof(GetPedido), new { id = pedido.Id }, ToResponse(pedidoCompleto));
@@ -361,23 +361,23 @@ public class ApiPedidosController : ControllerBase
             return BadRequest("Selecione um cliente válido.");
         }
 
-        var produtosPorId = new Dictionary<int, Product>();
-        foreach (var grupo in request.Itens.GroupBy(i => i.ProductId))
+        var produtosPorId = new Dictionary<int, Produto>();
+        foreach (var grupo in request.Itens.GroupBy(i => i.ProdutoId))
         {
-            var product = await _context.Products.FindAsync(grupo.Key);
-            if (product is null)
+            var produto = await _context.Produtos.FindAsync(grupo.Key);
+            if (produto is null)
             {
                 return BadRequest("Selecione um produto válido.");
             }
 
-            var saldoDisponivel = await SaldoDisponivelAsync(product.Id, product.Quantidade, existing.Id);
+            var saldoDisponivel = await SaldoDisponivelAsync(produto.Id, produto.Quantidade, existing.Id);
             var quantidadeTotal = grupo.Sum(i => i.Quantidade);
             if (quantidadeTotal > saldoDisponivel)
             {
-                return BadRequest($"Estoque insuficiente. Saldo disponível de \"{product.Descricao}\": {saldoDisponivel}.");
+                return BadRequest($"Estoque insuficiente. Saldo disponível de \"{produto.Descricao}\": {saldoDisponivel}.");
             }
 
-            produtosPorId[grupo.Key] = product;
+            produtosPorId[grupo.Key] = produto;
         }
 
         var clienteAnteriorId = existing.ClienteId;
@@ -385,7 +385,7 @@ public class ApiPedidosController : ControllerBase
         _context.PedidoItens.RemoveRange(existing.Itens);
         existing.Itens = request.Itens.Select(item => new PedidoItem
         {
-            Product = produtosPorId[item.ProductId],
+            Produto = produtosPorId[item.ProdutoId],
             Quantidade = item.Quantidade,
             ValorUnitario = item.ValorUnitario
         }).ToList();
@@ -432,9 +432,9 @@ public class ApiPedidosController : ControllerBase
         return NoContent();
     }
 
-    private async Task<int> SaldoDisponivelAsync(int productId, int quantidadeCadastrada, int? excluirPedidoId = null)
+    private async Task<int> SaldoDisponivelAsync(int produtoId, int quantidadeCadastrada, int? excluirPedidoId = null)
     {
-        var query = _context.PedidoItens.Where(i => i.ProductId == productId);
+        var query = _context.PedidoItens.Where(i => i.ProdutoId == produtoId);
         if (excluirPedidoId.HasValue)
         {
             query = query.Where(i => i.PedidoId != excluirPedidoId.Value);
@@ -482,8 +482,8 @@ public class ApiPedidosController : ControllerBase
     {
         var itens = pedido.Itens.Select(i => new PedidoItemResponse(
             i.Id,
-            i.ProductId ?? 0,
-            i.Product?.Descricao ?? "—",
+            i.ProdutoId ?? 0,
+            i.Produto?.Descricao ?? "—",
             i.Quantidade,
             i.ValorUnitario,
             i.Quantidade * i.ValorUnitario)).ToList();
@@ -508,13 +508,13 @@ public class ApiPedidosController : ControllerBase
     }
 }
 
-public sealed record PedidoItemRequest(int ProductId, int Quantidade, decimal ValorUnitario);
+public sealed record PedidoItemRequest(int ProdutoId, int Quantidade, decimal ValorUnitario);
 
 public sealed record PedidoRequest(
     int ClienteId, List<PedidoItemRequest> Itens, DateTime DataPedido,
     string NumeroNota, string FormaPagamento, string Status, decimal PercentualDesconto, string Observacoes);
 
-public sealed record PedidoItemResponse(int Id, int ProductId, string ProductNome, int Quantidade, decimal ValorUnitario, decimal ValorTotal);
+public sealed record PedidoItemResponse(int Id, int ProdutoId, string ProdutoNome, int Quantidade, decimal ValorUnitario, decimal ValorTotal);
 
 public sealed record PedidoResponse(
     int Id, int NumeroPedido, int ClienteId, string ClienteNome, List<PedidoItemResponse> Itens,

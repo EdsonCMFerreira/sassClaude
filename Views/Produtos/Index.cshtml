@@ -4,14 +4,14 @@
 
 <div class="page-heading">
     <div><span class="eyebrow">Catálogo</span><h1>Produtos.</h1><p class="muted">Gerencie o cadastro de produtos do workspace.</p></div>
-    <div class="hero-actions"><a class="button button-outline" style="color:var(--blue);" asp-controller="Products" asp-action="Dashboard">Ver dashboard <span>→</span></a></div>
+    <div class="hero-actions"><a class="button button-outline" style="color:var(--blue);" asp-controller="Produtos" asp-action="Dashboard">Ver dashboard <span>→</span></a></div>
 </div>
 <div class="surface-card users-card">
     <div class="section-heading"><div><h2>Produtos cadastrados</h2><p class="muted">Código, descrição, validade, valores, fornecedor e quantidade. O saldo é calculado como quantidade menos o total já pedido.</p></div></div>
     <div class="user-form-wrap">
-        <form id="productForm">
+        <form id="produtoForm">
             @Html.AntiForgeryToken()
-            <input type="hidden" id="productId" />
+            <input type="hidden" id="produtoId" />
             <div class="user-form-grid">
                 <div><label for="codigo">Código</label><input id="codigo" required /></div>
                 <div><label for="descricao">Descrição</label><input id="descricao" required /></div>
@@ -42,15 +42,15 @@
                     <th>Ações</th>
                 </tr>
             </thead>
-            <tbody id="productTableBody"></tbody>
+            <tbody id="produtoTableBody"></tbody>
         </table>
     </div>
 </div>
 
 @section Scripts {
     <script>
-        const form = document.getElementById('productForm');
-        const productId = document.getElementById('productId');
+        const form = document.getElementById('produtoForm');
+        const produtoId = document.getElementById('produtoId');
         const codigo = document.getElementById('codigo');
         const descricao = document.getElementById('descricao');
         const validade = document.getElementById('validade');
@@ -60,7 +60,7 @@
         const fornecedorId = document.getElementById('fornecedorId');
         const quantidade = document.getElementById('quantidade');
         const cancelEdit = document.getElementById('cancelEdit');
-        const tableBody = document.getElementById('productTableBody');
+        const tableBody = document.getElementById('produtoTableBody');
         const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
 
         function formatCurrency(value) {
@@ -97,8 +97,8 @@
             ).join('');
         }
 
-        async function loadProducts() {
-            const response = await fetch('/api/products');
+        async function loadProdutos() {
+            const response = await fetch('/api/produtos');
             if (!response.ok) {
                 throw new Error('Erro ao carregar produtos.');
             }
@@ -123,18 +123,18 @@
             `).join('') || '<tr><td colspan="10" class="muted">Nenhum produto cadastrado ainda.</td></tr>';
 
             tableBody.querySelectorAll('[data-edit]').forEach(button => {
-                button.addEventListener('click', () => editProduct(Number(button.dataset.edit)));
+                button.addEventListener('click', () => editProduto(Number(button.dataset.edit)));
             });
 
             tableBody.querySelectorAll('[data-delete]').forEach(button => {
-                button.addEventListener('click', () => deleteProduct(Number(button.dataset.delete)));
+                button.addEventListener('click', () => deleteProduto(Number(button.dataset.delete)));
             });
         }
 
-        async function editProduct(id) {
-            const response = await fetch(`/api/products/${id}`);
+        async function editProduto(id) {
+            const response = await fetch(`/api/produtos/${id}`);
             const data = await response.json();
-            productId.value = data.id;
+            produtoId.value = data.id;
             codigo.value = data.codigo;
             descricao.value = data.descricao;
             validade.value = data.validade.slice(0, 10);
@@ -147,13 +147,13 @@
             codigo.focus();
         }
 
-        async function deleteProduct(id) {
+        async function deleteProduto(id) {
             const confirmed = confirm('Deseja excluir este produto?');
             if (!confirmed) return;
 
-            const response = await fetch(`/api/products/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': csrfToken } });
+            const response = await fetch(`/api/produtos/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': csrfToken } });
             if (response.ok) {
-                await loadProducts();
+                await loadProdutos();
             }
         }
 
@@ -166,7 +166,7 @@
             }
 
             const payload = {
-                id: Number(productId.value || 0),
+                id: Number(produtoId.value || 0),
                 codigo: codigo.value.trim(),
                 descricao: descricao.value.trim(),
                 validade: validade.value,
@@ -177,7 +177,7 @@
             };
 
             const method = payload.id ? 'PUT' : 'POST';
-            const url = payload.id ? `/api/products/${payload.id}` : '/api/products';
+            const url = payload.id ? `/api/produtos/${payload.id}` : '/api/produtos';
 
             const response = await fetch(url, {
                 method,
@@ -187,10 +187,10 @@
 
             if (response.ok) {
                 form.reset();
-                productId.value = '';
+                produtoId.value = '';
                 percentualLucro.value = '';
                 cancelEdit.classList.add('hidden');
-                await loadProducts();
+                await loadProdutos();
             } else {
                 const errorText = await response.text();
                 alert(errorText || 'Erro ao salvar produto.');
@@ -199,7 +199,7 @@
 
         cancelEdit.addEventListener('click', () => {
             form.reset();
-            productId.value = '';
+            produtoId.value = '';
             percentualLucro.value = '';
             cancelEdit.classList.add('hidden');
         });
@@ -208,7 +208,7 @@
         valorVenda.addEventListener('input', updateLucroPreview);
 
         loadFornecedoresOptions()
-            .then(loadProducts)
+            .then(loadProdutos)
             .catch(error => console.error(error));
     </script>
 }

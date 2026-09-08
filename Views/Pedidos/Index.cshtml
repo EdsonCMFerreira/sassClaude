@@ -130,7 +130,7 @@
         const itensTableBody = document.getElementById('itensTableBody');
         const addItemButton = document.getElementById('addItemButton');
         const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
-        let allProducts = [];
+        let allProdutos = [];
         let itensOriginais = [];
 
         function formatCurrency(value) {
@@ -142,24 +142,24 @@
         }
 
         function optionsProdutosHtml(selectedId) {
-            return '<option value="">Selecione...</option>' + allProducts.map(p =>
+            return '<option value="">Selecione...</option>' + allProdutos.map(p =>
                 `<option value="${p.id}" ${p.id === selectedId ? 'selected' : ''}>${p.codigo} — ${p.descricao}</option>`
             ).join('');
         }
 
-        function saldoEfetivoParaProduto(productId, trAtual) {
-            const produto = allProducts.find(p => p.id === productId);
+        function saldoEfetivoParaProduto(produtoId, trAtual) {
+            const produto = allProdutos.find(p => p.id === produtoId);
             if (!produto) return null;
 
             let efetivo = produto.saldo;
             efetivo += itensOriginais
-                .filter(i => i.productId === productId)
+                .filter(i => i.produtoId === produtoId)
                 .reduce((soma, i) => soma + i.quantidade, 0);
 
             itensTableBody.querySelectorAll('tr').forEach(tr => {
                 if (tr === trAtual) return;
                 const pid = Number(tr.querySelector('.item-produto').value) || 0;
-                if (pid === productId) {
+                if (pid === produtoId) {
                     efetivo -= Number(tr.querySelector('.item-quantidade').value) || 0;
                 }
             });
@@ -187,13 +187,13 @@
             const valorUnitarioInput = tr.querySelector('.item-valor-unitario');
             const subtotalInput = tr.querySelector('.item-subtotal');
 
-            const productId = Number(produtoSelect.value) || 0;
-            const produto = allProducts.find(p => p.id === productId);
+            const produtoId = Number(produtoSelect.value) || 0;
+            const produto = allProdutos.find(p => p.id === produtoId);
 
             if (!produto) {
                 infoText.textContent = '';
             } else {
-                const efetivo = saldoEfetivoParaProduto(productId, tr);
+                const efetivo = saldoEfetivoParaProduto(produtoId, tr);
                 infoText.textContent = `Fornecedor: ${produto.fornecedorNome || '—'} · Saldo disponível: ${efetivo} unidade(s)`;
             }
 
@@ -208,7 +208,7 @@
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>
-                    <select class="item-produto" required>${optionsProdutosHtml(initial ? initial.productId : null)}</select>
+                    <select class="item-produto" required>${optionsProdutosHtml(initial ? initial.produtoId : null)}</select>
                     <small class="item-info muted" style="display:block;margin-top:4px;"></small>
                 </td>
                 <td><input class="item-quantidade" type="number" min="1" step="1" value="${initial ? initial.quantidade : 1}" required /></td>
@@ -227,7 +227,7 @@
             }
 
             tr.querySelector('.item-produto').addEventListener('change', () => {
-                const produto = allProducts.find(p => p.id === Number(tr.querySelector('.item-produto').value));
+                const produto = allProdutos.find(p => p.id === Number(tr.querySelector('.item-produto').value));
                 if (produto) {
                     tr.querySelector('.item-valor-unitario').value = produto.valorVenda;
                 }
@@ -275,9 +275,9 @@
             ).join('');
         }
 
-        async function loadProductsOptions() {
-            const response = await fetch('/api/products');
-            allProducts = await response.json();
+        async function loadProdutosOptions() {
+            const response = await fetch('/api/produtos');
+            allProdutos = await response.json();
         }
 
         async function loadPedidos() {
@@ -291,7 +291,7 @@
                 <tr>
                     <td>${item.numeroPedido}</td>
                     <td>${item.clienteNome}</td>
-                    <td>${item.itens.map(i => `${i.productNome} (x${i.quantidade})`).join(', ')}</td>
+                    <td>${item.itens.map(i => `${i.produtoNome} (x${i.quantidade})`).join(', ')}</td>
                     <td>${formatCurrency(item.valorTotal)}</td>
                     <td>${item.percentualDesconto > 0 ? item.percentualDesconto.toLocaleString('pt-BR') + '%' : '—'}</td>
                     <td>${formatCurrency(item.valorComDesconto)}</td>
@@ -328,9 +328,9 @@
             observacoes.value = data.observacoes;
             atualizarCampoDesconto();
 
-            itensOriginais = data.itens.map(i => ({ productId: i.productId, quantidade: i.quantidade }));
+            itensOriginais = data.itens.map(i => ({ produtoId: i.produtoId, quantidade: i.quantidade }));
             itensTableBody.innerHTML = '';
-            data.itens.forEach(item => addItemRow({ productId: item.productId, quantidade: item.quantidade, valorUnitario: item.valorUnitario }));
+            data.itens.forEach(item => addItemRow({ produtoId: item.produtoId, quantidade: item.quantidade, valorUnitario: item.valorUnitario }));
 
             cancelEdit.classList.remove('hidden');
             clienteId.focus();
@@ -360,12 +360,12 @@
             }
 
             const itens = linhas.map(tr => ({
-                productId: Number(tr.querySelector('.item-produto').value) || 0,
+                produtoId: Number(tr.querySelector('.item-produto').value) || 0,
                 quantidade: Number(tr.querySelector('.item-quantidade').value) || 0,
                 valorUnitario: Number(tr.querySelector('.item-valor-unitario').value) || 0
             }));
 
-            if (itens.some(i => !i.productId)) {
+            if (itens.some(i => !i.produtoId)) {
                 alert('Selecione um produto em todas as linhas.');
                 return;
             }
@@ -402,7 +402,7 @@
 
         cancelEdit.addEventListener('click', resetForm);
 
-        Promise.all([loadClientesOptions(), loadProductsOptions()])
+        Promise.all([loadClientesOptions(), loadProdutosOptions()])
             .then(() => {
                 addItemRow();
                 return loadPedidos();

@@ -124,9 +124,47 @@ using (var scope = app.Services.CreateScope())
                 CONSTRAINT FK_Invoices_Logins_LoginId FOREIGN KEY (LoginId) REFERENCES Logins (Id) ON DELETE CASCADE
             );
             """);
+        // "Products"/"Product" foram renomeados para "Produtos"/"Produto" (terminologia do
+        // negócio); o rename preserva todo o histórico já gravado.
+        var tableNamesForProdutos = new List<string>();
+        using (var command = db.Database.GetDbConnection().CreateCommand())
+        {
+            command.CommandText = "SELECT name FROM sqlite_master WHERE type='table';";
+            db.Database.OpenConnection();
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                tableNamesForProdutos.Add(reader.GetString(0));
+            }
+        }
+
+        if (tableNamesForProdutos.Contains("Products") && !tableNamesForProdutos.Contains("Produtos"))
+        {
+            db.Database.ExecuteSqlRaw("ALTER TABLE Products RENAME TO Produtos;");
+        }
+
+        if (tableNamesForProdutos.Contains("PedidoItens"))
+        {
+            var pedidoItensColumnsForRename = new List<string>();
+            using (var command = db.Database.GetDbConnection().CreateCommand())
+            {
+                command.CommandText = "PRAGMA table_info(PedidoItens);";
+                using var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    pedidoItensColumnsForRename.Add(reader.GetString(reader.GetOrdinal("name")));
+                }
+            }
+
+            if (pedidoItensColumnsForRename.Contains("ProductId") && !pedidoItensColumnsForRename.Contains("ProdutoId"))
+            {
+                db.Database.ExecuteSqlRaw("ALTER TABLE PedidoItens RENAME COLUMN ProductId TO ProdutoId;");
+            }
+        }
+
         db.Database.ExecuteSqlRaw("""
-            CREATE TABLE IF NOT EXISTS Products (
-                Id INTEGER NOT NULL CONSTRAINT PK_Products PRIMARY KEY AUTOINCREMENT,
+            CREATE TABLE IF NOT EXISTS Produtos (
+                Id INTEGER NOT NULL CONSTRAINT PK_Produtos PRIMARY KEY AUTOINCREMENT,
                 Codigo TEXT NOT NULL,
                 Descricao TEXT NOT NULL,
                 Validade TEXT NOT NULL,
@@ -135,13 +173,13 @@ using (var scope = app.Services.CreateScope())
                 Fornecedor TEXT NOT NULL,
                 CreatedAt TEXT NOT NULL
             );
-            CREATE UNIQUE INDEX IF NOT EXISTS IX_Products_Codigo ON Products (Codigo);
+            CREATE UNIQUE INDEX IF NOT EXISTS IX_Produtos_Codigo ON Produtos (Codigo);
             """);
 
         var productColumns = new List<string>();
         using (var command = db.Database.GetDbConnection().CreateCommand())
         {
-            command.CommandText = "PRAGMA table_info(Products);";
+            command.CommandText = "PRAGMA table_info(Produtos);";
             db.Database.OpenConnection();
             using var reader = command.ExecuteReader();
             while (reader.Read())
@@ -152,12 +190,12 @@ using (var scope = app.Services.CreateScope())
 
         if (productColumns.Contains("Valor") && !productColumns.Contains("ValorCompra"))
         {
-            db.Database.ExecuteSqlRaw("ALTER TABLE Products RENAME COLUMN Valor TO ValorCompra;");
+            db.Database.ExecuteSqlRaw("ALTER TABLE Produtos RENAME COLUMN Valor TO ValorCompra;");
         }
 
         if (!productColumns.Contains("ValorVenda"))
         {
-            db.Database.ExecuteSqlRaw("ALTER TABLE Products ADD COLUMN ValorVenda TEXT NOT NULL DEFAULT '0';");
+            db.Database.ExecuteSqlRaw("ALTER TABLE Produtos ADD COLUMN ValorVenda TEXT NOT NULL DEFAULT '0';");
         }
 
         db.Database.ExecuteSqlRaw("""
@@ -209,7 +247,7 @@ using (var scope = app.Services.CreateScope())
         var productColumnsAfterFornecedores = new List<string>();
         using (var command = db.Database.GetDbConnection().CreateCommand())
         {
-            command.CommandText = "PRAGMA table_info(Products);";
+            command.CommandText = "PRAGMA table_info(Produtos);";
             db.Database.OpenConnection();
             using var reader = command.ExecuteReader();
             while (reader.Read())
@@ -220,7 +258,7 @@ using (var scope = app.Services.CreateScope())
 
         if (!productColumnsAfterFornecedores.Contains("FornecedorId"))
         {
-            db.Database.ExecuteSqlRaw("ALTER TABLE Products ADD COLUMN FornecedorId INTEGER NULL;");
+            db.Database.ExecuteSqlRaw("ALTER TABLE Produtos ADD COLUMN FornecedorId INTEGER NULL;");
         }
 
         if (productColumnsAfterFornecedores.Contains("Fornecedor"))
@@ -228,7 +266,7 @@ using (var scope = app.Services.CreateScope())
             var legacyFornecedorNames = new List<string>();
             using (var command = db.Database.GetDbConnection().CreateCommand())
             {
-                command.CommandText = "SELECT DISTINCT Fornecedor FROM Products WHERE FornecedorId IS NULL AND TRIM(Fornecedor) <> '';";
+                command.CommandText = "SELECT DISTINCT Fornecedor FROM Produtos WHERE FornecedorId IS NULL AND TRIM(Fornecedor) <> '';";
                 using var reader = command.ExecuteReader();
                 while (reader.Read())
                 {
@@ -254,11 +292,11 @@ using (var scope = app.Services.CreateScope())
                 }
 
                 db.Database.ExecuteSqlRaw(
-                    "UPDATE Products SET FornecedorId = {0} WHERE Fornecedor = {1} AND FornecedorId IS NULL;",
+                    "UPDATE Produtos SET FornecedorId = {0} WHERE Fornecedor = {1} AND FornecedorId IS NULL;",
                     fornecedor.Id, legacyName);
             }
 
-            db.Database.ExecuteSqlRaw("ALTER TABLE Products DROP COLUMN Fornecedor;");
+            db.Database.ExecuteSqlRaw("ALTER TABLE Produtos DROP COLUMN Fornecedor;");
         }
 
         var clienteColumns = new List<string>();
@@ -410,11 +448,11 @@ using (var scope = app.Services.CreateScope())
             CREATE TABLE IF NOT EXISTS PedidoItens (
                 Id INTEGER NOT NULL CONSTRAINT PK_PedidoItens PRIMARY KEY AUTOINCREMENT,
                 PedidoId INTEGER NOT NULL,
-                ProductId INTEGER NULL,
+                ProdutoId INTEGER NULL,
                 Quantidade INTEGER NOT NULL,
                 ValorUnitario TEXT NOT NULL,
                 CONSTRAINT FK_PedidoItens_Pedidos_PedidoId FOREIGN KEY (PedidoId) REFERENCES Pedidos (Id) ON DELETE CASCADE,
-                CONSTRAINT FK_PedidoItens_Products_ProductId FOREIGN KEY (ProductId) REFERENCES Products (Id) ON DELETE SET NULL
+                CONSTRAINT FK_PedidoItens_Produtos_ProdutoId FOREIGN KEY (ProdutoId) REFERENCES Produtos (Id) ON DELETE SET NULL
             );
             """);
 
@@ -425,7 +463,7 @@ using (var scope = app.Services.CreateScope())
             // dispara a ação ON DELETE CASCADE de PedidoItens.PedidoId, apagando os itens já inseridos.
             db.Database.ExecuteSqlRaw("""
                 CREATE TEMP TABLE PedidoItensStaging AS
-                SELECT Id AS PedidoId, ProductId, Quantidade, ValorUnitario FROM Pedidos;
+                SELECT Id AS PedidoId, ProductId AS ProdutoId, Quantidade, ValorUnitario FROM Pedidos;
                 """);
 
             // SQLite recusa DROP COLUMN em coluna usada numa FK da própria tabela (ProductId),
@@ -450,8 +488,8 @@ using (var scope = app.Services.CreateScope())
                 """);
 
             db.Database.ExecuteSqlRaw("""
-                INSERT INTO PedidoItens (PedidoId, ProductId, Quantidade, ValorUnitario)
-                SELECT PedidoId, ProductId, Quantidade, ValorUnitario FROM PedidoItensStaging;
+                INSERT INTO PedidoItens (PedidoId, ProdutoId, Quantidade, ValorUnitario)
+                SELECT PedidoId, ProdutoId, Quantidade, ValorUnitario FROM PedidoItensStaging;
                 """);
             db.Database.ExecuteSqlRaw("DROP TABLE PedidoItensStaging;");
 
@@ -487,7 +525,7 @@ using (var scope = app.Services.CreateScope())
         var productColumnsForSaldo = new List<string>();
         using (var command = db.Database.GetDbConnection().CreateCommand())
         {
-            command.CommandText = "PRAGMA table_info(Products);";
+            command.CommandText = "PRAGMA table_info(Produtos);";
             using var reader = command.ExecuteReader();
             while (reader.Read())
             {
@@ -497,9 +535,9 @@ using (var scope = app.Services.CreateScope())
 
         if (!productColumnsForSaldo.Contains("Saldo") && !productColumnsForSaldo.Contains("Quantidade"))
         {
-            db.Database.ExecuteSqlRaw("ALTER TABLE Products ADD COLUMN Saldo INTEGER NOT NULL DEFAULT 0;");
+            db.Database.ExecuteSqlRaw("ALTER TABLE Produtos ADD COLUMN Saldo INTEGER NOT NULL DEFAULT 0;");
             db.Database.ExecuteSqlRaw("""
-                UPDATE Products SET Saldo = -COALESCE((SELECT SUM(Quantidade) FROM PedidoItens WHERE PedidoItens.ProductId = Products.Id), 0);
+                UPDATE Produtos SET Saldo = -COALESCE((SELECT SUM(Quantidade) FROM PedidoItens WHERE PedidoItens.ProdutoId = Produtos.Id), 0);
                 """);
         }
 
@@ -509,7 +547,7 @@ using (var scope = app.Services.CreateScope())
         var productColumnsForQuantidade = new List<string>();
         using (var command = db.Database.GetDbConnection().CreateCommand())
         {
-            command.CommandText = "PRAGMA table_info(Products);";
+            command.CommandText = "PRAGMA table_info(Produtos);";
             using var reader = command.ExecuteReader();
             while (reader.Read())
             {
@@ -519,15 +557,15 @@ using (var scope = app.Services.CreateScope())
 
         if (!productColumnsForQuantidade.Contains("Quantidade"))
         {
-            db.Database.ExecuteSqlRaw("ALTER TABLE Products ADD COLUMN Quantidade INTEGER NOT NULL DEFAULT 0;");
+            db.Database.ExecuteSqlRaw("ALTER TABLE Produtos ADD COLUMN Quantidade INTEGER NOT NULL DEFAULT 0;");
             db.Database.ExecuteSqlRaw("""
-                UPDATE Products SET Quantidade = Saldo + COALESCE((SELECT SUM(Quantidade) FROM PedidoItens WHERE PedidoItens.ProductId = Products.Id), 0);
+                UPDATE Produtos SET Quantidade = Saldo + COALESCE((SELECT SUM(Quantidade) FROM PedidoItens WHERE PedidoItens.ProdutoId = Produtos.Id), 0);
                 """);
         }
 
         if (productColumnsForQuantidade.Contains("Saldo"))
         {
-            db.Database.ExecuteSqlRaw("ALTER TABLE Products DROP COLUMN Saldo;");
+            db.Database.ExecuteSqlRaw("ALTER TABLE Produtos DROP COLUMN Saldo;");
         }
 
         var loginColumns = new List<string>();

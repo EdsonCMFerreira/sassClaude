@@ -1,10 +1,10 @@
 namespace sassClaude.Models;
 
-public sealed record ProductExpiryRow(string Codigo, string Descricao, DateTime Validade, int DiasRestantes);
+public sealed record ProdutoExpiryRow(string Codigo, string Descricao, DateTime Validade, int DiasRestantes);
 
 public sealed record SupplierBreakdownRow(string Fornecedor, int Quantidade);
 
-public sealed class ProductDashboardViewModel
+public sealed class ProdutoDashboardViewModel
 {
     public int TotalProdutos { get; set; }
     public int Vencidos { get; set; }
@@ -13,7 +13,7 @@ public sealed class ProductDashboardViewModel
     public decimal ValorTotalCompra { get; set; }
     public decimal ValorTotalVenda { get; set; }
     public decimal LucroPotencialTotal { get; set; }
-    public List<ProductExpiryRow> ProximosVencimentos { get; set; } = new();
+    public List<ProdutoExpiryRow> ProximosVencimentos { get; set; } = new();
     public List<SupplierBreakdownRow> TopFornecedores { get; set; } = new();
     public string? ProdutoMaisLucrativo { get; set; }
     public decimal? ProdutoMaisLucrativoPercentual { get; set; }

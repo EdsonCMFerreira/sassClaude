@@ -10,7 +10,7 @@ public class SassDbContext : DbContext
 {
     private static readonly Type[] AuditableTypes =
     [
-        typeof(Product), typeof(Cliente), typeof(Fornecedor), typeof(Pedido), typeof(Login)
+        typeof(Produto), typeof(Cliente), typeof(Fornecedor), typeof(Pedido), typeof(Login)
     ];
 
     private readonly IHttpContextAccessor? _httpContextAccessor;
@@ -25,7 +25,7 @@ public class SassDbContext : DbContext
     public DbSet<EmailVerificationToken> EmailVerificationTokens => Set<EmailVerificationToken>();
     public DbSet<WorkspaceInvite> WorkspaceInvites => Set<WorkspaceInvite>();
     public DbSet<Invoice> Invoices => Set<Invoice>();
-    public DbSet<Product> Products => Set<Product>();
+    public DbSet<Produto> Produtos => Set<Produto>();
     public DbSet<Cliente> Clientes => Set<Cliente>();
     public DbSet<Fornecedor> Fornecedores => Set<Fornecedor>();
     public DbSet<Pedido> Pedidos => Set<Pedido>();
@@ -168,7 +168,7 @@ public class SassDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<Product>(entity =>
+        modelBuilder.Entity<Produto>(entity =>
         {
             entity.HasKey(x => x.Id);
             entity.Property(x => x.Codigo).IsRequired().HasMaxLength(50);
@@ -222,9 +222,9 @@ public class SassDbContext : DbContext
                 .WithMany(x => x.Itens)
                 .HasForeignKey(x => x.PedidoId)
                 .OnDelete(DeleteBehavior.Cascade);
-            entity.HasOne(x => x.Product)
+            entity.HasOne(x => x.Produto)
                 .WithMany()
-                .HasForeignKey(x => x.ProductId)
+                .HasForeignKey(x => x.ProdutoId)
                 .OnDelete(DeleteBehavior.SetNull);
         });
 

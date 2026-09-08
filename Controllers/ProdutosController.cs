@@ -7,11 +7,11 @@ using sassClaude.Models;
 namespace sassClaude.Controllers;
 
 [Authorize]
-public class ProductsController : Controller
+public class ProdutosController : Controller
 {
     private readonly SassDbContext _context;
 
-    public ProductsController(SassDbContext context)
+    public ProdutosController(SassDbContext context)
     {
         _context = context;
     }
@@ -20,11 +20,11 @@ public class ProductsController : Controller
 
     public async Task<IActionResult> Dashboard()
     {
-        var products = await _context.Products.Include(x => x.Fornecedor).ToListAsync();
+        var produtos = await _context.Produtos.Include(x => x.Fornecedor).ToListAsync();
         var today = DateTime.UtcNow.Date;
         var in30Days = today.AddDays(30);
 
-        var comPrecoDefinido = products.Where(p => p.ValorCompra > 0 && p.ValorVenda > 0).ToList();
+        var comPrecoDefinido = produtos.Where(p => p.ValorCompra > 0 && p.ValorVenda > 0).ToList();
         var margens = comPrecoDefinido
             .Select(p => (Produto: p, Margem: (p.ValorVenda - p.ValorCompra) / p.ValorCompra * 100))
             .ToList();
@@ -32,22 +32,22 @@ public class ProductsController : Controller
         var maisLucrativo = margens.OrderByDescending(x => x.Margem).FirstOrDefault();
         var menosLucrativo = margens.OrderBy(x => x.Margem).FirstOrDefault();
 
-        var model = new ProductDashboardViewModel
+        var model = new ProdutoDashboardViewModel
         {
-            TotalProdutos = products.Count,
-            Vencidos = products.Count(p => p.Validade.Date < today),
-            VenceEm30Dias = products.Count(p => p.Validade.Date >= today && p.Validade.Date <= in30Days),
+            TotalProdutos = produtos.Count,
+            Vencidos = produtos.Count(p => p.Validade.Date < today),
+            VenceEm30Dias = produtos.Count(p => p.Validade.Date >= today && p.Validade.Date <= in30Days),
             LucroMedioPercentual = margens.Count > 0 ? Math.Round(margens.Average(x => x.Margem), 2) : 0m,
-            ValorTotalCompra = products.Sum(p => p.ValorCompra),
-            ValorTotalVenda = products.Sum(p => p.ValorVenda),
-            LucroPotencialTotal = products.Sum(p => p.ValorVenda - p.ValorCompra),
-            ProximosVencimentos = products
+            ValorTotalCompra = produtos.Sum(p => p.ValorCompra),
+            ValorTotalVenda = produtos.Sum(p => p.ValorVenda),
+            LucroPotencialTotal = produtos.Sum(p => p.ValorVenda - p.ValorCompra),
+            ProximosVencimentos = produtos
                 .Where(p => p.Validade.Date >= today)
                 .OrderBy(p => p.Validade)
                 .Take(5)
-                .Select(p => new ProductExpiryRow(p.Codigo, p.Descricao, p.Validade, (p.Validade.Date - today).Days))
+                .Select(p => new ProdutoExpiryRow(p.Codigo, p.Descricao, p.Validade, (p.Validade.Date - today).Days))
                 .ToList(),
-            TopFornecedores = products
+            TopFornecedores = produtos
                 .GroupBy(p => p.Fornecedor?.Nome ?? "—")
                 .Select(g => new SupplierBreakdownRow(g.Key, g.Count()))
                 .OrderByDescending(x => x.Quantidade)
@@ -65,44 +65,44 @@ public class ProductsController : Controller
 
 [ApiController]
 [Authorize]
-[Route("api/products")]
-public class ApiProductsController : ControllerBase
+[Route("api/produtos")]
+public class ApiProdutosController : ControllerBase
 {
     private readonly SassDbContext _context;
 
-    public ApiProductsController(SassDbContext context)
+    public ApiProdutosController(SassDbContext context)
     {
         _context = context;
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<ProductResponse>>> GetProducts()
+    public async Task<ActionResult<IEnumerable<ProdutoResponse>>> GetProdutos()
     {
-        var products = await _context.Products.Include(x => x.Fornecedor).OrderBy(x => x.Codigo).ToListAsync();
+        var produtos = await _context.Produtos.Include(x => x.Fornecedor).OrderBy(x => x.Codigo).ToListAsync();
         var pedidoQuantidades = await _context.PedidoItens
-            .Where(i => i.ProductId != null)
-            .GroupBy(i => i.ProductId!.Value)
-            .Select(g => new { ProductId = g.Key, Total = g.Sum(i => i.Quantidade) })
-            .ToDictionaryAsync(x => x.ProductId, x => x.Total);
-        return products.Select(p => ToResponse(p, pedidoQuantidades.GetValueOrDefault(p.Id))).ToList();
+            .Where(i => i.ProdutoId != null)
+            .GroupBy(i => i.ProdutoId!.Value)
+            .Select(g => new { ProdutoId = g.Key, Total = g.Sum(i => i.Quantidade) })
+            .ToDictionaryAsync(x => x.ProdutoId, x => x.Total);
+        return produtos.Select(p => ToResponse(p, pedidoQuantidades.GetValueOrDefault(p.Id))).ToList();
     }
 
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<ProductResponse>> GetProduct(int id)
+    public async Task<ActionResult<ProdutoResponse>> GetProduto(int id)
     {
-        var product = await _context.Products.Include(x => x.Fornecedor).FirstOrDefaultAsync(x => x.Id == id);
-        if (product is null)
+        var produto = await _context.Produtos.Include(x => x.Fornecedor).FirstOrDefaultAsync(x => x.Id == id);
+        if (produto is null)
         {
             return NotFound();
         }
 
-        var pedidoQuantidade = await _context.PedidoItens.Where(i => i.ProductId == id).SumAsync(i => (int?)i.Quantidade) ?? 0;
-        return ToResponse(product, pedidoQuantidade);
+        var pedidoQuantidade = await _context.PedidoItens.Where(i => i.ProdutoId == id).SumAsync(i => (int?)i.Quantidade) ?? 0;
+        return ToResponse(produto, pedidoQuantidade);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<ActionResult<ProductResponse>> PostProduct(ProductRequest request)
+    public async Task<ActionResult<ProdutoResponse>> PostProduto(ProdutoRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Codigo) || string.IsNullOrWhiteSpace(request.Descricao))
         {
@@ -126,13 +126,13 @@ public class ApiProductsController : ControllerBase
         }
 
         var codigo = request.Codigo.Trim();
-        var alreadyExists = await _context.Products.AnyAsync(item => item.Codigo == codigo);
+        var alreadyExists = await _context.Produtos.AnyAsync(item => item.Codigo == codigo);
         if (alreadyExists)
         {
             return BadRequest("Já existe um produto com esse código.");
         }
 
-        var product = new Product
+        var produto = new Produto
         {
             Codigo = codigo,
             Descricao = request.Descricao.Trim(),
@@ -144,17 +144,17 @@ public class ApiProductsController : ControllerBase
             CreatedAt = DateTime.UtcNow
         };
 
-        _context.Products.Add(product);
+        _context.Produtos.Add(produto);
         await _context.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, ToResponse(product, 0));
+        return CreatedAtAction(nameof(GetProduto), new { id = produto.Id }, ToResponse(produto, 0));
     }
 
     [HttpPut("{id:int}")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> PutProduct(int id, ProductRequest request)
+    public async Task<IActionResult> PutProduto(int id, ProdutoRequest request)
     {
-        var existing = await _context.Products.FindAsync(id);
+        var existing = await _context.Produtos.FindAsync(id);
         if (existing is null)
         {
             return NotFound();
@@ -182,7 +182,7 @@ public class ApiProductsController : ControllerBase
         }
 
         var codigo = request.Codigo.Trim();
-        var codeTaken = await _context.Products.AnyAsync(item => item.Id != id && item.Codigo == codigo);
+        var codeTaken = await _context.Produtos.AnyAsync(item => item.Id != id && item.Codigo == codigo);
         if (codeTaken)
         {
             return BadRequest("Já existe um produto com esse código.");
@@ -202,41 +202,41 @@ public class ApiProductsController : ControllerBase
 
     [HttpDelete("{id:int}")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteProduct(int id)
+    public async Task<IActionResult> DeleteProduto(int id)
     {
-        var product = await _context.Products.FindAsync(id);
-        if (product is null)
+        var produto = await _context.Produtos.FindAsync(id);
+        if (produto is null)
         {
             return NotFound();
         }
 
-        _context.Products.Remove(product);
+        _context.Produtos.Remove(produto);
         await _context.SaveChangesAsync();
         return NoContent();
     }
 
-    private static ProductResponse ToResponse(Product product, int quantidadePedida)
+    private static ProdutoResponse ToResponse(Produto produto, int quantidadePedida)
     {
-        var percentualLucro = product.ValorCompra > 0
-            ? Math.Round((product.ValorVenda - product.ValorCompra) / product.ValorCompra * 100, 2)
+        var percentualLucro = produto.ValorCompra > 0
+            ? Math.Round((produto.ValorVenda - produto.ValorCompra) / produto.ValorCompra * 100, 2)
             : 0m;
 
-        return new ProductResponse(
-            product.Id,
-            product.Codigo,
-            product.Descricao,
-            product.Validade,
-            product.ValorCompra,
-            product.ValorVenda,
+        return new ProdutoResponse(
+            produto.Id,
+            produto.Codigo,
+            produto.Descricao,
+            produto.Validade,
+            produto.ValorCompra,
+            produto.ValorVenda,
             percentualLucro,
-            product.FornecedorId ?? 0,
-            product.Fornecedor?.Nome ?? "—",
-            product.Quantidade,
-            product.Quantidade - quantidadePedida,
-            product.CreatedAt);
+            produto.FornecedorId ?? 0,
+            produto.Fornecedor?.Nome ?? "—",
+            produto.Quantidade,
+            produto.Quantidade - quantidadePedida,
+            produto.CreatedAt);
     }
 }
 
-public sealed record ProductRequest(string Codigo, string Descricao, DateTime Validade, decimal ValorCompra, decimal ValorVenda, int FornecedorId, int Quantidade);
+public sealed record ProdutoRequest(string Codigo, string Descricao, DateTime Validade, decimal ValorCompra, decimal ValorVenda, int FornecedorId, int Quantidade);
 
-public sealed record ProductResponse(int Id, string Codigo, string Descricao, DateTime Validade, decimal ValorCompra, decimal ValorVenda, decimal PercentualLucro, int FornecedorId, string FornecedorNome, int Quantidade, int Saldo, DateTime CreatedAt);
+public sealed record ProdutoResponse(int Id, string Codigo, string Descricao, DateTime Validade, decimal ValorCompra, decimal ValorVenda, decimal PercentualLucro, int FornecedorId, string FornecedorNome, int Quantidade, int Saldo, DateTime CreatedAt);

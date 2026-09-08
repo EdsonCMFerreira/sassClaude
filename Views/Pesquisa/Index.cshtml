@@ -55,7 +55,7 @@
         ];
 
         async function loadProdutosOptions() {
-            const response = await fetch('/api/products');
+            const response = await fetch('/api/produtos');
             if (!response.ok) return;
             const data = await response.json();
             produtoCadastrado.innerHTML = '<option value="">Selecione...</option>' + data.map(item =>

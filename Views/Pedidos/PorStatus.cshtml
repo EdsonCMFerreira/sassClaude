@@ -57,7 +57,7 @@
                 <tr>
                     <td>${item.numeroPedido}</td>
                     <td>${item.clienteNome}</td>
-                    <td>${item.itens.map(i => `${i.productNome} (x${i.quantidade})`).join(', ')}</td>
+                    <td>${item.itens.map(i => `${i.produtoNome} (x${i.quantidade})`).join(', ')}</td>
                     <td>${formatCurrency(item.valorComDesconto)}</td>
                     <td>${formatDate(item.dataPedido)}</td>
                     <td>

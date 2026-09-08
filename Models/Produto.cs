@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace sassClaude.Models;
 
-public class Product
+public class Produto
 {
     public int Id { get; set; }
 
