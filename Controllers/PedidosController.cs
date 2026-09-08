@@ -279,7 +279,7 @@ public class ApiPedidosController : ControllerBase
             NumeroNota = request.NumeroNota.Trim(),
             FormaPagamento = request.FormaPagamento.Trim(),
             Status = request.Status.Trim(),
-            PercentualDesconto = request.PercentualDesconto,
+            PercentualDesconto = PercentualDescontoEfetivo(request.Status.Trim(), request.PercentualDesconto),
             Observacoes = request.Observacoes.Trim(),
             CreatedAt = DateTime.UtcNow
         };
@@ -373,7 +373,7 @@ public class ApiPedidosController : ControllerBase
         existing.NumeroNota = request.NumeroNota.Trim();
         existing.FormaPagamento = request.FormaPagamento.Trim();
         existing.Status = request.Status.Trim();
-        existing.PercentualDesconto = request.PercentualDesconto;
+        existing.PercentualDesconto = PercentualDescontoEfetivo(existing.Status, request.PercentualDesconto);
         existing.Observacoes = request.Observacoes.Trim();
 
         await _context.SaveChangesAsync();
@@ -449,6 +449,11 @@ public class ApiPedidosController : ControllerBase
     private static decimal CalcularValorComDesconto(decimal valorTotal, decimal percentualDesconto)
     {
         return Math.Round(valorTotal * (1 - percentualDesconto / 100), 2);
+    }
+
+    private static decimal PercentualDescontoEfetivo(string status, decimal percentualDesconto)
+    {
+        return status == "Devolução" ? 0 : percentualDesconto;
     }
 
     private static PedidoResponse ToResponse(Pedido pedido)

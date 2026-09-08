@@ -238,6 +238,16 @@
             atualizarLinha(tr);
         }
 
+        function atualizarCampoDesconto() {
+            if (status.value === 'Devolução') {
+                percentualDesconto.value = 0;
+                percentualDesconto.disabled = true;
+            } else {
+                percentualDesconto.disabled = false;
+            }
+            atualizarTotais();
+        }
+
         function resetForm() {
             form.reset();
             pedidoId.value = '';
@@ -248,6 +258,7 @@
             valorTotalDisplay.value = '';
             valorComDescontoDisplay.value = '';
             cancelEdit.classList.add('hidden');
+            atualizarCampoDesconto();
         }
 
         async function loadClientesOptions() {
@@ -309,6 +320,7 @@
             status.value = data.status;
             percentualDesconto.value = data.percentualDesconto;
             observacoes.value = data.observacoes;
+            atualizarCampoDesconto();
 
             itensOriginais = data.itens.map(i => ({ productId: i.productId, quantidade: i.quantidade }));
             itensTableBody.innerHTML = '';
@@ -330,6 +342,7 @@
 
         addItemButton.addEventListener('click', () => addItemRow());
         percentualDesconto.addEventListener('input', atualizarTotais);
+        status.addEventListener('change', atualizarCampoDesconto);
 
         form.addEventListener('submit', async (event) => {
             event.preventDefault();
