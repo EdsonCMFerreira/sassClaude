@@ -69,3 +69,46 @@
         }
     </aside>
 </div>
+
+@if (Model.ProdutosPorLucro.Any())
+{
+    <div class="surface-card activity-card" style="margin-top:18px;">
+        <div class="section-heading"><div><span class="eyebrow">Margem</span><h2>Produtos que mais dão lucro</h2><p class="muted">Percentual de lucro entre valor de compra e valor de venda.</p></div></div>
+        <div style="height:@(Math.Max(220, Model.ProdutosPorLucro.Count * 36))px;"><canvas id="graficoLucro"></canvas></div>
+    </div>
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script>
+        const lucroCanvas = document.getElementById('graficoLucro');
+        if (lucroCanvas) {
+            const lucroLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ProdutosPorLucro.Select(p => p.ProdutoNome)));
+            const lucroValores = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ProdutosPorLucro.Select(p => p.PercentualLucro)));
+
+            new Chart(lucroCanvas, {
+                type: 'bar',
+                data: {
+                    labels: lucroLabels,
+                    datasets: [{
+                        label: '% de lucro',
+                        data: lucroValores,
+                        backgroundColor: '#218351',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { callbacks: { label: ctx => `${ctx.parsed.x.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%` } }
+                    },
+                    scales: {
+                        x: { ticks: { callback: value => `${value}%` } }
+                    }
+                }
+            });
+        }
+    </script>
+}

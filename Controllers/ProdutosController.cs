@@ -56,7 +56,12 @@ public class ProdutosController : Controller
             ProdutoMaisLucrativo = maisLucrativo.Produto is not null ? $"{maisLucrativo.Produto.Codigo} — {maisLucrativo.Produto.Descricao}" : null,
             ProdutoMaisLucrativoPercentual = maisLucrativo.Produto is not null ? Math.Round(maisLucrativo.Margem, 2) : null,
             ProdutoMenosLucrativo = menosLucrativo.Produto is not null ? $"{menosLucrativo.Produto.Codigo} — {menosLucrativo.Produto.Descricao}" : null,
-            ProdutoMenosLucrativoPercentual = menosLucrativo.Produto is not null ? Math.Round(menosLucrativo.Margem, 2) : null
+            ProdutoMenosLucrativoPercentual = menosLucrativo.Produto is not null ? Math.Round(menosLucrativo.Margem, 2) : null,
+            ProdutosPorLucro = margens
+                .OrderByDescending(x => x.Margem)
+                .Take(8)
+                .Select(x => new ProdutoLucroRow(x.Produto.Descricao, Math.Round(x.Margem, 2)))
+                .ToList()
         };
 
         return View(model);
