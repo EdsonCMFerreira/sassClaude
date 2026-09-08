@@ -74,7 +74,7 @@
 
         const statusLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PorStatus.Select(s => s.Status)));
         const statusValores = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PorStatus.Select(s => s.Quantidade)));
-        const statusCores = { 'Concluída': '#218351', 'Pendente': '#1769e0', 'Cancelada': '#ff755e' };
+        const statusCores = { 'Concluída': '#218351', 'Pendente': '#1769e0', 'Cancelada': '#ff755e', 'Devolução': '#e8a13a' };
 
         new Chart(document.getElementById('graficoStatus'), {
             type: 'doughnut',
