@@ -115,7 +115,7 @@
                     <td>${item.fornecedorNome}</td>
                     <td>${item.quantidade}</td>
                     <td class="${item.saldo < 0 ? 'text-negative' : ''}">${item.saldo}</td>
-                    <td>
+                    <td style="white-space:nowrap;">
                         <button class="table-action" data-edit="${item.id}">Editar</button>
                         <button class="table-action danger" data-delete="${item.id}">Excluir</button>
                     </td>
