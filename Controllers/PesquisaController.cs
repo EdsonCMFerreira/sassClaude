@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace sassClaude.Controllers;
+namespace Saas.Controllers;
 
 [Authorize]
 public class PesquisaController : Controller

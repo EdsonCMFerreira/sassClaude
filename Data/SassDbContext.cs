@@ -2,10 +2,10 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
-using sassClaude.Models;
-using sassClaude.Services;
+using Saas.Models;
+using Saas.Services;
 
-namespace sassClaude.Data;
+namespace Saas.Data;
 
 public class SassDbContext : DbContext
 {

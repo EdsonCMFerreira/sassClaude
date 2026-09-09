@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
-using sassClaude.Data;
+using Saas.Data;
 
-namespace sassClaude.Models;
+namespace Saas.Models;
 
 public class Produto : ITenantScoped
 {

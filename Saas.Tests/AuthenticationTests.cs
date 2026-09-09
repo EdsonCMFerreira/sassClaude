@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
-using sassClaude.Models;
+using Saas.Models;
 
-namespace sassClaude.Tests;
+namespace Saas.Tests;
 
 public sealed class AuthenticationTests : IClassFixture<WebApplicationFactory<Program>>
 {

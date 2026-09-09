@@ -1,6 +1,6 @@
-using sassClaude.Data;
+using Saas.Data;
 
-namespace sassClaude.Services;
+namespace Saas.Services;
 
 public class HttpContextCurrentTenantAccessor : ICurrentTenantAccessor
 {

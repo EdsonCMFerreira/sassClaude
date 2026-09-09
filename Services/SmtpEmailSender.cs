@@ -3,7 +3,7 @@ using MailKit.Security;
 using Microsoft.Extensions.Options;
 using MimeKit;
 
-namespace sassClaude.Services;
+namespace Saas.Services;
 
 public sealed class SmtpEmailSender : IEmailSender
 {
@@ -25,7 +25,7 @@ public sealed class SmtpEmailSender : IEmailSender
         }
 
         var html = $"<p>Olá, {System.Net.WebUtility.HtmlEncode(recipientName)}.</p><p>Recebemos uma solicitação para redefinir sua senha.</p><p><a href=\"{System.Net.WebUtility.HtmlEncode(resetUrl)}\">Redefinir minha senha</a></p><p>O link expira em 30 minutos. Se você não solicitou isso, ignore este e-mail.</p>";
-        await SendAsync(recipient, recipientName, "Redefinição de senha | sassClaude", html, cancellationToken);
+        await SendAsync(recipient, recipientName, "Redefinição de senha | Saas", html, cancellationToken);
     }
 
     public async Task SendEmailConfirmationAsync(string recipient, string recipientName, string confirmUrl, CancellationToken cancellationToken = default)
@@ -36,8 +36,8 @@ public sealed class SmtpEmailSender : IEmailSender
             return;
         }
 
-        var html = $"<p>Olá, {System.Net.WebUtility.HtmlEncode(recipientName)}.</p><p>Confirme seu e-mail para ativar sua conta no sassClaude.</p><p><a href=\"{System.Net.WebUtility.HtmlEncode(confirmUrl)}\">Confirmar meu e-mail</a></p><p>O link expira em 30 minutos.</p>";
-        await SendAsync(recipient, recipientName, "Confirme seu e-mail | sassClaude", html, cancellationToken);
+        var html = $"<p>Olá, {System.Net.WebUtility.HtmlEncode(recipientName)}.</p><p>Confirme seu e-mail para ativar sua conta no Saas.</p><p><a href=\"{System.Net.WebUtility.HtmlEncode(confirmUrl)}\">Confirmar meu e-mail</a></p><p>O link expira em 30 minutos.</p>";
+        await SendAsync(recipient, recipientName, "Confirme seu e-mail | Saas", html, cancellationToken);
     }
 
     public async Task SendWorkspaceInviteAsync(string recipient, string inviterName, string acceptUrl, CancellationToken cancellationToken = default)
@@ -48,8 +48,8 @@ public sealed class SmtpEmailSender : IEmailSender
             return;
         }
 
-        var html = $"<p>{System.Net.WebUtility.HtmlEncode(inviterName)} convidou você para o workspace no sassClaude.</p><p><a href=\"{System.Net.WebUtility.HtmlEncode(acceptUrl)}\">Aceitar convite e criar conta</a></p><p>O convite expira em 7 dias.</p>";
-        await SendAsync(recipient, recipient, "Você foi convidado para um workspace | sassClaude", html, cancellationToken);
+        var html = $"<p>{System.Net.WebUtility.HtmlEncode(inviterName)} convidou você para o workspace no Saas.</p><p><a href=\"{System.Net.WebUtility.HtmlEncode(acceptUrl)}\">Aceitar convite e criar conta</a></p><p>O convite expira em 7 dias.</p>";
+        await SendAsync(recipient, recipient, "Você foi convidado para um workspace | Saas", html, cancellationToken);
     }
 
     public async Task SendContactMessageAsync(string senderName, string senderEmail, string message, CancellationToken cancellationToken = default)
@@ -61,7 +61,7 @@ public sealed class SmtpEmailSender : IEmailSender
         }
 
         var html = $"<p>Nova mensagem de contato de {System.Net.WebUtility.HtmlEncode(senderName)} ({System.Net.WebUtility.HtmlEncode(senderEmail)}):</p><p>{System.Net.WebUtility.HtmlEncode(message)}</p>";
-        await SendAsync(_options.From, "Suporte sassClaude", "Nova mensagem de contato | sassClaude", html, cancellationToken, replyTo: senderEmail);
+        await SendAsync(_options.From, "Suporte Saas", "Nova mensagem de contato | Saas", html, cancellationToken, replyTo: senderEmail);
     }
 
     private async Task SendAsync(string recipient, string recipientName, string subject, string html, CancellationToken cancellationToken, string? replyTo = null)

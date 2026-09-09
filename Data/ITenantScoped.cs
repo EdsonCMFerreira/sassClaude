@@ -1,4 +1,4 @@
-namespace sassClaude.Data;
+namespace Saas.Data;
 
 public interface ITenantScoped
 {

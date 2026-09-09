@@ -8,11 +8,11 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using sassClaude.Data;
-using sassClaude.Models;
-using sassClaude.Services;
+using Saas.Data;
+using Saas.Models;
+using Saas.Services;
 
-namespace sassClaude.Controllers;
+namespace Saas.Controllers;
 
 [Authorize]
 public class SettingsController : Controller

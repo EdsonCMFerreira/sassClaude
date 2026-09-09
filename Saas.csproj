@@ -4,7 +4,7 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <UserSecretsId>sassClaude-development-email</UserSecretsId>
+    <UserSecretsId>Saas-development-email</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -18,10 +18,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Remove="sassClaude.Tests\**" />
-    <Content Remove="sassClaude.Tests\**" />
-    <EmbeddedResource Remove="sassClaude.Tests\**" />
-    <None Remove="sassClaude.Tests\**" />
+    <Compile Remove="Saas.Tests\**" />
+    <Content Remove="Saas.Tests\**" />
+    <EmbeddedResource Remove="Saas.Tests\**" />
+    <None Remove="Saas.Tests\**" />
   </ItemGroup>
 
 </Project>

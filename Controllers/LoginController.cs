@@ -2,10 +2,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
-using sassClaude.Data;
-using sassClaude.Models;
+using Saas.Data;
+using Saas.Models;
 
-namespace sassClaude.Controllers;
+namespace Saas.Controllers;
 
 [Authorize(Roles = "Admin")]
 public class LoginController : Controller

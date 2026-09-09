@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace sassClaude.Models;
+namespace Saas.Models;
 
 public sealed class WorkspaceInviteViewModel
 {

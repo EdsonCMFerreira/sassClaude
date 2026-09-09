@@ -1,9 +1,9 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using sassClaude.Models;
-using sassClaude.Services;
+using Saas.Models;
+using Saas.Services;
 
-namespace sassClaude.Controllers;
+namespace Saas.Controllers;
 
 public class HomeController : Controller
 {
@@ -49,7 +49,7 @@ public class HomeController : Controller
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Falha ao enviar mensagem de contato de {Email}.", model.Email);
-            ModelState.AddModelError(string.Empty, "Não foi possível enviar sua mensagem agora. Tente novamente ou escreva para suporte@sassclaude.com.");
+            ModelState.AddModelError(string.Empty, "Não foi possível enviar sua mensagem agora. Tente novamente ou escreva para suporte@saas.com.");
             return View("About", model);
         }
 

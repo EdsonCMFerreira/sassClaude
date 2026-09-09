@@ -1,4 +1,4 @@
-# sassClaude
+# Saas
 
 Aplicação ASP.NET Core MVC com API CRUD para cadastro de usuários de login.
 
@@ -22,9 +22,9 @@ A tela de confirmação também mostra esse link somente no ambiente `Developmen
 Para configurar o Gmail localmente sem gravar a senha no projeto:
 
 ```powershell
-dotnet user-secrets set "Email:Username" "seu-email@gmail.com" --project .\sassClaude.csproj
-dotnet user-secrets set "Email:From" "seu-email@gmail.com" --project .\sassClaude.csproj
-dotnet user-secrets set "Email:Password" "SUA_SENHA_DE_APLICATIVO" --project .\sassClaude.csproj
+dotnet user-secrets set "Email:Username" "seu-email@gmail.com" --project .\Saas.csproj
+dotnet user-secrets set "Email:From" "seu-email@gmail.com" --project .\Saas.csproj
+dotnet user-secrets set "Email:Password" "SUA_SENHA_DE_APLICATIVO" --project .\Saas.csproj
 ```
 
 Use uma senha de aplicativo do Gmail, não a senha normal da conta.
@@ -44,7 +44,7 @@ Acesse `http://localhost:5002/Login`.
 
 ```powershell
 $env:DOTNET_ROOT = "C:\Program Files\dotnet"
-dotnet test .\sassClaude.Tests\sassClaude.Tests.csproj
+dotnet test .\Saas.Tests\Saas.Tests.csproj
 ```
 
 ## Tecnologias

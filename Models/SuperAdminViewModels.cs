@@ -1,4 +1,4 @@
-namespace sassClaude.Models;
+namespace Saas.Models;
 
 public sealed record EmpresaSummaryRow(int Id, string Nome, string Plano, DateTime CreatedAt, int LoginCount, int ProdutoCount, int ClienteCount, int PedidoCount);
 

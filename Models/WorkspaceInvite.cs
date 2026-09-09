@@ -1,6 +1,6 @@
-using sassClaude.Data;
+using Saas.Data;
 
-namespace sassClaude.Models;
+namespace Saas.Models;
 
 public class WorkspaceInvite : ITenantScoped
 {

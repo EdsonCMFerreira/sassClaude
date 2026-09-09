@@ -17,7 +17,7 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
-    <ProjectReference Include="..\sassClaude.csproj" />
+    <ProjectReference Include="..\Saas.csproj" />
   </ItemGroup>
 
 </Project>

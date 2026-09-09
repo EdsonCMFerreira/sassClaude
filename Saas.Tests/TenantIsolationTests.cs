@@ -1,10 +1,10 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using sassClaude.Data;
-using sassClaude.Models;
-using sassClaude.Services;
+using Saas.Data;
+using Saas.Models;
+using Saas.Services;
 
-namespace sassClaude.Tests;
+namespace Saas.Tests;
 
 public sealed class TenantIsolationTests : IDisposable
 {

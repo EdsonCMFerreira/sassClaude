@@ -1,4 +1,4 @@
-namespace sassClaude.Services;
+namespace Saas.Services;
 
 public sealed class SuperAdminOptions
 {

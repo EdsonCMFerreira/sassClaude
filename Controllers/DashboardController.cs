@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using sassClaude.Data;
+using Saas.Data;
 
-namespace sassClaude.Controllers;
+namespace Saas.Controllers;
 
 [Authorize]
 public class DashboardController : Controller

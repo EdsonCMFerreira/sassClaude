@@ -1,4 +1,4 @@
-namespace sassClaude.Models;
+namespace Saas.Models;
 
 public sealed record ProdutoExpiryRow(string Codigo, string Descricao, DateTime Validade, int DiasRestantes);
 

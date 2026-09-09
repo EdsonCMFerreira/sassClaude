@@ -2,9 +2,9 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using sassClaude.Data;
+using Saas.Data;
 
-namespace sassClaude.Tests;
+namespace Saas.Tests;
 
 public sealed class SuperAdminAuthorizationTests
 {

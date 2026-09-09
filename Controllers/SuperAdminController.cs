@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using sassClaude.Data;
-using sassClaude.Models;
+using Saas.Data;
+using Saas.Models;
 
-namespace sassClaude.Controllers;
+namespace Saas.Controllers;
 
 [Authorize(Policy = "SuperAdmin")]
 public class SuperAdminController : Controller

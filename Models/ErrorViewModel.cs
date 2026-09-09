@@ -1,4 +1,4 @@
-namespace sassClaude.Models;
+namespace Saas.Models;
 
 public class ErrorViewModel
 {

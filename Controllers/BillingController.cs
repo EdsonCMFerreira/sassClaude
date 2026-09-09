@@ -1,11 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using sassClaude.Data;
-using sassClaude.Models;
-using sassClaude.Services;
+using Saas.Data;
+using Saas.Models;
+using Saas.Services;
 
-namespace sassClaude.Controllers;
+namespace Saas.Controllers;
 
 [Authorize(Roles = "Admin")]
 public class BillingController : Controller
