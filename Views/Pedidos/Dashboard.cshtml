@@ -8,16 +8,58 @@
     <a class="button button-outline" style="color:var(--blue);" asp-controller="Pedidos" asp-action="Index">← Ver pedidos</a>
 </div>
 
+<div class="surface-card users-card" style="padding:20px 27px;">
+    <form method="get" asp-action="Dashboard" class="settings-form filter-form">
+        <div><label for="ano">Ano</label>
+            <select id="ano" name="ano" onchange="this.form.submit()">
+                <option value="">Todos</option>
+                @foreach (var anoOpcao in Model.AnosDisponiveis)
+                {
+                    if (anoOpcao == Model.AnoSelecionado)
+                    {
+                        <option value="@anoOpcao" selected>@anoOpcao</option>
+                    }
+                    else
+                    {
+                        <option value="@anoOpcao">@anoOpcao</option>
+                    }
+                }
+            </select>
+        </div>
+        <div><label for="mes">Mês</label>
+            <select id="mes" name="mes" onchange="this.form.submit()" disabled="@(!Model.AnoSelecionado.HasValue)">
+                <option value="">Todos</option>
+                @for (var m = 1; m <= 12; m++)
+                {
+                    var nomeMes = char.ToUpper(ptBr.DateTimeFormat.GetMonthName(m)[0]) + ptBr.DateTimeFormat.GetMonthName(m)[1..];
+                    if (m == Model.MesSelecionado)
+                    {
+                        <option value="@m" selected>@nomeMes</option>
+                    }
+                    else
+                    {
+                        <option value="@m">@nomeMes</option>
+                    }
+                }
+            </select>
+        </div>
+        @if (Model.AnoSelecionado.HasValue)
+        {
+            <a asp-action="Dashboard" class="button button-outline" style="color:var(--blue);">Limpar filtro</a>
+        }
+    </form>
+</div>
+
 <div class="metric-grid">
-    <article class="metric-card metric-highlight"><span class="metric-label">Pedidos registrados</span><strong>@Model.TotalPedidos</strong><span class="metric-caption">no total</span></article>
+    <article class="metric-card metric-highlight"><span class="metric-label">Pedidos registrados</span><strong>@Model.TotalPedidos</strong><span class="metric-caption">@Model.PeriodoDescricao</span></article>
     <article class="metric-card"><span class="metric-label">Pendentes</span><strong>@Model.PedidosPendentes</strong><span class="metric-caption">aguardando conclusão</span></article>
-    <article class="metric-card"><span class="metric-label">Faturamento (concluídos)</span><strong>@Model.ValorTotalConcluidos.ToString("C", ptBr)</strong><span class="metric-caption">todos os pedidos concluídos</span></article>
+    <article class="metric-card"><span class="metric-label">Faturamento (concluídos)</span><strong>@Model.ValorTotalConcluidos.ToString("C", ptBr)</strong><span class="metric-caption">@Model.PeriodoDescricao</span></article>
     <article class="metric-card"><span class="metric-label">Ticket médio</span><strong>@Model.TicketMedio.ToString("C", ptBr)</strong><span class="metric-caption">por pedido concluído</span></article>
 </div>
 
 <div class="content-grid">
     <section class="surface-card activity-card">
-        <div class="section-heading"><div><span class="eyebrow">Faturamento</span><h2>Últimos 6 meses</h2></div></div>
+        <div class="section-heading"><div><span class="eyebrow">Faturamento</span><h2>@Model.FaturamentoTitulo</h2></div></div>
         <div style="height:280px;"><canvas id="graficoFaturamento"></canvas></div>
     </section>
     <aside class="settings-stack">
@@ -46,8 +88,8 @@
     <script>
         const ptBrCurrency = value => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-        const faturamentoLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.FaturamentoMensal.Select(m => m.Mes.ToString("MMM/yyyy", ptBr))));
-        const faturamentoValores = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.FaturamentoMensal.Select(m => m.Total)));
+        const faturamentoLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Faturamento.Select(f => f.Rotulo)));
+        const faturamentoValores = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Faturamento.Select(f => f.Total)));
 
         new Chart(document.getElementById('graficoFaturamento'), {
             type: 'bar',

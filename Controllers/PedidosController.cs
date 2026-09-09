@@ -4,10 +4,10 @@ using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
-using sassClaude.Data;
-using sassClaude.Models;
+using Saas.Data;
+using Saas.Models;
 
-namespace sassClaude.Controllers;
+namespace Saas.Controllers;
 
 [Authorize]
 public class PedidosController : Controller
@@ -37,9 +37,10 @@ public class PedidosController : Controller
         "Devolução", "Pedidos devolvidos", "Pedidos com devolução registrada, do mais recente para o mais antigo.",
         OrdenarAscendente: false, MostrarRecibo: false));
 
-    public async Task<IActionResult> Dashboard()
+    public async Task<IActionResult> Dashboard(int? mes, int? ano)
     {
-        var pedidos = await _context.Pedidos
+        var ptBr = new System.Globalization.CultureInfo("pt-BR");
+        var todosPedidos = await _context.Pedidos
             .Include(p => p.Itens).ThenInclude(i => i.Produto)
             .ToListAsync();
 
@@ -47,6 +48,32 @@ public class PedidosController : Controller
         {
             var total = p.Itens.Sum(i => i.Quantidade * i.ValorUnitario);
             return Math.Round(total * (1 - p.PercentualDesconto / 100), 2);
+        }
+
+        var anosDisponiveis = todosPedidos
+            .Select(p => p.DataPedido.Year)
+            .Distinct()
+            .OrderByDescending(y => y)
+            .ToList();
+        if (anosDisponiveis.Count == 0)
+        {
+            anosDisponiveis.Add(DateTime.UtcNow.Year);
+        }
+
+        // O mês só faz sentido combinado a um ano específico.
+        if (!ano.HasValue)
+        {
+            mes = null;
+        }
+
+        var pedidos = todosPedidos;
+        if (ano.HasValue)
+        {
+            pedidos = pedidos.Where(p => p.DataPedido.Year == ano.Value).ToList();
+            if (mes.HasValue)
+            {
+                pedidos = pedidos.Where(p => p.DataPedido.Month == mes.Value).ToList();
+            }
         }
 
         var concluidos = pedidos.Where(p => p.Status == "Concluída").ToList();
@@ -57,14 +84,47 @@ public class PedidosController : Controller
             .OrderByDescending(x => x.Quantidade)
             .ToList();
 
-        var hoje = DateTime.UtcNow.Date;
-        var faturamentoMensal = Enumerable.Range(0, 6)
-            .Select(i => new DateTime(hoje.Year, hoje.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(-i))
-            .OrderBy(d => d)
-            .Select(mes => new FaturamentoMensalRow(
-                mes,
-                concluidos.Where(p => p.DataPedido.Year == mes.Year && p.DataPedido.Month == mes.Month).Sum(ValorComDesconto)))
-            .ToList();
+        List<FaturamentoPontoRow> faturamento;
+        string faturamentoTitulo;
+        string periodoDescricao;
+
+        if (ano.HasValue && mes.HasValue)
+        {
+            var diasNoMes = DateTime.DaysInMonth(ano.Value, mes.Value);
+            faturamento = Enumerable.Range(1, diasNoMes)
+                .Select(dia => new FaturamentoPontoRow(
+                    dia.ToString(),
+                    concluidos.Where(p => p.DataPedido.Day == dia).Sum(ValorComDesconto)))
+                .ToList();
+            var nomeMes = ptBr.DateTimeFormat.GetMonthName(mes.Value);
+            nomeMes = char.ToUpper(nomeMes[0]) + nomeMes[1..];
+            faturamentoTitulo = $"Faturamento por dia — {nomeMes}/{ano.Value}";
+            periodoDescricao = $"em {nomeMes.ToLower()}/{ano.Value}";
+        }
+        else if (ano.HasValue)
+        {
+            faturamento = Enumerable.Range(1, 12)
+                .Select(m => new FaturamentoPontoRow(
+                    new DateTime(ano.Value, m, 1).ToString("MMM", ptBr),
+                    concluidos.Where(p => p.DataPedido.Month == m).Sum(ValorComDesconto)))
+                .ToList();
+            faturamentoTitulo = $"Faturamento mensal — {ano.Value}";
+            periodoDescricao = $"em {ano.Value}";
+        }
+        else
+        {
+            var concluidosTodos = todosPedidos.Where(p => p.Status == "Concluída").ToList();
+            var hoje = DateTime.UtcNow.Date;
+            faturamento = Enumerable.Range(0, 6)
+                .Select(i => new DateTime(hoje.Year, hoje.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(-i))
+                .OrderBy(d => d)
+                .Select(m => new FaturamentoPontoRow(
+                    m.ToString("MMM/yyyy", ptBr),
+                    concluidosTodos.Where(p => p.DataPedido.Year == m.Year && p.DataPedido.Month == m.Month).Sum(ValorComDesconto)))
+                .ToList();
+            faturamentoTitulo = "Últimos 6 meses";
+            periodoDescricao = "no total";
+        }
 
         var produtosMaisPedidos = pedidos
             .SelectMany(p => p.Itens)
@@ -84,8 +144,13 @@ public class PedidosController : Controller
             ValorTotalConcluidos = valorTotalConcluidos,
             TicketMedio = concluidos.Count > 0 ? Math.Round(valorTotalConcluidos / concluidos.Count, 2) : 0m,
             PorStatus = porStatus,
-            FaturamentoMensal = faturamentoMensal,
-            ProdutosMaisPedidos = produtosMaisPedidos
+            Faturamento = faturamento,
+            FaturamentoTitulo = faturamentoTitulo,
+            ProdutosMaisPedidos = produtosMaisPedidos,
+            MesSelecionado = mes,
+            AnoSelecionado = ano,
+            AnosDisponiveis = anosDisponiveis,
+            PeriodoDescricao = periodoDescricao
         };
 
         return View(model);
@@ -121,7 +186,7 @@ public class PedidosController : Controller
 
                 page.Header().Column(column =>
                 {
-                    column.Item().Text("sassClaude").FontSize(20).Bold();
+                    column.Item().Text("Saas").FontSize(20).Bold();
                     column.Item().Text("Recibo de pedido").FontSize(14).FontColor(Colors.Grey.Darken1);
                 });
 
@@ -194,7 +259,7 @@ public class PedidosController : Controller
                     }
                 });
 
-                page.Footer().AlignCenter().Text("Documento gerado automaticamente pelo sassClaude.").FontSize(9).FontColor(Colors.Grey.Darken1);
+                page.Footer().AlignCenter().Text("Documento gerado automaticamente pelo Saas.").FontSize(9).FontColor(Colors.Grey.Darken1);
             });
         });
 
