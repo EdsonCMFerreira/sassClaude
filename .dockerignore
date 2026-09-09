@@ -1,0 +1,9 @@
+bin/
+obj/
+.git/
+.vs/
+Saas.Tests/
+*.db
+*.db-shm
+*.db-wal
+*.db.bak-*
