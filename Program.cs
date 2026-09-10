@@ -108,9 +108,23 @@ using (var scope = app.Services.CreateScope())
                 CreatedAt TEXT NOT NULL
             );
             """);
+
+        // GetColumns() e os demais comandos ADO abaixo assumem uma conexão já aberta;
+        // OpenConnection() precisa vir antes da primeira chamada a GetColumns().
+        db.Database.OpenConnection();
+
+        // Em um banco novo, EnsureCreated() já cria Empresas com a coluna Plano (NOT NULL,
+        // sem default no schema); por isso essa coluna precisa existir antes do INSERT abaixo,
+        // que já passa a fornecer o valor explicitamente.
+        var empresaColumns = GetColumns("Empresas");
+        if (!empresaColumns.Contains("Plano"))
+        {
+            db.Database.ExecuteSqlRaw("ALTER TABLE Empresas ADD COLUMN Plano TEXT NOT NULL DEFAULT 'Starter';");
+        }
+
         db.Database.ExecuteSqlRaw("""
-            INSERT INTO Empresas (Nome, CreatedAt)
-            SELECT 'Empresa Padrão', CURRENT_TIMESTAMP
+            INSERT INTO Empresas (Nome, Plano, CreatedAt)
+            SELECT 'Empresa Padrão', 'Starter', CURRENT_TIMESTAMP
             WHERE NOT EXISTS (SELECT 1 FROM Empresas);
             """);
 
@@ -118,14 +132,7 @@ using (var scope = app.Services.CreateScope())
         using (var command = db.Database.GetDbConnection().CreateCommand())
         {
             command.CommandText = "SELECT Id FROM Empresas ORDER BY Id LIMIT 1;";
-            db.Database.OpenConnection();
             defaultEmpresaId = Convert.ToInt64(command.ExecuteScalar());
-        }
-
-        var empresaColumns = GetColumns("Empresas");
-        if (!empresaColumns.Contains("Plano"))
-        {
-            db.Database.ExecuteSqlRaw("ALTER TABLE Empresas ADD COLUMN Plano TEXT NOT NULL DEFAULT 'Starter';");
         }
 
         db.Database.ExecuteSqlRaw("""
