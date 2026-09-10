@@ -4,7 +4,12 @@
 
 <div class="page-heading">
     <div><span class="eyebrow">Catálogo</span><h1>Produtos.</h1><p class="muted">Gerencie o cadastro de produtos do workspace.</p></div>
-    <div class="hero-actions"><a class="button button-outline" style="color:var(--blue);" asp-controller="Produtos" asp-action="Dashboard">Ver dashboard <span>→</span></a></div>
+    <div class="hero-actions" style="flex-wrap:wrap;">
+        <a class="button button-outline" style="color:var(--blue);" asp-controller="Produtos" asp-action="Dashboard">Ver dashboard <span>→</span></a>
+        <a class="button button-outline" style="color:var(--blue);" asp-controller="Produtos" asp-action="Vencidos">Ver vencidos <span>→</span></a>
+        <a class="button button-outline" style="color:var(--blue);" asp-controller="Produtos" asp-action="VencendoEm30Dias">Vencendo em 30 dias <span>→</span></a>
+        <a class="button button-outline" style="color:var(--blue);" asp-controller="Produtos" asp-action="SaldoZero">Ver saldo 0 <span>→</span></a>
+    </div>
 </div>
 <div class="surface-card users-card">
     <div class="section-heading"><div><h2>Produtos cadastrados</h2><p class="muted">Código, descrição, validade, valores, fornecedor e quantidade. O saldo é calculado como quantidade menos o total já pedido.</p></div></div>
@@ -209,6 +214,12 @@
 
         loadFornecedoresOptions()
             .then(loadProdutos)
+            .then(() => {
+                const editarId = new URLSearchParams(window.location.search).get('editar');
+                if (editarId) {
+                    editProduto(Number(editarId));
+                }
+            })
             .catch(error => console.error(error));
     </script>
 }

@@ -1,0 +1,59 @@
+@{
+    ViewData["Title"] = "Produtos com saldo 0";
+}
+
+<div class="page-heading">
+    <div><span class="eyebrow">Catálogo</span><h1>Produtos com saldo 0.</h1><p class="muted">Produtos cuja quantidade cadastrada já foi totalmente consumida em pedidos.</p></div>
+    <div class="hero-actions"><a class="button button-outline" style="color:var(--blue);" asp-controller="Produtos" asp-action="Index">← Ver todos os produtos</a></div>
+</div>
+<div class="surface-card users-card">
+    <div class="section-heading"><div><h2>Saldo zerado</h2><p class="muted">Clique em "Editar" para repor a quantidade na tela de Produtos.</p></div></div>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead class="table-light">
+                <tr>
+                    <th>Código</th>
+                    <th>Descrição</th>
+                    <th>Quantidade cadastrada</th>
+                    <th>Já pedido</th>
+                    <th>Saldo</th>
+                    <th>Fornecedor</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody id="produtoTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const tableBody = document.getElementById('produtoTableBody');
+
+        async function loadProdutosSaldoZero() {
+            const response = await fetch('/api/produtos');
+            if (!response.ok) {
+                throw new Error('Erro ao carregar produtos.');
+            }
+
+            const data = await response.json();
+            const saldoZero = data
+                .filter(item => item.saldo === 0)
+                .sort((a, b) => a.descricao.localeCompare(b.descricao, 'pt-BR'));
+
+            tableBody.innerHTML = saldoZero.map(item => `
+                <tr>
+                    <td>${item.codigo}</td>
+                    <td>${item.descricao}</td>
+                    <td>${item.quantidade}</td>
+                    <td>${item.quantidade - item.saldo}</td>
+                    <td class="text-negative">${item.saldo}</td>
+                    <td>${item.fornecedorNome}</td>
+                    <td><a class="table-action" href="/Produtos?editar=${item.id}">Editar</a></td>
+                </tr>
+            `).join('') || '<tr><td colspan="7" class="muted">Nenhum produto com saldo zerado no momento.</td></tr>';
+        }
+
+        loadProdutosSaldoZero().catch(error => console.error(error));
+    </script>
+}

@@ -4,7 +4,12 @@
 }
 <div class="page-heading">
     <div><span class="eyebrow">Catálogo</span><h1>Dashboard de produtos.</h1><p class="muted">Visão geral do catálogo, vencimentos e margens.</p></div>
-    <a class="button button-outline" style="color:var(--blue);" asp-controller="Produtos" asp-action="Index">← Ver produtos</a>
+    <div class="hero-actions">
+        <a class="button button-outline" style="color:var(--blue);" asp-controller="Produtos" asp-action="Index">← Ver produtos</a>
+        <a class="button button-outline" style="color:var(--blue);" asp-controller="Produtos" asp-action="Vencidos">Ver vencidos <span>→</span></a>
+        <a class="button button-outline" style="color:var(--blue);" asp-controller="Produtos" asp-action="VencendoEm30Dias">Vencendo em 30 dias <span>→</span></a>
+        <a class="button button-outline" style="color:var(--blue);" asp-controller="Produtos" asp-action="SaldoZero">Ver saldo 0 <span>→</span></a>
+    </div>
 </div>
 
 <div class="metric-grid">

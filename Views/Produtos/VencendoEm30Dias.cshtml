@@ -1,0 +1,74 @@
+@{
+    ViewData["Title"] = "Produtos vencendo em 30 dias";
+}
+
+<div class="page-heading">
+    <div><span class="eyebrow">Catálogo</span><h1>Vencendo em 30 dias.</h1><p class="muted">Produtos ainda válidos que vencem nos próximos 30 dias, do mais urgente para o mais distante.</p></div>
+    <div class="hero-actions"><a class="button button-outline" style="color:var(--blue);" asp-controller="Produtos" asp-action="Index">← Ver todos os produtos</a></div>
+</div>
+<div class="surface-card users-card">
+    <div class="section-heading"><div><h2>Vencendo em breve</h2><p class="muted">Clique em "Editar" para abrir o produto na tela de Produtos.</p></div></div>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead class="table-light">
+                <tr>
+                    <th>Código</th>
+                    <th>Descrição</th>
+                    <th>Validade</th>
+                    <th>Dias restantes</th>
+                    <th>Fornecedor</th>
+                    <th>Quantidade</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody id="produtoTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const tableBody = document.getElementById('produtoTableBody');
+
+        function formatDate(value) {
+            return new Date(value).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+        }
+
+        async function loadProdutosVencendoEm30Dias() {
+            const response = await fetch('/api/produtos');
+            if (!response.ok) {
+                throw new Error('Erro ao carregar produtos.');
+            }
+
+            const data = await response.json();
+            const hoje = new Date();
+            hoje.setUTCHours(0, 0, 0, 0);
+            const em30Dias = new Date(hoje);
+            em30Dias.setUTCDate(em30Dias.getUTCDate() + 30);
+
+            const vencendo = data
+                .filter(item => {
+                    const validade = new Date(item.validade);
+                    return validade >= hoje && validade <= em30Dias;
+                })
+                .sort((a, b) => new Date(a.validade) - new Date(b.validade));
+
+            tableBody.innerHTML = vencendo.map(item => {
+                const diasRestantes = Math.floor((new Date(item.validade) - hoje) / 86400000);
+                return `
+                    <tr>
+                        <td>${item.codigo}</td>
+                        <td>${item.descricao}</td>
+                        <td>${formatDate(item.validade)}</td>
+                        <td>${diasRestantes} dia(s)</td>
+                        <td>${item.fornecedorNome}</td>
+                        <td>${item.quantidade}</td>
+                        <td><a class="table-action" href="/Produtos?editar=${item.id}">Editar</a></td>
+                    </tr>
+                `;
+            }).join('') || '<tr><td colspan="7" class="muted">Nenhum produto vencendo nos próximos 30 dias.</td></tr>';
+        }
+
+        loadProdutosVencendoEm30Dias().catch(error => console.error(error));
+    </script>
+}

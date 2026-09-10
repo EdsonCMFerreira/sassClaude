@@ -1,0 +1,69 @@
+@{
+    ViewData["Title"] = "Produtos vencidos";
+}
+
+<div class="page-heading">
+    <div><span class="eyebrow">Catálogo</span><h1>Produtos vencidos.</h1><p class="muted">Produtos com a validade já expirada, do mais antigo para o mais recente.</p></div>
+    <div class="hero-actions"><a class="button button-outline" style="color:var(--blue);" asp-controller="Produtos" asp-action="Index">← Ver todos os produtos</a></div>
+</div>
+<div class="surface-card users-card">
+    <div class="section-heading"><div><h2>Vencidos</h2><p class="muted">Clique em "Editar" para abrir o produto na tela de Produtos.</p></div></div>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead class="table-light">
+                <tr>
+                    <th>Código</th>
+                    <th>Descrição</th>
+                    <th>Validade</th>
+                    <th>Dias vencido</th>
+                    <th>Fornecedor</th>
+                    <th>Quantidade</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody id="produtoTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const tableBody = document.getElementById('produtoTableBody');
+
+        function formatDate(value) {
+            return new Date(value).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+        }
+
+        async function loadProdutosVencidos() {
+            const response = await fetch('/api/produtos');
+            if (!response.ok) {
+                throw new Error('Erro ao carregar produtos.');
+            }
+
+            const data = await response.json();
+            const hoje = new Date();
+            hoje.setUTCHours(0, 0, 0, 0);
+
+            const vencidos = data
+                .filter(item => new Date(item.validade) < hoje)
+                .sort((a, b) => new Date(a.validade) - new Date(b.validade));
+
+            tableBody.innerHTML = vencidos.map(item => {
+                const diasVencido = Math.floor((hoje - new Date(item.validade)) / 86400000);
+                return `
+                    <tr>
+                        <td>${item.codigo}</td>
+                        <td>${item.descricao}</td>
+                        <td>${formatDate(item.validade)}</td>
+                        <td class="text-negative">${diasVencido} dia(s)</td>
+                        <td>${item.fornecedorNome}</td>
+                        <td>${item.quantidade}</td>
+                        <td><a class="table-action" href="/Produtos?editar=${item.id}">Editar</a></td>
+                    </tr>
+                `;
+            }).join('') || '<tr><td colspan="7" class="muted">Nenhum produto vencido no momento.</td></tr>';
+        }
+
+        loadProdutosVencidos().catch(error => console.error(error));
+    </script>
+}
