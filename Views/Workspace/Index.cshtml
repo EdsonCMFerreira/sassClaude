@@ -1,12 +1,335 @@
+@model WorkspaceIndexPageViewModel
 @{
     ViewData["Title"] = "Workspace";
+    var totalAdmins = Model.Membros.Count(m => m.Role == "Admin");
 }
-@{
-    var isAdmin = User.IsInRole("Admin");
+<div class="page-heading">
+    <div><span class="eyebrow">Workspace</span><h1>Um lugar para o seu time.</h1><p class="muted">Veja quem faz parte do workspace e gerencie papéis e convites.</p></div>
+    <div class="hero-actions">
+        @if (Model.PodeGerenciar)
+        {
+            <a class="button button-outline" asp-controller="Workspace" asp-action="Invite">Convidar membro</a>
+        }
+    </div>
+</div>
+@if (TempData["WorkspaceMessage"] is string message)
+{
+    <div class="settings-success">@message</div>
 }
-<div class="page-heading"><div><span class="eyebrow">Workspace</span><h1>Um lugar para o seu time.</h1><p class="muted">Acompanhe o que importa e mantenha tudo em movimento.</p></div><div class="hero-actions">@if (isAdmin)
-    {
-        <a class="button button-outline" asp-controller="Workspace" asp-action="Invite">Convidar membro</a>
-    }<button class="button button-primary" type="button" onclick="alert('Em breve: novo projeto')">+ Novo projeto</button></div></div>
-<div class="workspace-banner"><div><span class="eyebrow">Seu espaço de trabalho</span><h2>Comece com clareza.</h2><p>O painel operacional do Saas está pronto para crescer com você.</p></div><div class="banner-mark">S</div></div>
-<div class="project-grid"><article class="surface-card project-card"><div class="project-badge">SC</div><div><h3>Operação principal</h3><p>Seu projeto padrão está pronto para receber o time.</p></div><span class="project-arrow">→</span></article><article class="surface-card project-card project-dashed"><div class="project-badge muted-badge">+</div><div><h3>Adicionar projeto</h3><p>Crie um novo espaço para organizar outra frente.</p></div><span class="project-arrow">→</span></article></div>
+<div class="workspace-banner">
+    <div><span class="eyebrow">Seu espaço de trabalho</span><h2>@Model.Membros.Count membro(s) no time.</h2><p>@totalAdmins administrador(es) e @(Model.Membros.Count - totalAdmins) colaborador(es).</p></div>
+    <div class="banner-mark">S</div>
+</div>
+<div class="surface-card users-card">
+    <div class="section-heading"><div><h2>Membros do workspace</h2><p class="muted">@(Model.PodeGerenciar ? "Altere o papel ou remova alguém do time." : "Quem tem acesso a este workspace.")</p></div></div>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead class="table-light">
+                <tr>
+                    <th>Nome</th>
+                    <th>E-mail</th>
+                    <th>Papel</th>
+                    <th>Entrou em</th>
+                    @if (Model.PodeGerenciar)
+                    {
+                        <th>Ações</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var membro in Model.Membros)
+                {
+                    <tr>
+                        <td>@membro.Username @if (membro.EhVoce) { <span class="muted">(você)</span> }</td>
+                        <td>@membro.Email</td>
+                        <td>@membro.Role</td>
+                        <td>@membro.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy")</td>
+                        @if (Model.PodeGerenciar)
+                        {
+                            <td style="white-space:nowrap;">
+                                <form asp-controller="Workspace" asp-action="AlterarPapel" asp-route-id="@membro.Id" method="post" style="display:inline;">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="table-action">@(membro.Role == "Admin" ? "Tornar colaborador" : "Tornar admin")</button>
+                                </form>
+                                <form asp-controller="Workspace" asp-action="RemoverMembro" asp-route-id="@membro.Id" method="post" style="display:inline;" onsubmit="return confirm('Remover @membro.Username do workspace?');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="table-action danger">Remover</button>
+                                </form>
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="surface-card users-card" style="margin-top:18px;">
+    <div class="section-heading"><div><h2>Projetos</h2><p class="muted">Organize as frentes de trabalho do workspace.</p></div></div>
+    <div class="user-form-wrap">
+        <form id="projetoForm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" id="projetoId" />
+            <div class="user-form-grid">
+                <div><label for="projetoNome">Nome</label><input id="projetoNome" required /></div>
+                <div class="field-full"><label for="projetoDescricao">Descrição</label><textarea id="projetoDescricao" rows="2"></textarea></div>
+                <div class="user-form-actions"><button type="submit" class="button button-primary">Salvar</button><button type="button" id="cancelEditProjeto" class="button button-outline hidden">Cancelar</button></div>
+            </div>
+        </form>
+    </div>
+
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead class="table-light">
+                <tr>
+                    <th>Nome</th>
+                    <th>Descrição</th>
+                    <th>Criado em</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody id="projetoTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<div id="tarefasPanel" class="surface-card users-card hidden" style="margin-top:18px;">
+    <div class="section-heading">
+        <div><h2 id="tarefasPanelTitulo">Tarefas</h2><p class="muted">Checklist do projeto.</p></div>
+        <button type="button" id="fecharTarefas" class="table-action">Fechar</button>
+    </div>
+    <div class="user-form-wrap">
+        <form id="tarefaForm" style="display:flex; gap:8px; align-items:end;">
+            @Html.AntiForgeryToken()
+            <div style="flex:1;"><label for="tarefaTitulo">Nova tarefa</label><input id="tarefaTitulo" required /></div>
+            <div class="user-form-actions"><button type="submit" class="button button-primary">Adicionar</button></div>
+        </form>
+    </div>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead class="table-light">
+                <tr>
+                    <th>Feita</th>
+                    <th>Tarefa</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody id="tarefaTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const projetoForm = document.getElementById('projetoForm');
+        const projetoId = document.getElementById('projetoId');
+        const projetoNome = document.getElementById('projetoNome');
+        const projetoDescricao = document.getElementById('projetoDescricao');
+        const cancelEditProjeto = document.getElementById('cancelEditProjeto');
+        const projetoTableBody = document.getElementById('projetoTableBody');
+        const projetoCsrfToken = projetoForm.querySelector('input[name="__RequestVerificationToken"]').value;
+        let projetosCarregados = [];
+
+        const tarefasPanel = document.getElementById('tarefasPanel');
+        const tarefasPanelTitulo = document.getElementById('tarefasPanelTitulo');
+        const tarefaForm = document.getElementById('tarefaForm');
+        const tarefaTitulo = document.getElementById('tarefaTitulo');
+        const tarefaTableBody = document.getElementById('tarefaTableBody');
+        const fecharTarefas = document.getElementById('fecharTarefas');
+        const tarefaCsrfToken = tarefaForm.querySelector('input[name="__RequestVerificationToken"]').value;
+        let projetoTarefasAtual = null;
+        let tarefasCarregadas = [];
+
+        function formatDate(value) {
+            return new Date(value).toLocaleDateString('pt-BR');
+        }
+
+        async function loadProjetos() {
+            const response = await fetch('/api/projetos');
+            if (!response.ok) {
+                throw new Error('Erro ao carregar projetos.');
+            }
+
+            const data = await response.json();
+            projetosCarregados = data;
+            projetoTableBody.innerHTML = data.map(item => `
+                <tr>
+                    <td>${item.nome}</td>
+                    <td>${item.descricao || '—'}</td>
+                    <td>${formatDate(item.createdAt)}</td>
+                    <td style="white-space:nowrap;">
+                        <button class="table-action" data-tarefas="${item.id}">Tarefas</button>
+                        <button class="table-action" data-edit="${item.id}">Editar</button>
+                        <button class="table-action danger" data-delete="${item.id}">Excluir</button>
+                    </td>
+                </tr>
+            `).join('') || '<tr><td colspan="4" class="muted">Nenhum projeto cadastrado ainda.</td></tr>';
+
+            projetoTableBody.querySelectorAll('[data-tarefas]').forEach(button => {
+                button.addEventListener('click', () => abrirTarefas(Number(button.dataset.tarefas)));
+            });
+
+            projetoTableBody.querySelectorAll('[data-edit]').forEach(button => {
+                button.addEventListener('click', () => editProjeto(Number(button.dataset.edit)));
+            });
+
+            projetoTableBody.querySelectorAll('[data-delete]').forEach(button => {
+                button.addEventListener('click', () => deleteProjeto(Number(button.dataset.delete)));
+            });
+        }
+
+        async function editProjeto(id) {
+            const response = await fetch(`/api/projetos/${id}`);
+            const data = await response.json();
+            projetoId.value = data.id;
+            projetoNome.value = data.nome;
+            projetoDescricao.value = data.descricao;
+            cancelEditProjeto.classList.remove('hidden');
+            projetoNome.focus();
+        }
+
+        async function deleteProjeto(id) {
+            const confirmed = confirm('Excluir este projeto? As tarefas dele também serão excluídas.');
+            if (!confirmed) return;
+
+            const response = await fetch(`/api/projetos/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': projetoCsrfToken } });
+            if (response.ok) {
+                if (projetoTarefasAtual === id) {
+                    tarefasPanel.classList.add('hidden');
+                    projetoTarefasAtual = null;
+                }
+                await loadProjetos();
+            } else {
+                const errorText = await response.text();
+                alert(errorText || 'Erro ao excluir projeto.');
+            }
+        }
+
+        async function abrirTarefas(id) {
+            projetoTarefasAtual = id;
+            const projeto = projetosCarregados.find(p => p.id === id);
+            tarefasPanelTitulo.textContent = `Tarefas — ${projeto ? projeto.nome : ''}`;
+            tarefasPanel.classList.remove('hidden');
+            tarefasPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            await loadTarefas();
+        }
+
+        async function loadTarefas() {
+            if (!projetoTarefasAtual) return;
+
+            const response = await fetch(`/api/tarefas?projetoId=${projetoTarefasAtual}`);
+            if (!response.ok) {
+                throw new Error('Erro ao carregar tarefas.');
+            }
+
+            tarefasCarregadas = await response.json();
+            tarefaTableBody.innerHTML = tarefasCarregadas.map(item => `
+                <tr>
+                    <td><input type="checkbox" data-toggle="${item.id}" ${item.concluida ? 'checked' : ''} /></td>
+                    <td style="${item.concluida ? 'text-decoration:line-through;color:var(--muted);' : ''}">${item.titulo}</td>
+                    <td><button class="table-action danger" data-remove="${item.id}">Excluir</button></td>
+                </tr>
+            `).join('') || '<tr><td colspan="3" class="muted">Nenhuma tarefa ainda.</td></tr>';
+
+            tarefaTableBody.querySelectorAll('[data-toggle]').forEach(checkbox => {
+                checkbox.addEventListener('change', () => alternarTarefa(Number(checkbox.dataset.toggle), checkbox.checked));
+            });
+
+            tarefaTableBody.querySelectorAll('[data-remove]').forEach(button => {
+                button.addEventListener('click', () => deleteTarefa(Number(button.dataset.remove)));
+            });
+        }
+
+        async function alternarTarefa(id, concluida) {
+            const tarefa = tarefasCarregadas.find(t => t.id === id);
+            if (!tarefa) return;
+
+            const response = await fetch(`/api/tarefas/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': tarefaCsrfToken },
+                body: JSON.stringify({ projetoId: projetoTarefasAtual, titulo: tarefa.titulo, concluida })
+            });
+
+            if (response.ok) {
+                await loadTarefas();
+            } else {
+                const errorText = await response.text();
+                alert(errorText || 'Erro ao atualizar tarefa.');
+            }
+        }
+
+        async function deleteTarefa(id) {
+            const confirmed = confirm('Excluir esta tarefa?');
+            if (!confirmed) return;
+
+            const response = await fetch(`/api/tarefas/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': tarefaCsrfToken } });
+            if (response.ok) {
+                await loadTarefas();
+            } else {
+                const errorText = await response.text();
+                alert(errorText || 'Erro ao excluir tarefa.');
+            }
+        }
+
+        tarefaForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            if (!projetoTarefasAtual) return;
+
+            const response = await fetch('/api/tarefas', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': tarefaCsrfToken },
+                body: JSON.stringify({ projetoId: projetoTarefasAtual, titulo: tarefaTitulo.value.trim(), concluida: false })
+            });
+
+            if (response.ok) {
+                tarefaForm.reset();
+                await loadTarefas();
+            } else {
+                const errorText = await response.text();
+                alert(errorText || 'Erro ao adicionar tarefa.');
+            }
+        });
+
+        fecharTarefas.addEventListener('click', () => {
+            tarefasPanel.classList.add('hidden');
+            projetoTarefasAtual = null;
+        });
+
+        projetoForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const payload = {
+                id: Number(projetoId.value || 0),
+                nome: projetoNome.value.trim(),
+                descricao: projetoDescricao.value.trim()
+            };
+
+            const method = payload.id ? 'PUT' : 'POST';
+            const url = payload.id ? `/api/projetos/${payload.id}` : '/api/projetos';
+
+            const response = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': projetoCsrfToken },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                projetoForm.reset();
+                projetoId.value = '';
+                cancelEditProjeto.classList.add('hidden');
+                await loadProjetos();
+            } else {
+                const errorText = await response.text();
+                alert(errorText || 'Erro ao salvar projeto.');
+            }
+        });
+
+        cancelEditProjeto.addEventListener('click', () => {
+            projetoForm.reset();
+            projetoId.value = '';
+            cancelEditProjeto.classList.add('hidden');
+        });
+
+        loadProjetos().catch(error => console.error(error));
+    </script>
+}

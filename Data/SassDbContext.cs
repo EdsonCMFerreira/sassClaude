@@ -11,7 +11,7 @@ public class SassDbContext : DbContext
 {
     private static readonly Type[] AuditableTypes =
     [
-        typeof(Produto), typeof(Cliente), typeof(Fornecedor), typeof(Pedido), typeof(Login)
+        typeof(Produto), typeof(Cliente), typeof(Fornecedor), typeof(Pedido), typeof(Login), typeof(Projeto)
     ];
 
     private readonly IHttpContextAccessor? _httpContextAccessor;
@@ -35,6 +35,8 @@ public class SassDbContext : DbContext
     public DbSet<Pedido> Pedidos => Set<Pedido>();
     public DbSet<PedidoItem> PedidoItens => Set<PedidoItem>();
     public DbSet<AuditLogEntry> AuditLogEntries => Set<AuditLogEntry>();
+    public DbSet<Projeto> Projetos => Set<Projeto>();
+    public DbSet<Tarefa> Tarefas => Set<Tarefa>();
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
@@ -269,6 +271,25 @@ public class SassDbContext : DbContext
             entity.Property(x => x.Action).IsRequired().HasMaxLength(20);
             entity.Property(x => x.UserName).IsRequired().HasMaxLength(100);
             entity.Property(x => x.Details).IsRequired().HasMaxLength(1000);
+            entity.HasQueryFilter(x => !_currentTenantAccessor!.EmpresaId.HasValue || x.EmpresaId == _currentTenantAccessor!.EmpresaId);
+        });
+
+        modelBuilder.Entity<Projeto>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Nome).IsRequired().HasMaxLength(150);
+            entity.Property(x => x.Descricao).IsRequired().HasMaxLength(1000);
+            entity.HasQueryFilter(x => !_currentTenantAccessor!.EmpresaId.HasValue || x.EmpresaId == _currentTenantAccessor!.EmpresaId);
+        });
+
+        modelBuilder.Entity<Tarefa>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Titulo).IsRequired().HasMaxLength(200);
+            entity.HasOne(x => x.Projeto)
+                .WithMany(x => x.Tarefas)
+                .HasForeignKey(x => x.ProjetoId)
+                .OnDelete(DeleteBehavior.Cascade);
             entity.HasQueryFilter(x => !_currentTenantAccessor!.EmpresaId.HasValue || x.EmpresaId == _currentTenantAccessor!.EmpresaId);
         });
     }

@@ -27,7 +27,71 @@ public class WorkspaceController : Controller
         _logger = logger;
     }
 
-    public IActionResult Index() => View();
+    public async Task<IActionResult> Index()
+    {
+        var idClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var currentId = int.TryParse(idClaim, out var parsed) ? parsed : 0;
+
+        var membros = await _context.Logins
+            .OrderByDescending(item => item.Role == "Admin")
+            .ThenBy(item => item.Username)
+            .Select(item => new WorkspaceMemberRow(item.Id, item.Username, item.Email, item.Role, item.CreatedAt, item.Id == currentId))
+            .ToListAsync();
+
+        return View(new WorkspaceIndexPageViewModel { Membros = membros, PodeGerenciar = User.IsInRole("Admin") });
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "Admin")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AlterarPapel(int id)
+    {
+        var login = await _context.Logins.FindAsync(id);
+        if (login is null)
+        {
+            return NotFound();
+        }
+
+        var novoPapel = login.Role == "Admin" ? "Colaborador" : "Admin";
+        if (login.Role == "Admin" && novoPapel != "Admin" && await IsLastAdmin(login.Id))
+        {
+            TempData["WorkspaceMessage"] = "Não é possível remover o papel do último administrador.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        login.Role = novoPapel;
+        await _context.SaveChangesAsync();
+        TempData["WorkspaceMessage"] = $"{login.Username} agora é {novoPapel}.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "Admin")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RemoverMembro(int id)
+    {
+        var login = await _context.Logins.FindAsync(id);
+        if (login is null)
+        {
+            return NotFound();
+        }
+
+        if (login.Role == "Admin" && await IsLastAdmin(login.Id))
+        {
+            TempData["WorkspaceMessage"] = "Não é possível remover o último administrador.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        _context.Logins.Remove(login);
+        await _context.SaveChangesAsync();
+        TempData["WorkspaceMessage"] = $"{login.Username} foi removido do workspace.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    private async Task<bool> IsLastAdmin(int excludingId)
+    {
+        return !await _context.Logins.AnyAsync(item => item.Role == "Admin" && item.Id != excludingId);
+    }
 
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Invite()

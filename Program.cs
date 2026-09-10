@@ -756,6 +756,28 @@ using (var scope = app.Services.CreateScope())
             db.Database.ExecuteSqlRaw($"ALTER TABLE AuditLogEntries ADD COLUMN EmpresaId INTEGER NOT NULL DEFAULT {defaultEmpresaId};");
         }
 
+        db.Database.ExecuteSqlRaw("""
+            CREATE TABLE IF NOT EXISTS Projetos (
+                Id INTEGER NOT NULL CONSTRAINT PK_Projetos PRIMARY KEY AUTOINCREMENT,
+                EmpresaId INTEGER NOT NULL,
+                Nome TEXT NOT NULL,
+                Descricao TEXT NOT NULL,
+                CreatedAt TEXT NOT NULL
+            );
+            """);
+
+        db.Database.ExecuteSqlRaw("""
+            CREATE TABLE IF NOT EXISTS Tarefas (
+                Id INTEGER NOT NULL CONSTRAINT PK_Tarefas PRIMARY KEY AUTOINCREMENT,
+                EmpresaId INTEGER NOT NULL,
+                ProjetoId INTEGER NOT NULL,
+                Titulo TEXT NOT NULL,
+                Concluida INTEGER NOT NULL,
+                CreatedAt TEXT NOT NULL,
+                CONSTRAINT FK_Tarefas_Projetos_ProjetoId FOREIGN KEY (ProjetoId) REFERENCES Projetos (Id) ON DELETE CASCADE
+            );
+            """);
+
         var passwordHasher = new PasswordHasher<Login>();
         var usersWithPlaintextPasswords = db.Logins
             .ToList();

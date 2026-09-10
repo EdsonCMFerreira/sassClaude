@@ -18,3 +18,11 @@ public sealed class WorkspaceInvitePageViewModel
     public WorkspaceInviteViewModel Form { get; set; } = new();
     public List<WorkspaceInviteRow> Invites { get; set; } = new();
 }
+
+public sealed record WorkspaceMemberRow(int Id, string Username, string Email, string Role, DateTime CreatedAt, bool EhVoce);
+
+public sealed class WorkspaceIndexPageViewModel
+{
+    public List<WorkspaceMemberRow> Membros { get; set; } = new();
+    public bool PodeGerenciar { get; set; }
+}
