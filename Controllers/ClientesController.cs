@@ -10,6 +10,12 @@ namespace Saas.Controllers;
 public class ClientesController : Controller
 {
     public IActionResult Index() => View();
+
+    public IActionResult PessoaFisica() => View("PorTipoPessoa", new ClienteTipoPessoaPageViewModel(
+        "Física", "Clientes pessoa física", "Clientes cadastrados como pessoa física."));
+
+    public IActionResult PessoaJuridica() => View("PorTipoPessoa", new ClienteTipoPessoaPageViewModel(
+        "Jurídica", "Clientes pessoa jurídica", "Clientes cadastrados como pessoa jurídica."));
 }
 
 [ApiController]

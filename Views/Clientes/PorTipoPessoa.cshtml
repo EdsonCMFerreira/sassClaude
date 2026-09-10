@@ -1,0 +1,57 @@
+@model ClienteTipoPessoaPageViewModel
+@{
+    ViewData["Title"] = Model.Titulo;
+}
+
+<div class="page-heading">
+    <div><span class="eyebrow">Cadastro</span><h1>@Model.Titulo.</h1><p class="muted">@Model.Descricao</p></div>
+    <div class="hero-actions"><a class="button button-outline" style="color:var(--blue);" asp-controller="Clientes" asp-action="Index">← Ver todos os clientes</a></div>
+</div>
+<div class="surface-card users-card">
+    <div class="section-heading"><div><h2>@Model.Titulo</h2><p class="muted">Clique em "Editar" para abrir o cliente na tela de Clientes.</p></div></div>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead class="table-light">
+                <tr>
+                    <th>Nome</th>
+                    <th>CPF/CNPJ</th>
+                    <th>Telefone</th>
+                    <th>Cidade/UF (cobrança)</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody id="clienteTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const tableBody = document.getElementById('clienteTableBody');
+        const tipoPessoaFiltro = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TipoPessoa));
+
+        async function loadClientesPorTipoPessoa() {
+            const response = await fetch('/api/clientes');
+            if (!response.ok) {
+                throw new Error('Erro ao carregar clientes.');
+            }
+
+            const data = await response.json();
+            const filtrados = data
+                .filter(item => item.tipoPessoa === tipoPessoaFiltro)
+                .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+
+            tableBody.innerHTML = filtrados.map(item => `
+                <tr>
+                    <td>${item.nome}</td>
+                    <td>${item.cpfCnpj}</td>
+                    <td>${item.telefone || '—'}</td>
+                    <td>${[item.cobrancaCidade, item.cobrancaUf].filter(Boolean).join('/') || '—'}</td>
+                    <td><a class="table-action" href="/Clientes?editar=${item.id}">Editar</a></td>
+                </tr>
+            `).join('') || '<tr><td colspan="5" class="muted">Nenhum cliente encontrado.</td></tr>';
+        }
+
+        loadClientesPorTipoPessoa().catch(error => console.error(error));
+    </script>
+}

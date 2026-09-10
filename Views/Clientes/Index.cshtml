@@ -4,6 +4,10 @@
 
 <div class="page-heading">
     <div><span class="eyebrow">Cadastro</span><h1>Clientes.</h1><p class="muted">Ficha cadastral completa do cliente.</p></div>
+    <div class="hero-actions" style="flex-wrap:wrap;">
+        <a class="button button-outline" style="color:var(--blue);" asp-controller="Clientes" asp-action="PessoaFisica">Ver pessoa física <span>→</span></a>
+        <a class="button button-outline" style="color:var(--blue);" asp-controller="Clientes" asp-action="PessoaJuridica">Ver pessoa jurídica <span>→</span></a>
+    </div>
 </div>
 <div class="surface-card users-card">
     <div class="section-heading"><div><h2>Clientes cadastrados</h2><p class="muted">Dados pessoais, endereço de cobrança e de entrega. A última compra é calculada automaticamente a partir dos registros em Pedidos.</p></div></div>
@@ -256,6 +260,13 @@
         });
 
         updateEntregaDisabled();
-        loadClientes().catch(error => console.error(error));
+        loadClientes()
+            .then(() => {
+                const editarId = new URLSearchParams(window.location.search).get('editar');
+                if (editarId) {
+                    editCliente(Number(editarId));
+                }
+            })
+            .catch(error => console.error(error));
     </script>
 }
