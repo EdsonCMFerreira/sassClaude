@@ -61,7 +61,7 @@ public class ApiFornecedoresController : ControllerBase
             return BadRequest("Já existe um fornecedor com esse CPF/CNPJ.");
         }
 
-        var fornecedor = FromRequest(new Fornecedor { CreatedAt = DateTime.UtcNow }, request);
+        var fornecedor = FromRequest(new Fornecedor(), request);
         _context.Fornecedores.Add(fornecedor);
         await _context.SaveChangesAsync();
 
@@ -127,6 +127,7 @@ public class ApiFornecedoresController : ControllerBase
         fornecedor.Cidade = request.Cidade.Trim();
         fornecedor.Uf = request.Uf.Trim();
         fornecedor.Observacoes = request.Observacoes.Trim();
+        fornecedor.CreatedAt = request.CreatedAt;
         return fornecedor;
     }
 
@@ -144,7 +145,7 @@ public class ApiFornecedoresController : ControllerBase
 public sealed record FornecedorRequest(
     string Nome, string TipoPessoa, string CpfCnpj, string ContatoResponsavel, string Email, string Site, string Telefone,
     string Cep, string Endereco, string Numero, string Complemento, string Bairro, string Cidade, string Uf,
-    string Observacoes);
+    string Observacoes, DateTime CreatedAt);
 
 public sealed record FornecedorResponse(
     int Id, string Nome, string TipoPessoa, string CpfCnpj, string ContatoResponsavel, string Email, string Site, string Telefone,

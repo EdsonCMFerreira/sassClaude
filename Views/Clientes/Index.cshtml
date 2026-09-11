@@ -17,6 +17,7 @@
             <input type="hidden" id="clienteId" />
             <div class="user-form-grid">
                 <div><label for="nome">Nome / Razão social</label><input id="nome" required /></div>
+                <div><label for="dataCadastro">Data de cadastro</label><input id="dataCadastro" type="date" required /></div>
                 <div><label for="tipoPessoa">Tipo de pessoa</label><select id="tipoPessoa"><option value="Física">Física</option><option value="Jurídica">Jurídica</option></select></div>
                 <div><label for="cpfCnpj">CPF/CNPJ</label><input id="cpfCnpj" required /></div>
                 <div><label for="email">E-mail</label><input id="email" type="email" /></div>
@@ -56,6 +57,7 @@
             <thead class="table-light">
                 <tr>
                     <th>Nome</th>
+                    <th>Data cadastro</th>
                     <th>CPF/CNPJ</th>
                     <th>Telefone</th>
                     <th>Cidade/UF (cobrança)</th>
@@ -72,6 +74,7 @@
         const form = document.getElementById('clienteForm');
         const clienteId = document.getElementById('clienteId');
         const nome = document.getElementById('nome');
+        const dataCadastro = document.getElementById('dataCadastro');
         const tipoPessoa = document.getElementById('tipoPessoa');
         const cpfCnpj = document.getElementById('cpfCnpj');
         const email = document.getElementById('email');
@@ -98,6 +101,16 @@
         const tableBody = document.getElementById('clienteTableBody');
         const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
 
+        function formatDate(value) {
+            return new Date(value).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+        }
+
+        function hoje() {
+            return new Date().toISOString().slice(0, 10);
+        }
+
+        dataCadastro.value = hoje();
+
         async function buscarCep(cepValue, campos) {
             const cepDigits = cepValue.replace(/\D/g, '');
             if (cepDigits.length !== 8) return;
@@ -113,6 +126,7 @@
                 campos.bairro.value = data.bairro || campos.bairro.value;
                 campos.cidade.value = data.localidade || campos.cidade.value;
                 campos.uf.value = data.uf || campos.uf.value;
+                campos.complemento.value = data.complemento || campos.complemento.value;
                 if (campos.aposPreencher) campos.aposPreencher();
             } catch (error) {
                 console.error('Erro ao buscar CEP.', error);
@@ -120,12 +134,12 @@
         }
 
         cobrancaCep.addEventListener('input', () => buscarCep(cobrancaCep.value, {
-            endereco: cobrancaEndereco, bairro: cobrancaBairro, cidade: cobrancaCidade, uf: cobrancaUf,
+            endereco: cobrancaEndereco, bairro: cobrancaBairro, cidade: cobrancaCidade, uf: cobrancaUf, complemento: cobrancaComplemento,
             aposPreencher: () => syncEntregaComCobranca()
         }));
 
         entregaCep.addEventListener('input', () => buscarCep(entregaCep.value, {
-            endereco: entregaEndereco, bairro: entregaBairro, cidade: entregaCidade, uf: entregaUf
+            endereco: entregaEndereco, bairro: entregaBairro, cidade: entregaCidade, uf: entregaUf, complemento: entregaComplemento
         }));
 
         function syncEntregaComCobranca() {
@@ -154,6 +168,7 @@
             tableBody.innerHTML = data.map(item => `
                 <tr>
                     <td>${item.nome}</td>
+                    <td>${formatDate(item.createdAt)}</td>
                     <td>${item.cpfCnpj}</td>
                     <td>${item.telefone || '—'}</td>
                     <td>${[item.cobrancaCidade, item.cobrancaUf].filter(Boolean).join('/') || '—'}</td>
@@ -162,7 +177,7 @@
                         <button class="table-action danger" data-delete="${item.id}">Excluir</button>
                     </td>
                 </tr>
-            `).join('') || '<tr><td colspan="5" class="muted">Nenhum cliente cadastrado ainda.</td></tr>';
+            `).join('') || '<tr><td colspan="6" class="muted">Nenhum cliente cadastrado ainda.</td></tr>';
 
             tableBody.querySelectorAll('[data-edit]').forEach(button => {
                 button.addEventListener('click', () => editCliente(Number(button.dataset.edit)));
@@ -178,6 +193,7 @@
             const data = await response.json();
             clienteId.value = data.id;
             nome.value = data.nome;
+            dataCadastro.value = data.createdAt.slice(0, 10);
             tipoPessoa.value = data.tipoPessoa;
             cpfCnpj.value = data.cpfCnpj;
             email.value = data.email;
@@ -231,6 +247,7 @@
             const payload = {
                 id: Number(clienteId.value || 0),
                 nome: nome.value.trim(),
+                createdAt: dataCadastro.value,
                 tipoPessoa: tipoPessoa.value,
                 cpfCnpj: cpfCnpj.value.trim(),
                 email: email.value.trim(),
@@ -265,6 +282,7 @@
             if (response.ok) {
                 form.reset();
                 clienteId.value = '';
+                dataCadastro.value = hoje();
                 entregaIgualCobranca.checked = true;
                 updateEntregaDisabled();
                 cancelEdit.classList.add('hidden');
@@ -278,6 +296,7 @@
         cancelEdit.addEventListener('click', () => {
             form.reset();
             clienteId.value = '';
+            dataCadastro.value = hoje();
             entregaIgualCobranca.checked = true;
             updateEntregaDisabled();
             cancelEdit.classList.add('hidden');

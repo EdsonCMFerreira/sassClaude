@@ -14,6 +14,7 @@
             <input type="hidden" id="fornecedorId" />
             <div class="user-form-grid">
                 <div><label for="nome">Nome / Razão social</label><input id="nome" required /></div>
+                <div><label for="dataCadastro">Data de cadastro</label><input id="dataCadastro" type="date" required /></div>
                 <div><label for="tipoPessoa">Tipo de pessoa</label><select id="tipoPessoa"><option value="Jurídica">Jurídica</option><option value="Física">Física</option></select></div>
                 <div><label for="cpfCnpj">CPF/CNPJ</label><input id="cpfCnpj" required /></div>
                 <div><label for="contatoResponsavel">Contato responsável</label><input id="contatoResponsavel" /></div>
@@ -38,6 +39,7 @@
             <thead class="table-light">
                 <tr>
                     <th>Nome</th>
+                    <th>Data cadastro</th>
                     <th>CPF/CNPJ</th>
                     <th>Contato</th>
                     <th>Telefone</th>
@@ -55,6 +57,7 @@
         const form = document.getElementById('fornecedorForm');
         const fornecedorId = document.getElementById('fornecedorId');
         const nome = document.getElementById('nome');
+        const dataCadastro = document.getElementById('dataCadastro');
         const tipoPessoa = document.getElementById('tipoPessoa');
         const cpfCnpj = document.getElementById('cpfCnpj');
         const contatoResponsavel = document.getElementById('contatoResponsavel');
@@ -73,6 +76,16 @@
         const tableBody = document.getElementById('fornecedorTableBody');
         const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
 
+        function formatDate(value) {
+            return new Date(value).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+        }
+
+        function hoje() {
+            return new Date().toISOString().slice(0, 10);
+        }
+
+        dataCadastro.value = hoje();
+
         async function buscarCep(cepValue, campos) {
             const cepDigits = cepValue.replace(/\D/g, '');
             if (cepDigits.length !== 8) return;
@@ -88,12 +101,13 @@
                 campos.bairro.value = data.bairro || campos.bairro.value;
                 campos.cidade.value = data.localidade || campos.cidade.value;
                 campos.uf.value = data.uf || campos.uf.value;
+                campos.complemento.value = data.complemento || campos.complemento.value;
             } catch (error) {
                 console.error('Erro ao buscar CEP.', error);
             }
         }
 
-        cep.addEventListener('input', () => buscarCep(cep.value, { endereco, bairro, cidade, uf }));
+        cep.addEventListener('input', () => buscarCep(cep.value, { endereco, bairro, cidade, uf, complemento }));
 
         async function loadFornecedores() {
             const response = await fetch('/api/fornecedores');
@@ -105,6 +119,7 @@
             tableBody.innerHTML = data.map(item => `
                 <tr>
                     <td>${item.nome}</td>
+                    <td>${formatDate(item.createdAt)}</td>
                     <td>${item.cpfCnpj}</td>
                     <td>${item.contatoResponsavel || '—'}</td>
                     <td>${item.telefone || '—'}</td>
@@ -114,7 +129,7 @@
                         <button class="table-action danger" data-delete="${item.id}">Excluir</button>
                     </td>
                 </tr>
-            `).join('') || '<tr><td colspan="6" class="muted">Nenhum fornecedor cadastrado ainda.</td></tr>';
+            `).join('') || '<tr><td colspan="7" class="muted">Nenhum fornecedor cadastrado ainda.</td></tr>';
 
             tableBody.querySelectorAll('[data-edit]').forEach(button => {
                 button.addEventListener('click', () => editFornecedor(Number(button.dataset.edit)));
@@ -130,6 +145,7 @@
             const data = await response.json();
             fornecedorId.value = data.id;
             nome.value = data.nome;
+            dataCadastro.value = data.createdAt.slice(0, 10);
             tipoPessoa.value = data.tipoPessoa;
             cpfCnpj.value = data.cpfCnpj;
             contatoResponsavel.value = data.contatoResponsavel;
@@ -164,6 +180,7 @@
             const payload = {
                 id: Number(fornecedorId.value || 0),
                 nome: nome.value.trim(),
+                createdAt: dataCadastro.value,
                 tipoPessoa: tipoPessoa.value,
                 cpfCnpj: cpfCnpj.value.trim(),
                 contatoResponsavel: contatoResponsavel.value.trim(),
@@ -192,6 +209,7 @@
             if (response.ok) {
                 form.reset();
                 fornecedorId.value = '';
+                dataCadastro.value = hoje();
                 cancelEdit.classList.add('hidden');
                 await loadFornecedores();
             } else {
@@ -203,6 +221,7 @@
         cancelEdit.addEventListener('click', () => {
             form.reset();
             fornecedorId.value = '';
+            dataCadastro.value = hoje();
             cancelEdit.classList.add('hidden');
         });
 

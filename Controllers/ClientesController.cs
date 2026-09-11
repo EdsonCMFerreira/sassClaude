@@ -65,7 +65,7 @@ public class ApiClientesController : ControllerBase
             return BadRequest("Já existe um cliente com esse CPF/CNPJ.");
         }
 
-        var cliente = FromRequest(new Cliente { CreatedAt = DateTime.UtcNow }, request);
+        var cliente = FromRequest(new Cliente(), request);
         _context.Clientes.Add(cliente);
         await _context.SaveChangesAsync();
 
@@ -137,6 +137,7 @@ public class ApiClientesController : ControllerBase
         cliente.EntregaCidade = request.EntregaCidade.Trim();
         cliente.EntregaUf = request.EntregaUf.Trim();
         cliente.Observacoes = request.Observacoes.Trim();
+        cliente.CreatedAt = request.CreatedAt;
         return cliente;
     }
 
@@ -159,7 +160,7 @@ public sealed record ClienteRequest(
     string CobrancaBairro, string CobrancaCidade, string CobrancaUf,
     string EntregaCep, string EntregaEndereco, string EntregaNumero, string EntregaComplemento,
     string EntregaBairro, string EntregaCidade, string EntregaUf,
-    string Observacoes);
+    string Observacoes, DateTime CreatedAt);
 
 public sealed record ClienteResponse(
     int Id, string Nome, string TipoPessoa, string CpfCnpj, string Email, string Site, string Telefone,
