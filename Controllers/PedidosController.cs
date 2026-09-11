@@ -331,6 +331,12 @@ public class ApiPedidosController : ControllerBase
             return BadRequest("O desconto deve estar entre 0 e 100%.");
         }
 
+        var erroConclusao = ValidarConclusao(request.Status, request.NumeroNota, request.FormaPagamento);
+        if (erroConclusao is not null)
+        {
+            return BadRequest(erroConclusao);
+        }
+
         var cliente = await _context.Clientes.FindAsync(request.ClienteId);
         if (cliente is null)
         {
@@ -418,6 +424,12 @@ public class ApiPedidosController : ControllerBase
         if (request.PercentualDesconto < 0 || request.PercentualDesconto > 100)
         {
             return BadRequest("O desconto deve estar entre 0 e 100%.");
+        }
+
+        var erroConclusao = ValidarConclusao(request.Status, request.NumeroNota, request.FormaPagamento);
+        if (erroConclusao is not null)
+        {
+            return BadRequest(erroConclusao);
         }
 
         var cliente = await _context.Clientes.FindAsync(request.ClienteId);
@@ -541,6 +553,27 @@ public class ApiPedidosController : ControllerBase
     private static decimal PercentualDescontoEfetivo(string status, decimal percentualDesconto)
     {
         return status is "Devolução" or "Cancelada" ? 0 : percentualDesconto;
+    }
+
+    private static string? ValidarConclusao(string status, string numeroNota, string formaPagamento)
+    {
+        if (status.Trim() != "Concluída")
+        {
+            return null;
+        }
+
+        var numeroNotaTrimmed = numeroNota.Trim();
+        if (string.IsNullOrWhiteSpace(numeroNotaTrimmed) || numeroNotaTrimmed == "0")
+        {
+            return "Informe o número da nota para concluir o pedido.";
+        }
+
+        if (string.IsNullOrWhiteSpace(formaPagamento))
+        {
+            return "Selecione a forma de pagamento para concluir o pedido.";
+        }
+
+        return null;
     }
 
     private static PedidoResponse ToResponse(Pedido pedido)
