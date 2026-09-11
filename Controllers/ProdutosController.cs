@@ -24,6 +24,8 @@ public class ProdutosController : Controller
 
     public IActionResult SaldoZero() => View();
 
+    public IActionResult SemFornecedor() => View();
+
     public async Task<IActionResult> Dashboard()
     {
         var produtos = await _context.Produtos.Include(x => x.Fornecedor).ToListAsync();

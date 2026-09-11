@@ -1,0 +1,55 @@
+@{
+    ViewData["Title"] = "Fornecedores sem contato";
+}
+
+<div class="page-heading">
+    <div><span class="eyebrow">Cadastro</span><h1>Fornecedores sem contato.</h1><p class="muted">Fornecedores sem um contato responsável cadastrado.</p></div>
+    <div class="hero-actions"><a class="button button-outline" style="color:var(--blue);" asp-controller="Fornecedores" asp-action="Index">← Ver todos os fornecedores</a></div>
+</div>
+<div class="surface-card users-card">
+    <div class="section-heading"><div><h2>Sem contato responsável</h2><p class="muted">Clique em "Editar" para completar o cadastro na tela de Fornecedores.</p></div></div>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead class="table-light">
+                <tr>
+                    <th>Nome</th>
+                    <th>CPF/CNPJ</th>
+                    <th>Telefone</th>
+                    <th>Cidade/UF</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody id="fornecedorTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const tableBody = document.getElementById('fornecedorTableBody');
+
+        async function loadFornecedoresSemContato() {
+            const response = await fetch('/api/fornecedores');
+            if (!response.ok) {
+                throw new Error('Erro ao carregar fornecedores.');
+            }
+
+            const data = await response.json();
+            const semContato = data
+                .filter(item => !item.contatoResponsavel || !item.contatoResponsavel.trim())
+                .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+
+            tableBody.innerHTML = semContato.map(item => `
+                <tr>
+                    <td>${item.nome}</td>
+                    <td>${item.cpfCnpj}</td>
+                    <td>${item.telefone || '—'}</td>
+                    <td>${[item.cidade, item.uf].filter(Boolean).join('/') || '—'}</td>
+                    <td><a class="table-action" href="/Fornecedores?editar=${item.id}">Editar</a></td>
+                </tr>
+            `).join('') || '<tr><td colspan="5" class="muted">Todos os fornecedores têm um contato cadastrado.</td></tr>';
+        }
+
+        loadFornecedoresSemContato().catch(error => console.error(error));
+    </script>
+}

@@ -10,6 +10,8 @@ namespace Saas.Controllers;
 public class FornecedoresController : Controller
 {
     public IActionResult Index() => View();
+
+    public IActionResult SemContato() => View();
 }
 
 [ApiController]

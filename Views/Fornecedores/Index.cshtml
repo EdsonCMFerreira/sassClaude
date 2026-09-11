@@ -4,6 +4,7 @@
 
 <div class="page-heading">
     <div><span class="eyebrow">Cadastro</span><h1>Fornecedores.</h1><p class="muted">Ficha cadastral completa da empresa.</p></div>
+    <div class="hero-actions"><a class="button button-outline" style="color:var(--blue);" asp-controller="Fornecedores" asp-action="SemContato">Ver sem contato <span>→</span></a></div>
 </div>
 <div class="surface-card users-card">
     <div class="section-heading"><div><h2>Fornecedores cadastrados</h2><p class="muted">Dados da empresa, contato e endereço.</p></div></div>
@@ -183,6 +184,13 @@
             cancelEdit.classList.add('hidden');
         });
 
-        loadFornecedores().catch(error => console.error(error));
+        loadFornecedores()
+            .then(() => {
+                const editarId = new URLSearchParams(window.location.search).get('editar');
+                if (editarId) {
+                    editFornecedor(Number(editarId));
+                }
+            })
+            .catch(error => console.error(error));
     </script>
 }
