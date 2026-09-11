@@ -73,6 +73,28 @@
         const tableBody = document.getElementById('fornecedorTableBody');
         const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
 
+        async function buscarCep(cepValue, campos) {
+            const cepDigits = cepValue.replace(/\D/g, '');
+            if (cepDigits.length !== 8) return;
+
+            try {
+                const response = await fetch(`https://viacep.com.br/ws/${cepDigits}/json/`);
+                if (!response.ok) return;
+
+                const data = await response.json();
+                if (data.erro) return;
+
+                campos.endereco.value = data.logradouro || campos.endereco.value;
+                campos.bairro.value = data.bairro || campos.bairro.value;
+                campos.cidade.value = data.localidade || campos.cidade.value;
+                campos.uf.value = data.uf || campos.uf.value;
+            } catch (error) {
+                console.error('Erro ao buscar CEP.', error);
+            }
+        }
+
+        cep.addEventListener('input', () => buscarCep(cep.value, { endereco, bairro, cidade, uf }));
+
         async function loadFornecedores() {
             const response = await fetch('/api/fornecedores');
             if (!response.ok) {
