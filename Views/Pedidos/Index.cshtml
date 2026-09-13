@@ -141,6 +141,12 @@
             return value ? new Date(value).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '—';
         }
 
+        function hoje() {
+            return new Date().toISOString().slice(0, 10);
+        }
+
+        dataPedido.value = hoje();
+
         function optionsProdutosHtml(selectedId) {
             return '<option value="">Selecione...</option>' + allProdutos.map(p =>
                 `<option value="${p.id}" ${p.id === selectedId ? 'selected' : ''}>${p.codigo} — ${p.descricao}</option>`
@@ -258,6 +264,7 @@
             form.reset();
             pedidoId.value = '';
             numeroPedido.value = '';
+            dataPedido.value = hoje();
             itensOriginais = [];
             itensTableBody.innerHTML = '';
             addItemRow();
