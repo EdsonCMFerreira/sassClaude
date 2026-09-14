@@ -1,0 +1,106 @@
+@{
+    ViewData["Title"] = "Pesquisa de vagas — LinkedIn";
+}
+
+<div class="page-heading">
+    <div><span class="eyebrow">Ferramentas</span><h1>Vagas no LinkedIn.</h1><p class="muted">Descreva com suas próprias palavras a vaga que você procura e pesquise diretamente no LinkedIn.</p></div>
+</div>
+<div class="surface-card users-card">
+    <div class="section-heading">
+        <div>
+            <h2>Buscar vagas</h2>
+            <p class="muted">O LinkedIn está substituindo a pesquisa clássica por palavras-chave por uma pesquisa com IA. Descreva o cargo, senioridade, local e outros detalhes em uma frase — o LinkedIn interpreta o texto e traz as vagas mais relevantes.</p>
+        </div>
+    </div>
+    <div class="user-form-wrap">
+        <div class="user-form-grid">
+            <div class="field-full">
+                <label for="cargoPesquisa">Descreva a vaga que você procura</label>
+                <textarea id="cargoPesquisa" rows="3" placeholder="Ex: vagas de nível júnior em desenvolvimento back-end na área de saúde, publicadas na última semana"></textarea>
+            </div>
+            <div><label for="localizacaoPesquisa">Localização (opcional)</label><input id="localizacaoPesquisa" placeholder="Ex: São Paulo, Brasil" /></div>
+            <div>
+                <label for="modalidadePesquisa">Modalidade (opcional)</label>
+                <select id="modalidadePesquisa">
+                    <option value="">Qualquer</option>
+                    <option value="1">Presencial</option>
+                    <option value="3">Híbrido</option>
+                    <option value="2">Remoto</option>
+                </select>
+            </div>
+            <div>
+                <label for="publicadaPesquisa">Publicada (opcional)</label>
+                <select id="publicadaPesquisa">
+                    <option value="">Qualquer data</option>
+                    <option value="r86400">Últimas 24 horas</option>
+                    <option value="r604800">Última semana</option>
+                    <option value="r2592000">Último mês</option>
+                </select>
+            </div>
+        </div>
+        <p class="muted" style="margin-top:10px;">Dica: a localização e os filtros acima são opcionais — você pode incluir tudo isso já na própria descrição, como no exemplo.</p>
+        <div class="user-form-actions" style="margin-top:14px;">
+            <button type="button" id="pesquisarLinkedinButton" class="button button-primary">Pesquisar no LinkedIn</button>
+        </div>
+    </div>
+
+    <div id="resultadoWrap" class="table-wrap" hidden>
+        <p class="muted" style="margin-bottom:14px;">Se a nova aba não abrir automaticamente (bloqueio de pop-up), use o link abaixo.</p>
+        <a id="resultadoLink" class="table-action" href="#" target="_blank" rel="noopener" style="display:flex; align-items:baseline; gap:8px;">
+            <span>Abrir busca no LinkedIn</span>
+            <span class="muted" style="font-weight:400; color:var(--muted);" id="resultadoResumo"></span>
+        </a>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const cargoPesquisa = document.getElementById('cargoPesquisa');
+        const localizacaoPesquisa = document.getElementById('localizacaoPesquisa');
+        const modalidadePesquisa = document.getElementById('modalidadePesquisa');
+        const publicadaPesquisa = document.getElementById('publicadaPesquisa');
+        const pesquisarLinkedinButton = document.getElementById('pesquisarLinkedinButton');
+        const resultadoWrap = document.getElementById('resultadoWrap');
+        const resultadoLink = document.getElementById('resultadoLink');
+        const resultadoResumo = document.getElementById('resultadoResumo');
+
+        function montarUrlLinkedin(descricao, localizacao) {
+            const params = new URLSearchParams();
+            params.set('keywords', descricao);
+            if (localizacao) params.set('location', localizacao);
+            if (modalidadePesquisa.value) params.set('f_WT', modalidadePesquisa.value);
+            if (publicadaPesquisa.value) params.set('f_TPR', publicadaPesquisa.value);
+            return `https://www.linkedin.com/jobs/search/?${params.toString()}`;
+        }
+
+        function pesquisar() {
+            const descricao = cargoPesquisa.value.trim();
+            if (!descricao) {
+                alert('Descreva a vaga que você procura para pesquisar.');
+                return;
+            }
+            const localizacao = localizacaoPesquisa.value.trim();
+            const url = montarUrlLinkedin(descricao, localizacao);
+
+            resultadoLink.href = url;
+            resultadoResumo.textContent = [descricao, localizacao].filter(Boolean).join(' — ');
+            resultadoWrap.hidden = false;
+
+            window.open(url, '_blank', 'noopener');
+        }
+
+        pesquisarLinkedinButton.addEventListener('click', pesquisar);
+        localizacaoPesquisa.addEventListener('keydown', event => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                pesquisar();
+            }
+        });
+        cargoPesquisa.addEventListener('keydown', event => {
+            if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+                event.preventDefault();
+                pesquisar();
+            }
+        });
+    </script>
+}

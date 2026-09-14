@@ -7,4 +7,6 @@ namespace Saas.Controllers;
 public class PesquisaController : Controller
 {
     public IActionResult Index() => View();
+
+    public IActionResult Linkedin() => View();
 }

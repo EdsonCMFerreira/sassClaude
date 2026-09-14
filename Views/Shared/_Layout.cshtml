@@ -26,7 +26,13 @@
                     </div>
                 </div>
                 <a asp-controller="Pedidos" asp-action="Index">Pedidos</a>
-                <a asp-controller="Pesquisa" asp-action="Index">Pesquisa</a>
+                <div class="nav-dropdown">
+                    <button type="button" class="nav-dropdown-toggle" onclick="this.closest('.nav-dropdown').classList.toggle('open')">Pesquisa <span class="nav-dropdown-caret">▾</span></button>
+                    <div class="nav-dropdown-menu">
+                        <a asp-controller="Pesquisa" asp-action="Index">Produtos</a>
+                        <a asp-controller="Pesquisa" asp-action="Linkedin">Vagas (LinkedIn)</a>
+                    </div>
+                </div>
                 @if (User.IsInRole("Admin"))
                 {
                     <div class="nav-dropdown">
