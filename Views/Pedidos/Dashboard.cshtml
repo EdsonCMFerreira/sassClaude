@@ -86,7 +86,21 @@
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     <script>
+        Chart.defaults.font.family = "'Segoe UI', sans-serif";
+        Chart.defaults.color = '#6f6b85';
+        Chart.defaults.animation.duration = 1300;
+        Chart.defaults.animation.easing = 'easeOutQuart';
+
         const ptBrCurrency = value => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+        function gradiente(ctx, corInicio, corFim) {
+            const area = ctx.chart.chartArea;
+            if (!area) return corInicio;
+            const gradient = ctx.chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
+            gradient.addColorStop(0, corInicio);
+            gradient.addColorStop(1, corFim);
+            return gradient;
+        }
 
         const faturamentoLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Faturamento.Select(f => f.Rotulo)));
         const faturamentoValores = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Faturamento.Select(f => f.Total)));
@@ -98,25 +112,29 @@
                 datasets: [{
                     label: 'Faturamento',
                     data: faturamentoValores,
-                    backgroundColor: '#1769e0',
-                    borderRadius: 6
+                    backgroundColor: ctx => gradiente(ctx, '#c026d3', '#5233ff'),
+                    hoverBackgroundColor: '#f5359f',
+                    borderRadius: 8,
+                    maxBarThickness: 46
                 }]
             },
             options: {
                 maintainAspectRatio: false,
+                animation: { delay: ctx => ctx.type === 'data' ? ctx.dataIndex * 90 : 0 },
                 plugins: {
                     legend: { display: false },
                     tooltip: { callbacks: { label: ctx => ptBrCurrency(ctx.parsed.y) } }
                 },
                 scales: {
-                    y: { ticks: { callback: value => ptBrCurrency(value) } }
+                    y: { grid: { color: '#e9e4f7' }, ticks: { callback: value => ptBrCurrency(value) } },
+                    x: { grid: { display: false } }
                 }
             }
         });
 
         const statusLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PorStatus.Select(s => s.Status)));
         const statusValores = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PorStatus.Select(s => s.Quantidade)));
-        const statusCores = { 'Concluída': '#218351', 'Pendente': '#1769e0', 'Cancelada': '#ff755e', 'Devolução': '#e8a13a' };
+        const statusCores = { 'Concluída': '#00d68a', 'Pendente': '#5233ff', 'Cancelada': '#ff2f5e', 'Devolução': '#ffb020' };
 
         new Chart(document.getElementById('graficoStatus'), {
             type: 'doughnut',
@@ -124,11 +142,16 @@
                 labels: statusLabels,
                 datasets: [{
                     data: statusValores,
-                    backgroundColor: statusLabels.map(s => statusCores[s] || '#6d7882')
+                    backgroundColor: statusLabels.map(s => statusCores[s] || '#c026d3'),
+                    borderColor: '#fff',
+                    borderWidth: 3,
+                    hoverOffset: 10
                 }]
             },
             options: {
+                cutout: '62%',
                 maintainAspectRatio: false,
+                animation: { animateRotate: true, animateScale: true },
                 plugins: { legend: { position: 'bottom' } }
             }
         });
@@ -145,15 +168,17 @@
                     datasets: [{
                         label: 'Quantidade pedida',
                         data: produtosValores,
-                        backgroundColor: '#218351',
-                        borderRadius: 6
+                        backgroundColor: ctx => gradiente(ctx, '#00d68a', '#5233ff'),
+                        hoverBackgroundColor: '#f5359f',
+                        borderRadius: 8
                     }]
                 },
                 options: {
                     indexAxis: 'y',
                     maintainAspectRatio: false,
+                    animation: { delay: ctx => ctx.type === 'data' ? ctx.dataIndex * 90 : 0 },
                     plugins: { legend: { display: false } },
-                    scales: { x: { ticks: { precision: 0 } } }
+                    scales: { x: { grid: { color: '#e9e4f7' }, ticks: { precision: 0 } }, y: { grid: { display: false } } }
                 }
             });
         }
