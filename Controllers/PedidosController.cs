@@ -192,17 +192,19 @@ public class PedidosController : Controller
 
                 page.Content().PaddingVertical(20).Column(column =>
                 {
+                    void AddOptionalDateLine(string label, DateTime? valor)
+                    {
+                        if (valor.HasValue)
+                        {
+                            column.Item().Text($"{label}: {valor.Value:dd/MM/yyyy}");
+                        }
+                    }
+
                     column.Spacing(8);
                     column.Item().Text($"Pedido Nº {pedido.NumeroPedido}");
                     column.Item().Text($"Data: {pedido.DataPedido:dd/MM/yyyy}");
-                    if (pedido.DataVencimento.HasValue)
-                    {
-                        column.Item().Text($"Vencimento: {pedido.DataVencimento.Value:dd/MM/yyyy}");
-                    }
-                    if (pedido.DataPagamento.HasValue)
-                    {
-                        column.Item().Text($"Pagamento: {pedido.DataPagamento.Value:dd/MM/yyyy}");
-                    }
+                    AddOptionalDateLine("Vencimento", pedido.DataVencimento);
+                    AddOptionalDateLine("Pagamento", pedido.DataPagamento);
                     if (!string.IsNullOrWhiteSpace(pedido.NumeroNota))
                     {
                         column.Item().Text($"Nota: {pedido.NumeroNota}");

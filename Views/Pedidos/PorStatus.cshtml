@@ -3,19 +3,6 @@
     ViewData["Title"] = Model.Titulo;
 }
 
-<style>
-    .actions-cell {
-        align-items: center;
-        display: flex;
-        flex-wrap: nowrap;
-        gap: 12px;
-    }
-
-    .actions-cell .table-action {
-        margin: 0;
-    }
-</style>
-
 <div class="page-heading">
     <div><span class="eyebrow">Movimentação</span><h1>@Model.Titulo.</h1><p class="muted">@Model.Descricao</p></div>
     <div class="hero-actions"><a class="button button-outline" style="color:var(--blue);" asp-controller="Pedidos" asp-action="Index">← Ver todos os pedidos</a></div>
@@ -47,25 +34,6 @@
         const ordenarAscendente = @(Model.OrdenarAscendente ? "true" : "false");
         const mostrarRecibo = @(Model.MostrarRecibo ? "true" : "false");
 
-        function formatCurrency(value) {
-            return Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        }
-
-        function formatDate(value) {
-            return value ? new Date(value).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '—';
-        }
-
-        function formatVencimentoPagamentoCell(item) {
-            if (item.dataPagamento) {
-                const venc = item.dataVencimento ? `<br><small class="muted">Venc.: ${formatDate(item.dataVencimento)}</small>` : '';
-                return `Pago em ${formatDate(item.dataPagamento)}${venc}`;
-            }
-            if (item.dataVencimento) {
-                return `Venc.: ${formatDate(item.dataVencimento)}<br><small class="muted">Em aberto</small>`;
-            }
-            return '—';
-        }
-
         async function loadPedidosPorStatus() {
             const response = await fetch(`/api/pedidos?status=${encodeURIComponent(statusFiltro)}`);
             if (!response.ok) {
@@ -83,7 +51,7 @@
                     <td>${item.numeroPedido}</td>
                     <td>${item.clienteNome}</td>
                     <td>${item.itens.map(i => `${i.produtoNome} (x${i.quantidade})`).join(', ')}</td>
-                    <td>${formatCurrency(item.valorComDesconto)}</td>
+                    <td>${formatValorFinalCell(item)}</td>
                     <td>${formatDate(item.dataPedido)}</td>
                     <td>${formatVencimentoPagamentoCell(item)}</td>
                     <td>

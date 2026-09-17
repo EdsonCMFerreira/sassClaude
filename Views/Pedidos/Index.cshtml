@@ -30,28 +30,6 @@
         box-shadow: 0 0 0 3px rgba(23,105,224,.12);
     }
 
-    .items-section .item-actions {
-        align-items: center;
-        display: flex;
-        flex-wrap: nowrap;
-        gap: 12px;
-        white-space: nowrap;
-    }
-
-    .items-section .item-actions .table-action {
-        margin: 0;
-    }
-
-    .actions-cell {
-        align-items: center;
-        display: flex;
-        flex-wrap: nowrap;
-        gap: 12px;
-    }
-
-    .actions-cell .table-action {
-        margin: 0;
-    }
 </style>
 
 <div class="page-heading">
@@ -156,32 +134,6 @@
         let allProdutos = [];
         let itensOriginais = [];
 
-        function formatCurrency(value) {
-            return Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        }
-
-        function formatDate(value) {
-            return value ? new Date(value).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '—';
-        }
-
-        function formatValorFinalCell(item) {
-            const desconto = item.percentualDesconto > 0
-                ? `<br><small class="muted">-${item.percentualDesconto.toLocaleString('pt-BR')}% de ${formatCurrency(item.valorTotal)}</small>`
-                : '';
-            return `${formatCurrency(item.valorComDesconto)}${desconto}`;
-        }
-
-        function formatVencimentoPagamentoCell(item) {
-            if (item.dataPagamento) {
-                const venc = item.dataVencimento ? `<br><small class="muted">Venc.: ${formatDate(item.dataVencimento)}</small>` : '';
-                return `Pago em ${formatDate(item.dataPagamento)}${venc}`;
-            }
-            if (item.dataVencimento) {
-                return `Venc.: ${formatDate(item.dataVencimento)}<br><small class="muted">Em aberto</small>`;
-            }
-            return '—';
-        }
-
         function hoje() {
             return new Date().toISOString().slice(0, 10);
         }
@@ -262,7 +214,7 @@
                 <td><input class="item-valor-unitario" type="number" step="0.01" min="0" value="${initial ? initial.valorUnitario : ''}" required /></td>
                 <td><input class="item-subtotal" type="text" readonly disabled /></td>
                 <td>
-                    <span class="item-actions">
+                    <span class="actions-cell">
                         <button type="button" class="table-action item-add">+ Adicionar</button>
                         <button type="button" class="table-action danger item-remove">Remover</button>
                     </span>
