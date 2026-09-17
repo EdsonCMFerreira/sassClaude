@@ -195,6 +195,14 @@ public class PedidosController : Controller
                     column.Spacing(8);
                     column.Item().Text($"Pedido Nº {pedido.NumeroPedido}");
                     column.Item().Text($"Data: {pedido.DataPedido:dd/MM/yyyy}");
+                    if (pedido.DataVencimento.HasValue)
+                    {
+                        column.Item().Text($"Vencimento: {pedido.DataVencimento.Value:dd/MM/yyyy}");
+                    }
+                    if (pedido.DataPagamento.HasValue)
+                    {
+                        column.Item().Text($"Pagamento: {pedido.DataPagamento.Value:dd/MM/yyyy}");
+                    }
                     if (!string.IsNullOrWhiteSpace(pedido.NumeroNota))
                     {
                         column.Item().Text($"Nota: {pedido.NumeroNota}");
@@ -369,6 +377,8 @@ public class ApiPedidosController : ControllerBase
             NumeroPedido = proximoNumero + 1,
             Cliente = cliente,
             DataPedido = request.DataPedido,
+            DataVencimento = request.DataVencimento,
+            DataPagamento = request.DataPagamento,
             NumeroNota = request.NumeroNota.Trim(),
             FormaPagamento = request.FormaPagamento.Trim(),
             Status = request.Status.Trim(),
@@ -469,6 +479,8 @@ public class ApiPedidosController : ControllerBase
 
         existing.Cliente = cliente;
         existing.DataPedido = request.DataPedido;
+        existing.DataVencimento = request.DataVencimento;
+        existing.DataPagamento = request.DataPagamento;
         existing.NumeroNota = request.NumeroNota.Trim();
         existing.FormaPagamento = request.FormaPagamento.Trim();
         existing.Status = request.Status.Trim();
@@ -598,6 +610,8 @@ public class ApiPedidosController : ControllerBase
             pedido.PercentualDesconto,
             CalcularValorComDesconto(valorTotal, pedido.PercentualDesconto),
             pedido.DataPedido,
+            pedido.DataVencimento,
+            pedido.DataPagamento,
             pedido.NumeroNota,
             pedido.FormaPagamento,
             pedido.Status,
@@ -609,12 +623,12 @@ public class ApiPedidosController : ControllerBase
 public sealed record PedidoItemRequest(int ProdutoId, int Quantidade, decimal ValorUnitario);
 
 public sealed record PedidoRequest(
-    int ClienteId, List<PedidoItemRequest> Itens, DateTime DataPedido,
+    int ClienteId, List<PedidoItemRequest> Itens, DateTime DataPedido, DateTime? DataVencimento, DateTime? DataPagamento,
     string NumeroNota, string FormaPagamento, string Status, decimal PercentualDesconto, string Observacoes);
 
 public sealed record PedidoItemResponse(int Id, int ProdutoId, string ProdutoNome, int Quantidade, decimal ValorUnitario, decimal ValorTotal);
 
 public sealed record PedidoResponse(
     int Id, int NumeroPedido, int ClienteId, string ClienteNome, List<PedidoItemResponse> Itens,
-    decimal ValorTotal, decimal PercentualDesconto, decimal ValorComDesconto, DateTime DataPedido,
+    decimal ValorTotal, decimal PercentualDesconto, decimal ValorComDesconto, DateTime DataPedido, DateTime? DataVencimento, DateTime? DataPagamento,
     string NumeroNota, string FormaPagamento, string Status, string Observacoes, DateTime CreatedAt);

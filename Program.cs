@@ -510,6 +510,8 @@ using (var scope = app.Services.CreateScope())
                 NumeroPedido INTEGER NOT NULL DEFAULT 0,
                 ClienteId INTEGER NULL,
                 DataPedido TEXT NOT NULL,
+                DataVencimento TEXT NULL,
+                DataPagamento TEXT NULL,
                 NumeroNota TEXT NOT NULL,
                 FormaPagamento TEXT NOT NULL,
                 Status TEXT NOT NULL,
@@ -534,6 +536,16 @@ using (var scope = app.Services.CreateScope())
         if (!pedidoColumns.Contains("PercentualDesconto"))
         {
             db.Database.ExecuteSqlRaw("ALTER TABLE Pedidos ADD COLUMN PercentualDesconto TEXT NOT NULL DEFAULT '0';");
+        }
+
+        if (!pedidoColumns.Contains("DataVencimento"))
+        {
+            db.Database.ExecuteSqlRaw("ALTER TABLE Pedidos ADD COLUMN DataVencimento TEXT NULL;");
+        }
+
+        if (!pedidoColumns.Contains("DataPagamento"))
+        {
+            db.Database.ExecuteSqlRaw("ALTER TABLE Pedidos ADD COLUMN DataPagamento TEXT NULL;");
         }
 
         db.Database.ExecuteSqlRaw("""
@@ -566,6 +578,8 @@ using (var scope = app.Services.CreateScope())
                     Id INTEGER NOT NULL CONSTRAINT PK_Pedidos PRIMARY KEY AUTOINCREMENT,
                     ClienteId INTEGER NULL,
                     DataVenda TEXT NOT NULL,
+                    DataVencimento TEXT NULL,
+                    DataPagamento TEXT NULL,
                     NumeroNota TEXT NOT NULL,
                     FormaPagamento TEXT NOT NULL,
                     Status TEXT NOT NULL,
@@ -574,8 +588,8 @@ using (var scope = app.Services.CreateScope())
                     CreatedAt TEXT NOT NULL,
                     CONSTRAINT FK_Pedidos_Clientes_ClienteId FOREIGN KEY (ClienteId) REFERENCES Clientes (Id) ON DELETE SET NULL
                 );
-                INSERT INTO PedidosNovo (Id, ClienteId, DataVenda, NumeroNota, FormaPagamento, Status, PercentualDesconto, Observacoes, CreatedAt)
-                SELECT Id, ClienteId, DataVenda, NumeroNota, FormaPagamento, Status, PercentualDesconto, Observacoes, CreatedAt FROM Pedidos;
+                INSERT INTO PedidosNovo (Id, ClienteId, DataVenda, DataVencimento, DataPagamento, NumeroNota, FormaPagamento, Status, PercentualDesconto, Observacoes, CreatedAt)
+                SELECT Id, ClienteId, DataVenda, DataVencimento, DataPagamento, NumeroNota, FormaPagamento, Status, PercentualDesconto, Observacoes, CreatedAt FROM Pedidos;
                 DROP TABLE Pedidos;
                 ALTER TABLE PedidosNovo RENAME TO Pedidos;
                 """);

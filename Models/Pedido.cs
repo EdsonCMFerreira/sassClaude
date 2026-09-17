@@ -19,6 +19,10 @@ public class Pedido : ITenantScoped
 
     public DateTime DataPedido { get; set; }
 
+    public DateTime? DataVencimento { get; set; }
+
+    public DateTime? DataPagamento { get; set; }
+
     [StringLength(50)]
     public string NumeroNota { get; set; } = string.Empty;
 

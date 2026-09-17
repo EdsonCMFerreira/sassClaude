@@ -30,10 +30,27 @@
         box-shadow: 0 0 0 3px rgba(23,105,224,.12);
     }
 
-    .items-section .table-action {
-        display: block;
-        margin: 0 0 6px;
-        text-align: left;
+    .items-section .item-actions {
+        align-items: center;
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 12px;
+        white-space: nowrap;
+    }
+
+    .items-section .item-actions .table-action {
+        margin: 0;
+    }
+
+    .actions-cell {
+        align-items: center;
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 12px;
+    }
+
+    .actions-cell .table-action {
+        margin: 0;
     }
 </style>
 
@@ -56,12 +73,17 @@
             <div class="user-form-grid">
                 <div><label for="numeroPedido">Número do pedido</label><input id="numeroPedido" type="text" readonly disabled placeholder="Gerado automaticamente ao salvar" /></div>
                 <div><label for="clienteId">Cliente</label><select id="clienteId" required><option value="">Selecione...</option></select></div>
-                <div><label for="dataPedido">Data do pedido</label><input id="dataPedido" type="date" required /></div>
-                <div><label for="numeroNota">Número da nota</label><input id="numeroNota" /></div>
+                <div><label for="dataPedido">Data de emissão</label><input id="dataPedido" type="date" required /></div>
+
+                <div class="form-section-title">Vencimento e pagamento</div>
+                <div><label for="dataVencimento">Data de vencimento</label><input id="dataVencimento" type="date" /></div>
+                <div><label for="dataPagamento">Data de pagamento</label><input id="dataPagamento" type="date" /></div>
                 <div><label for="formaPagamento">Forma de pagamento</label><select id="formaPagamento"><option value="">Selecione...</option><option>Dinheiro</option><option>Cartão de crédito</option><option>Cartão de débito</option><option>PIX</option><option>Boleto</option><option>Transferência</option></select></div>
+                <div><label for="numeroNota">Número da nota</label><input id="numeroNota" /></div>
                 <div><label for="status">Status</label><select id="status"><option>Pendente</option><option>Concluída</option><option>Cancelada</option><option>Devolução</option></select></div>
                 <div><label for="percentualDesconto">Desconto (%)</label><input id="percentualDesconto" type="number" step="0.01" min="0" max="100" value="0" /></div>
-                <div><label for="observacoes">Observações</label><input id="observacoes" /></div>
+
+                <div class="field-full"><label for="observacoes">Observações</label><textarea id="observacoes" rows="2"></textarea></div>
             </div>
 
             <div class="items-section">
@@ -74,7 +96,7 @@
                                 <th style="width:110px;">Quantidade</th>
                                 <th style="width:130px;">Valor unitário</th>
                                 <th style="width:130px;">Subtotal</th>
-                                <th style="width:140px;"></th>
+                                <th style="width:190px;"></th>
                             </tr>
                         </thead>
                         <tbody id="itensTableBody"></tbody>
@@ -98,10 +120,9 @@
                     <th>Nº do pedido</th>
                     <th>Cliente</th>
                     <th>Produtos</th>
-                    <th>Valor total</th>
-                    <th>Desconto</th>
                     <th>Valor final</th>
-                    <th>Data</th>
+                    <th>Emissão</th>
+                    <th>Vencimento / pagamento</th>
                     <th>Status</th>
                     <th>Ações</th>
                 </tr>
@@ -118,6 +139,8 @@
         const numeroPedido = document.getElementById('numeroPedido');
         const clienteId = document.getElementById('clienteId');
         const dataPedido = document.getElementById('dataPedido');
+        const dataVencimento = document.getElementById('dataVencimento');
+        const dataPagamento = document.getElementById('dataPagamento');
         const numeroNota = document.getElementById('numeroNota');
         const formaPagamento = document.getElementById('formaPagamento');
         const status = document.getElementById('status');
@@ -139,6 +162,24 @@
 
         function formatDate(value) {
             return value ? new Date(value).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '—';
+        }
+
+        function formatValorFinalCell(item) {
+            const desconto = item.percentualDesconto > 0
+                ? `<br><small class="muted">-${item.percentualDesconto.toLocaleString('pt-BR')}% de ${formatCurrency(item.valorTotal)}</small>`
+                : '';
+            return `${formatCurrency(item.valorComDesconto)}${desconto}`;
+        }
+
+        function formatVencimentoPagamentoCell(item) {
+            if (item.dataPagamento) {
+                const venc = item.dataVencimento ? `<br><small class="muted">Venc.: ${formatDate(item.dataVencimento)}</small>` : '';
+                return `Pago em ${formatDate(item.dataPagamento)}${venc}`;
+            }
+            if (item.dataVencimento) {
+                return `Venc.: ${formatDate(item.dataVencimento)}<br><small class="muted">Em aberto</small>`;
+            }
+            return '—';
         }
 
         function hoje() {
@@ -221,8 +262,10 @@
                 <td><input class="item-valor-unitario" type="number" step="0.01" min="0" value="${initial ? initial.valorUnitario : ''}" required /></td>
                 <td><input class="item-subtotal" type="text" readonly disabled /></td>
                 <td>
-                    <button type="button" class="table-action item-add">+ Adicionar</button>
-                    <button type="button" class="table-action danger item-remove">Remover</button>
+                    <span class="item-actions">
+                        <button type="button" class="table-action item-add">+ Adicionar</button>
+                        <button type="button" class="table-action danger item-remove">Remover</button>
+                    </span>
                 </td>
             `;
 
@@ -299,18 +342,19 @@
                     <td>${item.numeroPedido}</td>
                     <td>${item.clienteNome}</td>
                     <td>${item.itens.map(i => `${i.produtoNome} (x${i.quantidade})`).join(', ')}</td>
-                    <td>${formatCurrency(item.valorTotal)}</td>
-                    <td>${item.percentualDesconto > 0 ? item.percentualDesconto.toLocaleString('pt-BR') + '%' : '—'}</td>
-                    <td>${formatCurrency(item.valorComDesconto)}</td>
+                    <td>${formatValorFinalCell(item)}</td>
                     <td>${formatDate(item.dataPedido)}</td>
+                    <td>${formatVencimentoPagamentoCell(item)}</td>
                     <td>${item.status}</td>
                     <td>
-                        ${item.status === 'Concluída' ? `<a class="table-action" href="/Pedidos/Recibo/${item.id}" target="_blank" rel="noopener">Recibo</a>` : ''}
-                        <button class="table-action" data-edit="${item.id}">Editar</button>
-                        <button class="table-action danger" data-delete="${item.id}">Excluir</button>
+                        <span class="actions-cell">
+                            ${item.status === 'Concluída' ? `<a class="table-action" href="/Pedidos/Recibo/${item.id}" target="_blank" rel="noopener">Recibo</a>` : ''}
+                            <button class="table-action" data-edit="${item.id}">Editar</button>
+                            <button class="table-action danger" data-delete="${item.id}">Excluir</button>
+                        </span>
                     </td>
                 </tr>
-            `).join('') || '<tr><td colspan="9" class="muted">Nenhum pedido registrado ainda.</td></tr>';
+            `).join('') || '<tr><td colspan="8" class="muted">Nenhum pedido registrado ainda.</td></tr>';
 
             tableBody.querySelectorAll('[data-edit]').forEach(button => {
                 button.addEventListener('click', () => editPedido(Number(button.dataset.edit)));
@@ -328,6 +372,8 @@
             numeroPedido.value = data.numeroPedido;
             clienteId.value = data.clienteId;
             dataPedido.value = data.dataPedido.slice(0, 10);
+            dataVencimento.value = data.dataVencimento ? data.dataVencimento.slice(0, 10) : '';
+            dataPagamento.value = data.dataPagamento ? data.dataPagamento.slice(0, 10) : '';
             numeroNota.value = data.numeroNota;
             formaPagamento.value = data.formaPagamento;
             status.value = data.status;
@@ -382,6 +428,8 @@
                 clienteId: Number(clienteId.value),
                 itens,
                 dataPedido: dataPedido.value,
+                dataVencimento: dataVencimento.value || null,
+                dataPagamento: dataPagamento.value || null,
                 numeroNota: numeroNota.value.trim(),
                 formaPagamento: formaPagamento.value,
                 status: status.value,
