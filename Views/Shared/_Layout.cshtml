@@ -10,11 +10,13 @@
     <link rel="stylesheet" href="~/Saas.styles.css" asp-append-version="true" />
 </head>
 <body>
-    <header class="app-header">
-        <nav class="app-nav">
-            <a class="brand-lockup" asp-controller="Dashboard" asp-action="Index"><span class="brand-mark">S</span> Saas</a>
-            <button class="mobile-nav-toggle" type="button" onclick="document.body.classList.toggle('nav-open')" aria-label="Abrir menu">☰</button>
-            <div class="app-nav-links">
+    <div class="app-shell">
+        <aside class="app-sidebar">
+            <div class="sidebar-top">
+                <a class="brand-lockup" asp-controller="Dashboard" asp-action="Index"><span class="brand-mark">S</span> Saas</a>
+                <button class="mobile-nav-toggle" type="button" onclick="document.body.classList.toggle('nav-open')" aria-label="Abrir menu">☰</button>
+            </div>
+            <nav class="sidebar-nav">
                 <a asp-controller="Dashboard" asp-action="Index">Visão geral</a>
                 <a asp-controller="Workspace" asp-action="Index">Workspace</a>
                 <div class="nav-dropdown">
@@ -49,29 +51,31 @@
                 {
                     <a asp-controller="SuperAdmin" asp-action="Index">Superadmin</a>
                 }
-            </div>
-            <div class="app-nav-actions">
-                <a class="nav-icon-link" asp-controller="Settings" asp-action="Index" aria-label="Configurações">⚙</a>
+            </nav>
+            <div class="sidebar-footer">
+                <a class="nav-icon-link" asp-controller="Settings" asp-action="Index" aria-label="Configurações">⚙ <span>Configurações</span></a>
                 <span class="user-chip"><span class="user-avatar">@User.Identity?.Name?.Substring(0, 1).ToUpper()</span><span>@User.Identity?.Name</span></span>
                 <form asp-controller="Account" asp-action="Logout" method="post"><button class="nav-logout" type="submit">Sair</button></form>
             </div>
-        </nav>
-    </header>
-    <div class="app-container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
-
-    <footer class="app-footer">
-        <div>
-            <span>© 2026 Saas</span>
-            <div class="footer-links">
-                <a asp-controller="Home" asp-action="Privacy">Privacidade</a>
-                <a asp-controller="Home" asp-action="Terms">Termos</a>
+        </aside>
+        <div class="app-main">
+            <div class="app-container">
+                <main role="main" class="pb-3">
+                    @RenderBody()
+                </main>
             </div>
+
+            <footer class="app-footer">
+                <div>
+                    <span>© 2026 Saas</span>
+                    <div class="footer-links">
+                        <a asp-controller="Home" asp-action="Privacy">Privacidade</a>
+                        <a asp-controller="Home" asp-action="Terms">Termos</a>
+                    </div>
+                </div>
+            </footer>
         </div>
-    </footer>
+    </div>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
