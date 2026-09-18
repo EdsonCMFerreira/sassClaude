@@ -87,7 +87,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     <script>
         Chart.defaults.font.family = "'Segoe UI', sans-serif";
-        Chart.defaults.color = '#6f6b85';
+        Chart.defaults.color = '#6f6a63';
         Chart.defaults.animation.duration = 1300;
         Chart.defaults.animation.easing = 'easeOutQuart';
 
@@ -112,8 +112,8 @@
                 datasets: [{
                     label: 'Faturamento',
                     data: faturamentoValores,
-                    backgroundColor: ctx => gradiente(ctx, '#c026d3', '#5233ff'),
-                    hoverBackgroundColor: '#f5359f',
+                    backgroundColor: ctx => gradiente(ctx, '#ff8a00', '#ff6a00'),
+                    hoverBackgroundColor: '#e8491d',
                     borderRadius: 8,
                     maxBarThickness: 46
                 }]
@@ -126,7 +126,7 @@
                     tooltip: { callbacks: { label: ctx => ptBrCurrency(ctx.parsed.y) } }
                 },
                 scales: {
-                    y: { grid: { color: '#e9e4f7' }, ticks: { callback: value => ptBrCurrency(value) } },
+                    y: { grid: { color: '#ece6df' }, ticks: { callback: value => ptBrCurrency(value) } },
                     x: { grid: { display: false } }
                 }
             }
@@ -134,7 +134,7 @@
 
         const statusLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PorStatus.Select(s => s.Status)));
         const statusValores = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PorStatus.Select(s => s.Quantidade)));
-        const statusCores = { 'Concluída': '#00d68a', 'Pendente': '#5233ff', 'Cancelada': '#ff2f5e', 'Devolução': '#ffb020' };
+        const statusCores = { 'Concluída': '#17a673', 'Pendente': '#ff6a00', 'Cancelada': '#e5484d', 'Devolução': '#f2a900' };
 
         new Chart(document.getElementById('graficoStatus'), {
             type: 'doughnut',
@@ -142,7 +142,7 @@
                 labels: statusLabels,
                 datasets: [{
                     data: statusValores,
-                    backgroundColor: statusLabels.map(s => statusCores[s] || '#c026d3'),
+                    backgroundColor: statusLabels.map(s => statusCores[s] || '#ff8a00'),
                     borderColor: '#fff',
                     borderWidth: 3,
                     hoverOffset: 10
@@ -168,8 +168,8 @@
                     datasets: [{
                         label: 'Quantidade pedida',
                         data: produtosValores,
-                        backgroundColor: ctx => gradiente(ctx, '#00d68a', '#5233ff'),
-                        hoverBackgroundColor: '#f5359f',
+                        backgroundColor: ctx => gradiente(ctx, '#17a673', '#ff6a00'),
+                        hoverBackgroundColor: '#e8491d',
                         borderRadius: 8
                     }]
                 },
@@ -178,7 +178,7 @@
                     maintainAspectRatio: false,
                     animation: { delay: ctx => ctx.type === 'data' ? ctx.dataIndex * 90 : 0 },
                     plugins: { legend: { display: false } },
-                    scales: { x: { grid: { color: '#e9e4f7' }, ticks: { precision: 0 } }, y: { grid: { display: false } } }
+                    scales: { x: { grid: { color: '#ece6df' }, ticks: { precision: 0 } }, y: { grid: { display: false } } }
                 }
             });
         }

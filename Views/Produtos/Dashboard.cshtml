@@ -88,7 +88,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     <script>
         Chart.defaults.font.family = "'Segoe UI', sans-serif";
-        Chart.defaults.color = '#6f6b85';
+        Chart.defaults.color = '#6f6a63';
         Chart.defaults.animation.duration = 1300;
         Chart.defaults.animation.easing = 'easeOutQuart';
 
@@ -106,13 +106,13 @@
                         data: lucroValores,
                         backgroundColor: ctx => {
                             const area = ctx.chart.chartArea;
-                            if (!area) return '#00d68a';
+                            if (!area) return '#17a673';
                             const gradient = ctx.chart.ctx.createLinearGradient(area.left, 0, area.right, 0);
-                            gradient.addColorStop(0, '#00d68a');
-                            gradient.addColorStop(1, '#5233ff');
+                            gradient.addColorStop(0, '#17a673');
+                            gradient.addColorStop(1, '#ff6a00');
                             return gradient;
                         },
-                        hoverBackgroundColor: '#f5359f',
+                        hoverBackgroundColor: '#e8491d',
                         borderRadius: 8
                     }]
                 },
@@ -125,7 +125,7 @@
                         tooltip: { callbacks: { label: ctx => `${ctx.parsed.x.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%` } }
                     },
                     scales: {
-                        x: { grid: { color: '#e9e4f7' }, ticks: { callback: value => `${value}%` } },
+                        x: { grid: { color: '#ece6df' }, ticks: { callback: value => `${value}%` } },
                         y: { grid: { display: false } }
                     }
                 }
