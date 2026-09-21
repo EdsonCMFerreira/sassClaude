@@ -87,8 +87,11 @@
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     <script>
+        const tema = getComputedStyle(document.documentElement);
+        const cor = nomeVariavel => tema.getPropertyValue(nomeVariavel).trim();
+
         Chart.defaults.font.family = "'Segoe UI', sans-serif";
-        Chart.defaults.color = '#6f6a63';
+        Chart.defaults.color = cor('--muted');
         Chart.defaults.animation.duration = 1300;
         Chart.defaults.animation.easing = 'easeOutQuart';
 
@@ -106,13 +109,13 @@
                         data: lucroValores,
                         backgroundColor: ctx => {
                             const area = ctx.chart.chartArea;
-                            if (!area) return '#17a673';
+                            if (!area) return cor('--green');
                             const gradient = ctx.chart.ctx.createLinearGradient(area.left, 0, area.right, 0);
-                            gradient.addColorStop(0, '#17a673');
-                            gradient.addColorStop(1, '#ff6a00');
+                            gradient.addColorStop(0, cor('--green'));
+                            gradient.addColorStop(1, cor('--blue'));
                             return gradient;
                         },
-                        hoverBackgroundColor: '#e8491d',
+                        hoverBackgroundColor: cor('--ember'),
                         borderRadius: 8
                     }]
                 },
@@ -125,7 +128,7 @@
                         tooltip: { callbacks: { label: ctx => `${ctx.parsed.x.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%` } }
                     },
                     scales: {
-                        x: { grid: { color: '#ece6df' }, ticks: { callback: value => `${value}%` } },
+                        x: { grid: { color: cor('--line') }, ticks: { callback: value => `${value}%` } },
                         y: { grid: { display: false } }
                     }
                 }
