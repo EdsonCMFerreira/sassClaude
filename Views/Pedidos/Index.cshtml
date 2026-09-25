@@ -53,6 +53,14 @@
                 <div><label for="clienteId">Cliente</label><select id="clienteId" required><option value="">Selecione...</option></select></div>
                 <div><label for="dataPedido">Data de emissão</label><input id="dataPedido" type="date" required /></div>
 
+                <div class="form-section-title">Endereço de entrega do cliente</div>
+                <div><label for="clienteEndereco">Endereço</label><input id="clienteEndereco" readonly disabled /></div>
+                <div><label for="clienteNumero">Número</label><input id="clienteNumero" readonly disabled /></div>
+                <div><label for="clienteComplemento">Complemento</label><input id="clienteComplemento" readonly disabled /></div>
+                <div><label for="clienteBairro">Bairro</label><input id="clienteBairro" readonly disabled /></div>
+                <div><label for="clienteCidade">Cidade</label><input id="clienteCidade" readonly disabled /></div>
+                <div><label for="clienteUf">UF</label><input id="clienteUf" readonly disabled /></div>
+
                 <div class="form-section-title">Vencimento e pagamento</div>
                 <div><label for="dataVencimento">Data de vencimento</label><input id="dataVencimento" type="date" /></div>
                 <div><label for="dataPagamento">Data de pagamento</label><input id="dataPagamento" type="date" /></div>
@@ -120,6 +128,12 @@
         const pedidoId = document.getElementById('pedidoId');
         const numeroPedido = document.getElementById('numeroPedido');
         const clienteId = document.getElementById('clienteId');
+        const clienteEndereco = document.getElementById('clienteEndereco');
+        const clienteNumero = document.getElementById('clienteNumero');
+        const clienteComplemento = document.getElementById('clienteComplemento');
+        const clienteBairro = document.getElementById('clienteBairro');
+        const clienteCidade = document.getElementById('clienteCidade');
+        const clienteUf = document.getElementById('clienteUf');
         const dataPedido = document.getElementById('dataPedido');
         const dataVencimento = document.getElementById('dataVencimento');
         const dataPagamento = document.getElementById('dataPagamento');
@@ -139,6 +153,7 @@
         const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
         const PEDIDOS_POR_PAGINA = 8;
         let allProdutos = [];
+        let allClientes = [];
         let itensOriginais = [];
         let todosPedidos = [];
         let paginaAtual = 1;
@@ -269,6 +284,7 @@
             pedidoId.value = '';
             numeroPedido.value = '';
             dataPedido.value = hoje();
+            atualizarEnderecoCliente();
             itensOriginais = [];
             itensTableBody.innerHTML = '';
             addItemRow();
@@ -280,10 +296,20 @@
 
         async function loadClientesOptions() {
             const response = await fetch('/api/clientes');
-            const data = await response.json();
-            clienteId.innerHTML = '<option value="">Selecione...</option>' + data.map(item =>
+            allClientes = await response.json();
+            clienteId.innerHTML = '<option value="">Selecione...</option>' + allClientes.map(item =>
                 `<option value="${item.id}">${item.nome} — ${item.cpfCnpj}</option>`
             ).join('');
+        }
+
+        function atualizarEnderecoCliente() {
+            const cliente = allClientes.find(c => c.id === Number(clienteId.value));
+            clienteEndereco.value = cliente?.entregaEndereco || '';
+            clienteNumero.value = cliente?.entregaNumero || '';
+            clienteComplemento.value = cliente?.entregaComplemento || '';
+            clienteBairro.value = cliente?.entregaBairro || '';
+            clienteCidade.value = cliente?.entregaCidade || '';
+            clienteUf.value = cliente?.entregaUf || '';
         }
 
         async function loadProdutosOptions() {
@@ -350,6 +376,7 @@
             pedidoId.value = data.id;
             numeroPedido.value = data.numeroPedido;
             clienteId.value = data.clienteId;
+            atualizarEnderecoCliente();
             dataPedido.value = data.dataPedido.slice(0, 10);
             dataVencimento.value = data.dataVencimento ? data.dataVencimento.slice(0, 10) : '';
             dataPagamento.value = data.dataPagamento ? data.dataPagamento.slice(0, 10) : '';
@@ -384,6 +411,7 @@
         addItemButton.addEventListener('click', () => addItemRow());
         percentualDesconto.addEventListener('input', atualizarTotais);
         status.addEventListener('change', atualizarCampoDesconto);
+        clienteId.addEventListener('change', atualizarEnderecoCliente);
 
         form.addEventListener('submit', async (event) => {
             event.preventDefault();
