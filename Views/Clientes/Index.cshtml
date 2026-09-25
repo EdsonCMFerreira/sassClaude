@@ -263,7 +263,8 @@
                 toast('Cliente excluído.');
                 await loadClientes();
             } else {
-                toast('Não foi possível excluir o cliente.', 'error');
+                const errorText = await response.text();
+                toast(errorText || 'Não foi possível excluir o cliente.', 'error');
             }
         }
 

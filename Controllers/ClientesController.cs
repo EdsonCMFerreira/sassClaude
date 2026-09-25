@@ -155,6 +155,12 @@ public class ApiClientesController : ControllerBase
             return NotFound();
         }
 
+        var temPedido = await _context.Pedidos.AnyAsync(p => p.ClienteId == id);
+        if (temPedido)
+        {
+            return BadRequest("Não é possível excluir um cliente que já possui pedidos.");
+        }
+
         _context.Clientes.Remove(cliente);
         await _context.SaveChangesAsync();
         return NoContent();
