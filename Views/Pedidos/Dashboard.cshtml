@@ -5,7 +5,7 @@
 }
 <div class="page-heading">
     <div><span class="eyebrow">Movimentação</span><h1>Dashboard de pedidos.</h1><p class="muted">Faturamento, status e produtos mais pedidos.</p></div>
-    <a class="button button-outline" style="color:var(--blue);" asp-controller="Pedidos" asp-action="Index">← Ver pedidos</a>
+    <a class="button button-outline" asp-controller="Pedidos" asp-action="Index">← Ver pedidos</a>
 </div>
 
 <div class="surface-card users-card" style="padding:20px 27px;">
@@ -45,7 +45,7 @@
         </div>
         @if (Model.AnoSelecionado.HasValue)
         {
-            <a asp-action="Dashboard" class="button button-outline" style="color:var(--blue);">Limpar filtro</a>
+            <a asp-action="Dashboard" class="button button-outline">Limpar filtro</a>
         }
     </form>
 </div>
