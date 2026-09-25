@@ -105,7 +105,9 @@ public class ApiClientesController : ControllerBase
         }
 
         var cpfCnpj = request.CpfCnpj.Trim();
-        var alreadyExists = await _context.Clientes.AnyAsync(item => item.CpfCnpj == cpfCnpj);
+        var cpfCnpjDigits = SomenteDigitos(cpfCnpj);
+        var alreadyExists = await _context.Clientes.AnyAsync(item =>
+            item.CpfCnpj.Replace(".", "").Replace("-", "").Replace("/", "").Replace(" ", "") == cpfCnpjDigits);
         if (alreadyExists)
         {
             return BadRequest("Já existe um cliente com esse CPF/CNPJ.");
@@ -134,7 +136,9 @@ public class ApiClientesController : ControllerBase
         }
 
         var cpfCnpj = request.CpfCnpj.Trim();
-        var cpfCnpjTaken = await _context.Clientes.AnyAsync(item => item.Id != id && item.CpfCnpj == cpfCnpj);
+        var cpfCnpjDigits = SomenteDigitos(cpfCnpj);
+        var cpfCnpjTaken = await _context.Clientes.AnyAsync(item => item.Id != id &&
+            item.CpfCnpj.Replace(".", "").Replace("-", "").Replace("/", "").Replace(" ", "") == cpfCnpjDigits);
         if (cpfCnpjTaken)
         {
             return BadRequest("Já existe um cliente com esse CPF/CNPJ.");
@@ -165,6 +169,8 @@ public class ApiClientesController : ControllerBase
         await _context.SaveChangesAsync();
         return NoContent();
     }
+
+    private static string SomenteDigitos(string valor) => new(valor.Where(char.IsDigit).ToArray());
 
     private static Cliente FromRequest(Cliente cliente, ClienteRequest request)
     {
