@@ -59,14 +59,22 @@
 
 <div class="content-grid">
     <section class="surface-card activity-card">
-        <div class="section-heading"><div><span class="eyebrow">Faturamento</span><h2>@Model.FaturamentoTitulo</h2></div></div>
+        <div class="section-heading"><div><span class="eyebrow">Faturamento</span><h2>@Model.FaturamentoTitulo</h2><p class="muted">@Model.ValorTotalConcluidos.ToString("C", ptBr) em pedidos concluídos @Model.PeriodoDescricao.</p></div></div>
         <div style="height:280px;"><canvas id="graficoFaturamento"></canvas></div>
     </section>
     <aside class="settings-stack">
         <div class="surface-card settings-card">
             <span class="eyebrow">Status</span>
             <h2>Pedidos por status</h2>
-            <div style="height:220px;"><canvas id="graficoStatus"></canvas></div>
+            @if (!Model.PorStatus.Any())
+            {
+                <p class="muted">Nenhum pedido registrado @Model.PeriodoDescricao.</p>
+            }
+            else
+            {
+                <p class="muted" style="margin-bottom:10px;">@Model.TotalPedidos pedido(s) @Model.PeriodoDescricao.</p>
+                <div style="height:220px;"><canvas id="graficoStatus"></canvas></div>
+            }
         </div>
         <div class="surface-card settings-card">
             <span class="eyebrow">Produtos</span>
@@ -135,29 +143,35 @@
             }
         });
 
-        const statusLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PorStatus.Select(s => s.Status)));
-        const statusValores = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PorStatus.Select(s => s.Quantidade)));
-        const statusCores = { 'Concluída': cor('--green'), 'Pendente': cor('--neutral'), 'Cancelada': cor('--coral'), 'Devolução': cor('--amber') };
+        const statusCanvas = document.getElementById('graficoStatus');
+        if (statusCanvas) {
+            const statusLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PorStatus.Select(s => s.Status)));
+            const statusValores = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PorStatus.Select(s => s.Quantidade)));
+            const statusCores = { 'Concluída': cor('--green'), 'Pendente': cor('--neutral'), 'Cancelada': cor('--coral'), 'Devolução': cor('--amber') };
 
-        new Chart(document.getElementById('graficoStatus'), {
-            type: 'doughnut',
-            data: {
-                labels: statusLabels,
-                datasets: [{
-                    data: statusValores,
-                    backgroundColor: statusLabels.map(s => statusCores[s] || cor('--flare')),
-                    borderColor: '#fff',
-                    borderWidth: 3,
-                    hoverOffset: 10
-                }]
-            },
-            options: {
-                cutout: '62%',
-                maintainAspectRatio: false,
-                animation: { animateRotate: true, animateScale: true },
-                plugins: { legend: { position: 'bottom' } }
-            }
-        });
+            new Chart(statusCanvas, {
+                type: 'doughnut',
+                data: {
+                    labels: statusLabels,
+                    datasets: [{
+                        data: statusValores,
+                        backgroundColor: statusLabels.map(s => statusCores[s] || cor('--flare')),
+                        borderColor: '#fff',
+                        borderWidth: 3,
+                        hoverOffset: 10
+                    }]
+                },
+                options: {
+                    cutout: '62%',
+                    maintainAspectRatio: false,
+                    animation: { animateRotate: true, animateScale: true },
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.parsed} pedido(s)` } }
+                    }
+                }
+            });
+        }
 
         const produtosCanvas = document.getElementById('graficoProdutos');
         if (produtosCanvas) {

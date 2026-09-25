@@ -2,17 +2,29 @@
 @{
     ViewData["Title"] = "Financeiro";
     var ptBr = new System.Globalization.CultureInfo("pt-BR");
+
+    string BadgeClasse(string situacao) => situacao switch
+    {
+        "Vencido" => "status-badge--cancelada",
+        "Vence em breve" => "status-badge--devolucao",
+        "Em dia" => "status-badge--concluida",
+        _ => "status-badge--pendente"
+    };
 }
 <div class="page-heading">
-    <div><span class="eyebrow">Financeiro</span><h1>Resumo de vendas.</h1><p class="muted">Entradas a partir das vendas concluídas, já com desconto aplicado.</p></div>
+    <div><span class="eyebrow">Financeiro</span><h1>Resumo financeiro.</h1><p class="muted">Entradas realizadas e contas a receber, a partir dos pedidos registrados.</p></div>
 </div>
 
 <div class="metric-grid">
-    <article class="metric-card metric-highlight"><span class="metric-label">Total de entradas</span><strong>@Model.TotalEntradas.ToString("C", ptBr)</strong><span class="metric-caption">vendas concluídas</span></article>
+    <article class="metric-card metric-highlight"><span class="metric-label">Total recebido</span><strong>@Model.TotalEntradas.ToString("C", ptBr)</strong><span class="metric-caption">vendas concluídas</span></article>
+    <article class="metric-card"><span class="metric-label">Em aberto</span><strong>@Model.TotalEmAberto.ToString("C", ptBr)</strong><span class="metric-caption">@Model.QuantidadeEmAberto pedido(s) aguardando pagamento</span></article>
+    <article class="metric-card"><span class="metric-label">Vencido</span><strong class="@(Model.TotalVencido > 0 ? "status-negative" : "")">@Model.TotalVencido.ToString("C", ptBr)</strong><span class="metric-caption">precisa de atenção</span></article>
+    <article class="metric-card"><span class="metric-label">Vence em 7 dias</span><strong>@Model.TotalVenceEm7Dias.ToString("C", ptBr)</strong><span class="metric-caption">fique de olho</span></article>
 </div>
 
 <div class="surface-card users-card">
-    <div class="section-heading"><div><h2>Últimos 6 meses</h2><p class="muted">Só entram no cálculo vendas com status "Concluída".</p></div></div>
+    <div class="section-heading"><div><h2>Entradas nos últimos 6 meses</h2><p class="muted">Só entram no cálculo vendas com status "Concluída", já com desconto aplicado.</p></div></div>
+    <div style="padding:10px 27px 0;"><div style="height:240px;"><canvas id="graficoEntradas"></canvas></div></div>
     <div class="table-wrap">
         <table class="data-table">
             <thead class="table-light">
@@ -33,3 +45,100 @@
         </table>
     </div>
 </div>
+
+<div class="surface-card users-card" style="margin-top:18px;">
+    <div class="section-heading"><div><h2>Contas a receber</h2><p class="muted">Pedidos não cancelados/devolvidos que ainda não têm data de pagamento registrada, do vencimento mais próximo para o mais distante.</p></div></div>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead class="table-light">
+                <tr>
+                    <th>Nº do pedido</th>
+                    <th>Cliente</th>
+                    <th>Valor</th>
+                    <th>Vencimento</th>
+                    <th>Situação</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.ContasAReceber.Any())
+                {
+                    <tr><td colspan="6" class="muted">Nenhuma conta em aberto — tudo pago ou não há pedidos ativos.</td></tr>
+                }
+                @foreach (var conta in Model.ContasAReceber)
+                {
+                    <tr>
+                        <td>@conta.NumeroPedido</td>
+                        <td>@conta.ClienteNome</td>
+                        <td>@conta.Valor.ToString("C", ptBr)</td>
+                        <td>
+                            @(conta.DataVencimento?.ToString("dd/MM/yyyy") ?? "—")
+                            @if (conta.DiasParaVencer.HasValue)
+                            {
+                                <br />
+                                <small class="muted">
+                                    @(conta.DiasParaVencer.Value < 0
+                                        ? $"{Math.Abs(conta.DiasParaVencer.Value)} dia(s) em atraso"
+                                        : conta.DiasParaVencer.Value == 0 ? "Vence hoje" : $"em {conta.DiasParaVencer.Value} dia(s)")
+                                </small>
+                            }
+                        </td>
+                        <td><span class="status-badge @BadgeClasse(conta.Situacao)">@conta.Situacao</span></td>
+                        <td><a class="table-action" href="/Pedidos?editar=@conta.PedidoId">Editar</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script>
+        const tema = getComputedStyle(document.documentElement);
+        const cor = nomeVariavel => tema.getPropertyValue(nomeVariavel).trim();
+
+        Chart.defaults.font.family = "'Segoe UI', sans-serif";
+        Chart.defaults.color = cor('--muted');
+        Chart.defaults.animation.duration = 1300;
+        Chart.defaults.animation.easing = 'easeOutQuart';
+
+        const ptBrCurrency = value => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+        const mesesLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Meses.Select(m => m.Mes.ToString("MMM/yyyy", ptBr))));
+        const mesesValores = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Meses.Select(m => m.Entradas)));
+
+        new Chart(document.getElementById('graficoEntradas'), {
+            type: 'bar',
+            data: {
+                labels: mesesLabels,
+                datasets: [{
+                    label: 'Entradas',
+                    data: mesesValores,
+                    backgroundColor: ctx => {
+                        const area = ctx.chart.chartArea;
+                        if (!area) return cor('--blue');
+                        const gradient = ctx.chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
+                        gradient.addColorStop(0, cor('--flare'));
+                        gradient.addColorStop(1, cor('--blue'));
+                        return gradient;
+                    },
+                    hoverBackgroundColor: cor('--ember'),
+                    borderRadius: 8,
+                    maxBarThickness: 46
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: ctx => ptBrCurrency(ctx.parsed.y) } }
+                },
+                scales: {
+                    y: { grid: { color: cor('--line') }, ticks: { callback: value => ptBrCurrency(value) } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    </script>
+}

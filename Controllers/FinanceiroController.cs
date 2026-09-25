@@ -18,7 +18,12 @@ public class FinanceiroController : Controller
 
     public async Task<IActionResult> Index()
     {
-        var pedidos = await _context.Pedidos.Include(p => p.Itens).Where(p => p.Status == "Concluída").ToListAsync();
+        var todosPedidos = await _context.Pedidos
+            .Include(p => p.Cliente)
+            .Include(p => p.Itens)
+            .ToListAsync();
+
+        var concluidos = todosPedidos.Where(p => p.Status == "Concluída").ToList();
 
         var hoje = DateTime.UtcNow.Date;
         var meses = Enumerable.Range(0, 6)
@@ -26,13 +31,35 @@ public class FinanceiroController : Controller
             .OrderBy(d => d)
             .Select(mes => new DreRow(
                 mes,
-                pedidos.Where(p => p.DataPedido.Year == mes.Year && p.DataPedido.Month == mes.Month).Sum(ValorLiquido)))
+                concluidos.Where(p => p.DataPedido.Year == mes.Year && p.DataPedido.Month == mes.Month).Sum(ValorLiquido)))
+            .ToList();
+
+        var contasAReceber = todosPedidos
+            .Where(p => p.Status != "Cancelada" && p.Status != "Devolução" && !p.DataPagamento.HasValue)
+            .Select(p =>
+            {
+                int? dias = p.DataVencimento.HasValue ? (int)(p.DataVencimento.Value.Date - hoje).TotalDays : null;
+                var situacao = dias switch
+                {
+                    null => "Sem vencimento",
+                    < 0 => "Vencido",
+                    <= 7 => "Vence em breve",
+                    _ => "Em dia"
+                };
+                return new ContaReceberRow(p.Id, p.NumeroPedido, p.Cliente?.Nome ?? "—", ValorLiquido(p), p.DataVencimento, dias, situacao);
+            })
+            .OrderBy(r => r.DataVencimento ?? DateTime.MaxValue)
             .ToList();
 
         var model = new FinanceiroViewModel
         {
-            TotalEntradas = pedidos.Sum(ValorLiquido),
-            Meses = meses
+            TotalEntradas = concluidos.Sum(ValorLiquido),
+            Meses = meses,
+            TotalEmAberto = contasAReceber.Sum(r => r.Valor),
+            TotalVencido = contasAReceber.Where(r => r.Situacao == "Vencido").Sum(r => r.Valor),
+            TotalVenceEm7Dias = contasAReceber.Where(r => r.Situacao == "Vence em breve").Sum(r => r.Valor),
+            QuantidadeEmAberto = contasAReceber.Count,
+            ContasAReceber = contasAReceber
         };
 
         return View(model);
