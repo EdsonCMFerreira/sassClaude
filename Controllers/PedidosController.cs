@@ -244,7 +244,7 @@ public class PedidosController : Controller
                         table.Header(header =>
                         {
                             header.Cell().Text("Produto").Bold();
-                            header.Cell().Text("Qtd.").Bold();
+                            header.Cell().AlignRight().Text("Qtd.").Bold();
                             header.Cell().AlignRight().Text("Valor unit.").Bold();
                             header.Cell().AlignRight().Text("Total").Bold();
                         });
@@ -252,7 +252,7 @@ public class PedidosController : Controller
                         foreach (var item in pedido.Itens)
                         {
                             table.Cell().Text(item.Produto?.Descricao ?? "—");
-                            table.Cell().Text(item.Quantidade.ToString());
+                            table.Cell().AlignRight().Text(item.Quantidade.ToString());
                             table.Cell().AlignRight().Text(item.ValorUnitario.ToString("C", ptBr));
                             table.Cell().AlignRight().Text((item.Quantidade * item.ValorUnitario).ToString("C", ptBr));
                         }
