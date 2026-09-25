@@ -32,6 +32,22 @@ public class ProdutosController : Controller
         var today = DateTime.UtcNow.Date;
         var in30Days = today.AddDays(30);
 
+        var vendidosPorProduto = await _context.PedidoItens
+            .Where(i => i.ProdutoId != null && i.Pedido!.Status == "Concluída")
+            .GroupBy(i => i.ProdutoId!.Value)
+            .Select(g => new { ProdutoId = g.Key, Total = g.Sum(i => i.Quantidade) })
+            .ToDictionaryAsync(x => x.ProdutoId, x => x.Total);
+
+        var giroEstoque = produtos
+            .Where(p => p.Quantidade > 0)
+            .Select(p =>
+            {
+                var vendido = vendidosPorProduto.GetValueOrDefault(p.Id);
+                var giro = Math.Round((decimal)vendido / p.Quantidade * 100, 1);
+                return new GiroEstoqueRow(p.Codigo, p.Descricao, p.Quantidade, vendido, giro);
+            })
+            .ToList();
+
         var comPrecoDefinido = produtos.Where(p => p.ValorCompra > 0 && p.ValorVenda > 0).ToList();
         var margens = comPrecoDefinido
             .Select(p => (Produto: p, Margem: (p.ValorVenda - p.ValorCompra) / p.ValorCompra * 100))
@@ -69,6 +85,15 @@ public class ProdutosController : Controller
                 .OrderByDescending(x => x.Margem)
                 .Take(8)
                 .Select(x => new ProdutoLucroRow(x.Produto.Descricao, Math.Round(x.Margem, 2)))
+                .ToList(),
+            ProdutosParados = giroEstoque
+                .OrderBy(g => g.GiroPercentual)
+                .ThenByDescending(g => g.QuantidadeEstoque)
+                .Take(5)
+                .ToList(),
+            ProdutosComMaiorGiro = giroEstoque
+                .OrderByDescending(g => g.GiroPercentual)
+                .Take(5)
                 .ToList()
         };
 

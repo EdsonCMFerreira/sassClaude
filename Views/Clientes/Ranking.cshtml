@@ -1,0 +1,119 @@
+@model ClienteRankingViewModel
+@{
+    ViewData["Title"] = "Ranking de clientes";
+    var ptBr = new System.Globalization.CultureInfo("pt-BR");
+    var top10 = Model.Clientes.Take(10).ToList();
+}
+<div class="page-heading">
+    <div><span class="eyebrow">Cadastro</span><h1>Ranking de clientes.</h1><p class="muted">Quem mais compra, por valor total em pedidos concluídos.</p></div>
+    <a class="button button-outline" asp-controller="Clientes" asp-action="Index">← Ver clientes</a>
+</div>
+
+<div class="metric-grid">
+    <article class="metric-card metric-highlight"><span class="metric-label">Total vendido</span><strong>@Model.TotalGeral.ToString("C", ptBr)</strong><span class="metric-caption">em pedidos concluídos</span></article>
+    <article class="metric-card"><span class="metric-label">Clientes que compraram</span><strong>@Model.TotalClientesCompradores</strong><span class="metric-caption">ao menos um pedido concluído</span></article>
+    @if (Model.Clientes.Any())
+    {
+        <article class="metric-card"><span class="metric-label">Maior cliente</span><strong style="font-size:22px;">@Model.Clientes[0].ClienteNome</strong><span class="metric-caption">@Model.Clientes[0].TotalComprado.ToString("C", ptBr) no total</span></article>
+    }
+</div>
+
+@if (top10.Any())
+{
+    <div class="surface-card activity-card">
+        <div class="section-heading"><div><span class="eyebrow">Top 10</span><h2>Maiores clientes por valor comprado</h2></div></div>
+        <div style="height:@(Math.Max(220, top10.Count * 40))px;"><canvas id="graficoRanking"></canvas></div>
+    </div>
+}
+
+<div class="surface-card users-card" style="margin-top:18px;">
+    <div class="section-heading"><div><h2>Todos os clientes compradores</h2><p class="muted">Ordenado do maior para o menor valor comprado. Só considera pedidos com status "Concluída".</p></div></div>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead class="table-light">
+                <tr>
+                    <th>#</th>
+                    <th>Cliente</th>
+                    <th>Total comprado</th>
+                    <th>Pedidos concluídos</th>
+                    <th>Ticket médio</th>
+                    <th>Última compra</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Clientes.Any())
+                {
+                    <tr><td colspan="6" class="muted">Nenhum pedido concluído ainda.</td></tr>
+                }
+                @{ var posicao = 0; }
+                @foreach (var cliente in Model.Clientes)
+                {
+                    posicao++;
+                    <tr>
+                        <td>@posicao</td>
+                        <td>@cliente.ClienteNome</td>
+                        <td>@cliente.TotalComprado.ToString("C", ptBr)</td>
+                        <td>@cliente.QuantidadePedidos</td>
+                        <td>@cliente.TicketMedio.ToString("C", ptBr)</td>
+                        <td>@(cliente.UltimaCompraData?.ToString("dd/MM/yyyy") ?? "—")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script>
+        const rankingCanvas = document.getElementById('graficoRanking');
+        if (rankingCanvas) {
+            const tema = getComputedStyle(document.documentElement);
+            const cor = nomeVariavel => tema.getPropertyValue(nomeVariavel).trim();
+
+            Chart.defaults.font.family = "'Segoe UI', sans-serif";
+            Chart.defaults.color = cor('--muted');
+            Chart.defaults.animation.duration = 1300;
+            Chart.defaults.animation.easing = 'easeOutQuart';
+
+            const ptBrCurrency = value => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+            const labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(top10.Select(c => c.ClienteNome)));
+            const valores = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(top10.Select(c => c.TotalComprado)));
+
+            new Chart(rankingCanvas, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Total comprado',
+                        data: valores,
+                        backgroundColor: ctx => {
+                            const area = ctx.chart.chartArea;
+                            if (!area) return cor('--blue');
+                            const gradient = ctx.chart.ctx.createLinearGradient(area.left, 0, area.right, 0);
+                            gradient.addColorStop(0, cor('--flare'));
+                            gradient.addColorStop(1, cor('--blue'));
+                            return gradient;
+                        },
+                        hoverBackgroundColor: cor('--ember'),
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    maintainAspectRatio: false,
+                    animation: { delay: ctx => ctx.type === 'data' ? ctx.dataIndex * 90 : 0 },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { callbacks: { label: ctx => ptBrCurrency(ctx.parsed.x) } }
+                    },
+                    scales: {
+                        x: { grid: { color: cor('--line') }, ticks: { callback: value => ptBrCurrency(value) } },
+                        y: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+    </script>
+}

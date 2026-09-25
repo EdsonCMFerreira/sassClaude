@@ -22,28 +22,51 @@
     <article class="metric-card"><span class="metric-label">Vence em 7 dias</span><strong>@Model.TotalVenceEm7Dias.ToString("C", ptBr)</strong><span class="metric-caption">fique de olho</span></article>
 </div>
 
-<div class="surface-card users-card">
-    <div class="section-heading"><div><h2>Entradas nos últimos 6 meses</h2><p class="muted">Só entram no cálculo vendas com status "Concluída", já com desconto aplicado.</p></div></div>
-    <div style="padding:10px 27px 0;"><div style="height:240px;"><canvas id="graficoEntradas"></canvas></div></div>
-    <div class="table-wrap">
-        <table class="data-table">
-            <thead class="table-light">
-                <tr>
-                    <th>Mês</th>
-                    <th>Entradas</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var row in Model.Meses)
-                {
+<div class="content-grid">
+    <section class="surface-card users-card">
+        <div class="section-heading"><div><h2>Entradas nos últimos 6 meses</h2><p class="muted">Só entram no cálculo vendas com status "Concluída", já com desconto aplicado.</p></div></div>
+        <div style="padding:10px 27px 0;"><div style="height:240px;"><canvas id="graficoEntradas"></canvas></div></div>
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead class="table-light">
                     <tr>
-                        <td>@row.Mes.ToString("MMMM/yyyy", ptBr)</td>
-                        <td>@row.Entradas.ToString("C", ptBr)</td>
+                        <th>Mês</th>
+                        <th>Entradas</th>
                     </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Meses)
+                    {
+                        <tr>
+                            <td>@row.Mes.ToString("MMMM/yyyy", ptBr)</td>
+                            <td>@row.Entradas.ToString("C", ptBr)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+    <aside class="surface-card settings-card">
+        <span class="eyebrow">Formas de pagamento</span>
+        <h2>Vendas por forma de pagamento</h2>
+        @if (!Model.VendasPorFormaPagamento.Any())
+        {
+            <p class="muted">Nenhuma venda concluída ainda.</p>
+        }
+        else
+        {
+            <div style="height:200px;"><canvas id="graficoFormaPagamento"></canvas></div>
+            <div style="margin-top:14px;">
+                @foreach (var forma in Model.VendasPorFormaPagamento)
+                {
+                    <div class="settings-row">
+                        <div><h3>@forma.FormaPagamento</h3><p class="muted" style="margin:0;">@forma.Quantidade pedido(s)</p></div>
+                        <span class="settings-value">@forma.Total.ToString("C", ptBr)</span>
+                    </div>
                 }
-            </tbody>
-        </table>
-    </div>
+            </div>
+        }
+    </aside>
 </div>
 
 <div class="surface-card users-card" style="margin-top:18px;">
@@ -140,5 +163,35 @@
                 }
             }
         });
+
+        const formaPagamentoCanvas = document.getElementById('graficoFormaPagamento');
+        if (formaPagamentoCanvas) {
+            const formaPagamentoLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.VendasPorFormaPagamento.Select(f => f.FormaPagamento)));
+            const formaPagamentoValores = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.VendasPorFormaPagamento.Select(f => f.Total)));
+            const paletaFormaPagamento = [cor('--blue'), cor('--flare'), cor('--ember'), cor('--green'), cor('--neutral'), cor('--amber'), cor('--coral')];
+
+            new Chart(formaPagamentoCanvas, {
+                type: 'doughnut',
+                data: {
+                    labels: formaPagamentoLabels,
+                    datasets: [{
+                        data: formaPagamentoValores,
+                        backgroundColor: formaPagamentoLabels.map((_, i) => paletaFormaPagamento[i % paletaFormaPagamento.length]),
+                        borderColor: '#fff',
+                        borderWidth: 3,
+                        hoverOffset: 10
+                    }]
+                },
+                options: {
+                    cutout: '62%',
+                    maintainAspectRatio: false,
+                    animation: { animateRotate: true, animateScale: true },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ptBrCurrency(ctx.parsed)}` } }
+                    }
+                }
+            });
+        }
     </script>
 }

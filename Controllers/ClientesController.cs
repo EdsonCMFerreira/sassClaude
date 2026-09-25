@@ -9,6 +9,13 @@ namespace Saas.Controllers;
 [Authorize]
 public class ClientesController : Controller
 {
+    private readonly SassDbContext _context;
+
+    public ClientesController(SassDbContext context)
+    {
+        _context = context;
+    }
+
     public IActionResult Index() => View();
 
     public IActionResult PessoaFisica() => View("PorTipoPessoa", new ClienteTipoPessoaPageViewModel(
@@ -16,6 +23,45 @@ public class ClientesController : Controller
 
     public IActionResult PessoaJuridica() => View("PorTipoPessoa", new ClienteTipoPessoaPageViewModel(
         "Jurídica", "Clientes pessoa jurídica", "Clientes cadastrados como pessoa jurídica."));
+
+    public async Task<IActionResult> Ranking()
+    {
+        var pedidosConcluidos = await _context.Pedidos
+            .Include(p => p.Cliente)
+            .Include(p => p.Itens)
+            .Where(p => p.Status == "Concluída" && p.ClienteId != null)
+            .ToListAsync();
+
+        decimal ValorLiquido(Pedido pedido)
+        {
+            var total = pedido.Itens.Sum(i => i.Quantidade * i.ValorUnitario);
+            return Math.Round(total * (1 - pedido.PercentualDesconto / 100), 2);
+        }
+
+        var ranking = pedidosConcluidos
+            .GroupBy(p => p.ClienteId!.Value)
+            .Select(grupo =>
+            {
+                var nome = grupo.First().Cliente?.Nome ?? "—";
+                var total = grupo.Sum(ValorLiquido);
+                var quantidade = grupo.Count();
+                return new ClienteRankingRow(
+                    grupo.Key, nome, total, quantidade,
+                    quantidade > 0 ? Math.Round(total / quantidade, 2) : 0,
+                    grupo.Max(p => p.DataPedido));
+            })
+            .OrderByDescending(r => r.TotalComprado)
+            .ToList();
+
+        var model = new ClienteRankingViewModel
+        {
+            Clientes = ranking,
+            TotalGeral = ranking.Sum(r => r.TotalComprado),
+            TotalClientesCompradores = ranking.Count
+        };
+
+        return View(model);
+    }
 }
 
 [ApiController]

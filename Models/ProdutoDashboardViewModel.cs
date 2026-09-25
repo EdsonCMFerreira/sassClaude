@@ -6,6 +6,8 @@ public sealed record SupplierBreakdownRow(string Fornecedor, int Quantidade);
 
 public sealed record ProdutoLucroRow(string ProdutoNome, decimal PercentualLucro);
 
+public sealed record GiroEstoqueRow(string Codigo, string Descricao, int QuantidadeEstoque, int QuantidadeVendida, decimal GiroPercentual);
+
 public sealed class ProdutoDashboardViewModel
 {
     public int TotalProdutos { get; set; }
@@ -22,4 +24,6 @@ public sealed class ProdutoDashboardViewModel
     public string? ProdutoMenosLucrativo { get; set; }
     public decimal? ProdutoMenosLucrativoPercentual { get; set; }
     public List<ProdutoLucroRow> ProdutosPorLucro { get; set; } = new();
+    public List<GiroEstoqueRow> ProdutosParados { get; set; } = new();
+    public List<GiroEstoqueRow> ProdutosComMaiorGiro { get; set; } = new();
 }

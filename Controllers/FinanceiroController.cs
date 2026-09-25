@@ -51,6 +51,12 @@ public class FinanceiroController : Controller
             .OrderBy(r => r.DataVencimento ?? DateTime.MaxValue)
             .ToList();
 
+        var vendasPorFormaPagamento = concluidos
+            .GroupBy(p => string.IsNullOrWhiteSpace(p.FormaPagamento) ? "Não informado" : p.FormaPagamento)
+            .Select(g => new FormaPagamentoRow(g.Key, g.Sum(ValorLiquido), g.Count()))
+            .OrderByDescending(r => r.Total)
+            .ToList();
+
         var model = new FinanceiroViewModel
         {
             TotalEntradas = concluidos.Sum(ValorLiquido),
@@ -59,7 +65,8 @@ public class FinanceiroController : Controller
             TotalVencido = contasAReceber.Where(r => r.Situacao == "Vencido").Sum(r => r.Valor),
             TotalVenceEm7Dias = contasAReceber.Where(r => r.Situacao == "Vence em breve").Sum(r => r.Valor),
             QuantidadeEmAberto = contasAReceber.Count,
-            ContasAReceber = contasAReceber
+            ContasAReceber = contasAReceber,
+            VendasPorFormaPagamento = vendasPorFormaPagamento
         };
 
         return View(model);
