@@ -29,6 +29,19 @@
                 </div>
                 <a asp-controller="Pedidos" asp-action="Index">Pedidos</a>
                 <div class="nav-dropdown">
+                    <button type="button" class="nav-dropdown-toggle" onclick="this.closest('.nav-dropdown').classList.toggle('open')">Relatórios <span class="nav-dropdown-caret">▾</span></button>
+                    <div class="nav-dropdown-menu">
+                        <a asp-controller="Pedidos" asp-action="Dashboard">Dashboard de pedidos</a>
+                        <a asp-controller="Produtos" asp-action="Dashboard">Dashboard de produtos</a>
+                        <a asp-controller="Produtos" asp-action="CurvaAbc">Curva ABC de produtos</a>
+                        <a asp-controller="Clientes" asp-action="Ranking">Ranking de clientes</a>
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <a asp-controller="Financeiro" asp-action="Index">Financeiro</a>
+                        }
+                    </div>
+                </div>
+                <div class="nav-dropdown">
                     <button type="button" class="nav-dropdown-toggle" onclick="this.closest('.nav-dropdown').classList.toggle('open')">Pesquisa <span class="nav-dropdown-caret">▾</span></button>
                     <div class="nav-dropdown-menu">
                         <a asp-controller="Pesquisa" asp-action="Index">Produtos</a>
@@ -42,7 +55,6 @@
                         <div class="nav-dropdown-menu">
                             <a asp-controller="Login" asp-action="Index">Usuários</a>
                             <a asp-controller="Billing" asp-action="Index">Plano</a>
-                            <a asp-controller="Financeiro" asp-action="Index">Financeiro</a>
                             <a asp-controller="AuditLog" asp-action="Index">Auditoria</a>
                         </div>
                     </div>
