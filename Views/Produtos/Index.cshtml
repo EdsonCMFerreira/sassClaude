@@ -32,6 +32,9 @@
         </form>
     </div>
 
+    <div class="table-toolbar">
+        <input type="search" id="produtoBusca" class="table-search" placeholder="Buscar por código, descrição ou fornecedor..." />
+    </div>
     <div class="table-wrap">
         <table class="data-table">
             <thead class="table-light">
@@ -51,6 +54,7 @@
             <tbody id="produtoTableBody"></tbody>
         </table>
     </div>
+    <div class="table-pagination" id="produtoPaginacao"></div>
 </div>
 
 @section Scripts {
@@ -67,7 +71,12 @@
         const quantidade = document.getElementById('quantidade');
         const cancelEdit = document.getElementById('cancelEdit');
         const tableBody = document.getElementById('produtoTableBody');
+        const busca = document.getElementById('produtoBusca');
+        const paginacaoEl = document.getElementById('produtoPaginacao');
         const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        const PRODUTOS_POR_PAGINA = 8;
+        let todosProdutos = [];
+        let paginaAtual = 1;
 
         function formatPercent(value) {
             return `${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
@@ -95,14 +104,16 @@
             ).join('');
         }
 
-        async function loadProdutos() {
-            const response = await fetch('/api/produtos');
-            if (!response.ok) {
-                throw new Error('Erro ao carregar produtos.');
-            }
+        function renderProdutos() {
+            const { itens, totalFiltrados, totalPaginas, paginaAtual: pagina } = filtrarEPaginar(todosProdutos, {
+                termo: busca.value,
+                campos: ['codigo', 'descricao', 'fornecedorNome'],
+                pagina: paginaAtual,
+                porPagina: PRODUTOS_POR_PAGINA
+            });
+            paginaAtual = pagina;
 
-            const data = await response.json();
-            tableBody.innerHTML = data.map(item => `
+            tableBody.innerHTML = itens.map(item => `
                 <tr>
                     <td>${item.codigo}</td>
                     <td>${item.descricao}</td>
@@ -118,7 +129,7 @@
                         <button class="table-action danger" data-delete="${item.id}">Excluir</button>
                     </td>
                 </tr>
-            `).join('') || '<tr><td colspan="10" class="muted">Nenhum produto cadastrado ainda.</td></tr>';
+            `).join('') || `<tr><td colspan="10" class="muted">${totalFiltrados === 0 && todosProdutos.length > 0 ? 'Nenhum produto encontrado para essa busca.' : 'Nenhum produto cadastrado ainda.'}</td></tr>`;
 
             tableBody.querySelectorAll('[data-edit]').forEach(button => {
                 button.addEventListener('click', () => editProduto(Number(button.dataset.edit)));
@@ -127,6 +138,22 @@
             tableBody.querySelectorAll('[data-delete]').forEach(button => {
                 button.addEventListener('click', () => deleteProduto(Number(button.dataset.delete)));
             });
+
+            renderPaginacao(paginacaoEl, paginaAtual, totalPaginas, (novaPagina) => {
+                paginaAtual = novaPagina;
+                renderProdutos();
+            });
+        }
+
+        async function loadProdutos() {
+            tableBody.innerHTML = linhaCarregando(10);
+            const response = await fetch('/api/produtos');
+            if (!response.ok) {
+                throw new Error('Erro ao carregar produtos.');
+            }
+
+            todosProdutos = await response.json();
+            renderProdutos();
         }
 
         async function editProduto(id) {
@@ -151,7 +178,10 @@
 
             const response = await fetch(`/api/produtos/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': csrfToken } });
             if (response.ok) {
+                toast('Produto excluído.');
                 await loadProdutos();
+            } else {
+                toast('Não foi possível excluir o produto.', 'error');
             }
         }
 
@@ -184,14 +214,16 @@
             });
 
             if (response.ok) {
+                const eraEdicao = Boolean(payload.id);
                 form.reset();
                 produtoId.value = '';
                 percentualLucro.value = '';
                 cancelEdit.classList.add('hidden');
+                toast(eraEdicao ? 'Produto atualizado.' : 'Produto cadastrado.');
                 await loadProdutos();
             } else {
                 const errorText = await response.text();
-                alert(errorText || 'Erro ao salvar produto.');
+                toast(errorText || 'Erro ao salvar produto.', 'error');
             }
         });
 
@@ -204,6 +236,10 @@
 
         valorCompra.addEventListener('input', updateLucroPreview);
         valorVenda.addEventListener('input', updateLucroPreview);
+        busca.addEventListener('input', () => {
+            paginaAtual = 1;
+            renderProdutos();
+        });
 
         loadFornecedoresOptions()
             .then(loadProdutos)

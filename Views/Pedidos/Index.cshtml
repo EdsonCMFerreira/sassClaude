@@ -91,6 +91,9 @@
         </form>
     </div>
 
+    <div class="table-toolbar">
+        <input type="search" id="pedidoBusca" class="table-search" placeholder="Buscar por cliente, nº do pedido ou status..." />
+    </div>
     <div class="table-wrap">
         <table class="data-table">
             <thead class="table-light">
@@ -108,6 +111,7 @@
             <tbody id="pedidoTableBody"></tbody>
         </table>
     </div>
+    <div class="table-pagination" id="pedidoPaginacao"></div>
 </div>
 
 @section Scripts {
@@ -130,9 +134,14 @@
         const tableBody = document.getElementById('pedidoTableBody');
         const itensTableBody = document.getElementById('itensTableBody');
         const addItemButton = document.getElementById('addItemButton');
+        const busca = document.getElementById('pedidoBusca');
+        const paginacaoEl = document.getElementById('pedidoPaginacao');
         const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        const PEDIDOS_POR_PAGINA = 8;
         let allProdutos = [];
         let itensOriginais = [];
+        let todosPedidos = [];
+        let paginaAtual = 1;
 
         function hoje() {
             return new Date().toISOString().slice(0, 10);
@@ -282,14 +291,16 @@
             allProdutos = await response.json();
         }
 
-        async function loadPedidos() {
-            const response = await fetch('/api/pedidos');
-            if (!response.ok) {
-                throw new Error('Erro ao carregar pedidos.');
-            }
+        function renderPedidos() {
+            const { itens, totalFiltrados, totalPaginas, paginaAtual: pagina } = filtrarEPaginar(todosPedidos, {
+                termo: busca.value,
+                campos: ['numeroPedido', 'clienteNome', 'status', 'numeroNota'],
+                pagina: paginaAtual,
+                porPagina: PEDIDOS_POR_PAGINA
+            });
+            paginaAtual = pagina;
 
-            const data = await response.json();
-            tableBody.innerHTML = data.map(item => `
+            tableBody.innerHTML = itens.map(item => `
                 <tr>
                     <td>${item.numeroPedido}</td>
                     <td>${item.clienteNome}</td>
@@ -306,7 +317,7 @@
                         </span>
                     </td>
                 </tr>
-            `).join('') || '<tr><td colspan="8" class="muted">Nenhum pedido registrado ainda.</td></tr>';
+            `).join('') || `<tr><td colspan="8" class="muted">${totalFiltrados === 0 && todosPedidos.length > 0 ? 'Nenhum pedido encontrado para essa busca.' : 'Nenhum pedido registrado ainda.'}</td></tr>`;
 
             tableBody.querySelectorAll('[data-edit]').forEach(button => {
                 button.addEventListener('click', () => editPedido(Number(button.dataset.edit)));
@@ -315,6 +326,22 @@
             tableBody.querySelectorAll('[data-delete]').forEach(button => {
                 button.addEventListener('click', () => deletePedido(Number(button.dataset.delete)));
             });
+
+            renderPaginacao(paginacaoEl, paginaAtual, totalPaginas, (novaPagina) => {
+                paginaAtual = novaPagina;
+                renderPedidos();
+            });
+        }
+
+        async function loadPedidos() {
+            tableBody.innerHTML = linhaCarregando(8);
+            const response = await fetch('/api/pedidos');
+            if (!response.ok) {
+                throw new Error('Erro ao carregar pedidos.');
+            }
+
+            todosPedidos = await response.json();
+            renderPedidos();
         }
 
         async function editPedido(id) {
@@ -347,7 +374,10 @@
 
             const response = await fetch(`/api/pedidos/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': csrfToken } });
             if (response.ok) {
+                toast('Pedido excluído.');
                 await loadPedidos();
+            } else {
+                toast('Não foi possível excluir o pedido.', 'error');
             }
         }
 
@@ -399,15 +429,21 @@
             });
 
             if (response.ok) {
+                const eraEdicao = Boolean(payload.id);
                 resetForm();
+                toast(eraEdicao ? 'Pedido atualizado.' : 'Pedido cadastrado.');
                 await loadPedidos();
             } else {
                 const errorText = await response.text();
-                alert(errorText || 'Erro ao salvar pedido.');
+                toast(errorText || 'Erro ao salvar pedido.', 'error');
             }
         });
 
         cancelEdit.addEventListener('click', resetForm);
+        busca.addEventListener('input', () => {
+            paginaAtual = 1;
+            renderPedidos();
+        });
 
         Promise.all([loadClientesOptions(), loadProdutosOptions()])
             .then(() => {

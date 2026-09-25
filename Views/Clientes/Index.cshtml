@@ -52,6 +52,9 @@
         </form>
     </div>
 
+    <div class="table-toolbar">
+        <input type="search" id="clienteBusca" class="table-search" placeholder="Buscar por nome ou CPF/CNPJ..." />
+    </div>
     <div class="table-wrap">
         <table class="data-table">
             <thead class="table-light">
@@ -67,6 +70,7 @@
             <tbody id="clienteTableBody"></tbody>
         </table>
     </div>
+    <div class="table-pagination" id="clientePaginacao"></div>
 </div>
 
 @section Scripts {
@@ -99,7 +103,12 @@
         const observacoes = document.getElementById('observacoes');
         const cancelEdit = document.getElementById('cancelEdit');
         const tableBody = document.getElementById('clienteTableBody');
+        const busca = document.getElementById('clienteBusca');
+        const paginacaoEl = document.getElementById('clientePaginacao');
         const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        const CLIENTES_POR_PAGINA = 8;
+        let todosClientes = [];
+        let paginaAtual = 1;
 
         function hoje() {
             return new Date().toISOString().slice(0, 10);
@@ -154,14 +163,16 @@
             syncEntregaComCobranca();
         }
 
-        async function loadClientes() {
-            const response = await fetch('/api/clientes');
-            if (!response.ok) {
-                throw new Error('Erro ao carregar clientes.');
-            }
+        function renderClientes() {
+            const { itens, totalFiltrados, totalPaginas, paginaAtual: pagina } = filtrarEPaginar(todosClientes, {
+                termo: busca.value,
+                campos: ['nome', 'cpfCnpj'],
+                pagina: paginaAtual,
+                porPagina: CLIENTES_POR_PAGINA
+            });
+            paginaAtual = pagina;
 
-            const data = await response.json();
-            tableBody.innerHTML = data.map(item => `
+            tableBody.innerHTML = itens.map(item => `
                 <tr>
                     <td>${item.nome}</td>
                     <td>${formatDate(item.createdAt)}</td>
@@ -173,7 +184,7 @@
                         <button class="table-action danger" data-delete="${item.id}">Excluir</button>
                     </td>
                 </tr>
-            `).join('') || '<tr><td colspan="6" class="muted">Nenhum cliente cadastrado ainda.</td></tr>';
+            `).join('') || `<tr><td colspan="6" class="muted">${totalFiltrados === 0 && todosClientes.length > 0 ? 'Nenhum cliente encontrado para essa busca.' : 'Nenhum cliente cadastrado ainda.'}</td></tr>`;
 
             tableBody.querySelectorAll('[data-edit]').forEach(button => {
                 button.addEventListener('click', () => editCliente(Number(button.dataset.edit)));
@@ -182,6 +193,22 @@
             tableBody.querySelectorAll('[data-delete]').forEach(button => {
                 button.addEventListener('click', () => deleteCliente(Number(button.dataset.delete)));
             });
+
+            renderPaginacao(paginacaoEl, paginaAtual, totalPaginas, (novaPagina) => {
+                paginaAtual = novaPagina;
+                renderClientes();
+            });
+        }
+
+        async function loadClientes() {
+            tableBody.innerHTML = linhaCarregando(6);
+            const response = await fetch('/api/clientes');
+            if (!response.ok) {
+                throw new Error('Erro ao carregar clientes.');
+            }
+
+            todosClientes = await response.json();
+            renderClientes();
         }
 
         async function editCliente(id) {
@@ -232,7 +259,10 @@
 
             const response = await fetch(`/api/clientes/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': csrfToken } });
             if (response.ok) {
+                toast('Cliente excluído.');
                 await loadClientes();
+            } else {
+                toast('Não foi possível excluir o cliente.', 'error');
             }
         }
 
@@ -276,16 +306,18 @@
             });
 
             if (response.ok) {
+                const eraEdicao = Boolean(payload.id);
                 form.reset();
                 clienteId.value = '';
                 dataCadastro.value = hoje();
                 entregaIgualCobranca.checked = true;
                 updateEntregaDisabled();
                 cancelEdit.classList.add('hidden');
+                toast(eraEdicao ? 'Cliente atualizado.' : 'Cliente cadastrado.');
                 await loadClientes();
             } else {
                 const errorText = await response.text();
-                alert(errorText || 'Erro ao salvar cliente.');
+                toast(errorText || 'Erro ao salvar cliente.', 'error');
             }
         });
 
@@ -302,6 +334,11 @@
         [cobrancaCep, cobrancaEndereco, cobrancaNumero, cobrancaComplemento, cobrancaBairro, cobrancaCidade, cobrancaUf].forEach(field => {
             field.addEventListener('input', syncEntregaComCobranca);
             field.addEventListener('change', syncEntregaComCobranca);
+        });
+
+        busca.addEventListener('input', () => {
+            paginaAtual = 1;
+            renderClientes();
         });
 
         updateEntregaDisabled();
