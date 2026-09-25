@@ -223,6 +223,12 @@ public class PedidosController : Controller
                         column.Item().Text($"CPF/CNPJ: {pedido.Cliente.CpfCnpj}");
                     }
 
+                    var enderecoEntrega = FormatarEnderecoEntrega(pedido.Cliente);
+                    if (!string.IsNullOrWhiteSpace(enderecoEntrega))
+                    {
+                        column.Item().Text($"Endereço de entrega: {enderecoEntrega}");
+                    }
+
                     column.Item().PaddingTop(10).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
 
                     column.Item().PaddingTop(10).Table(table =>
@@ -280,6 +286,31 @@ public class PedidosController : Controller
 
         var pdfBytes = document.GeneratePdf();
         return File(pdfBytes, "application/pdf", $"recibo-pedido-{pedido.NumeroPedido}.pdf");
+    }
+
+    private static string FormatarEnderecoEntrega(Cliente? cliente)
+    {
+        if (cliente is null)
+        {
+            return string.Empty;
+        }
+
+        var logradouro = string.IsNullOrWhiteSpace(cliente.EntregaNumero)
+            ? cliente.EntregaEndereco
+            : $"{cliente.EntregaEndereco}, {cliente.EntregaNumero}";
+
+        var partes = new[]
+        {
+            logradouro,
+            cliente.EntregaComplemento,
+            cliente.EntregaBairro,
+            string.IsNullOrWhiteSpace(cliente.EntregaCidade) && string.IsNullOrWhiteSpace(cliente.EntregaUf)
+                ? string.Empty
+                : $"{cliente.EntregaCidade}/{cliente.EntregaUf}",
+            string.IsNullOrWhiteSpace(cliente.EntregaCep) ? string.Empty : $"CEP {cliente.EntregaCep}"
+        };
+
+        return string.Join(" - ", partes.Where(p => !string.IsNullOrWhiteSpace(p)));
     }
 }
 
