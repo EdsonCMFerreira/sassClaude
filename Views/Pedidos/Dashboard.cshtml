@@ -57,7 +57,31 @@
     <article class="metric-card"><span class="metric-label">Ticket médio</span><strong>@Model.TicketMedio.ToString("C", ptBr)</strong><span class="metric-caption">por pedido concluído</span></article>
 </div>
 
-<div class="content-grid">
+@if (Model.TotalPedidos > 0)
+{
+    <div class="surface-card activity-card">
+        <div class="section-heading"><div><span class="eyebrow">Funil</span><h2>Funil de conclusão</h2><p class="muted">De todos os pedidos @Model.PeriodoDescricao, quantos viraram venda concluída e quantos se perderam por cancelamento ou devolução.</p></div></div>
+        <div class="funnel">
+            <div class="funnel-row">
+                <span class="funnel-label">Total de pedidos</span>
+                <div class="funnel-bar-track"><div class="funnel-bar funnel-bar--total" style="width:100%"></div></div>
+                <span class="funnel-value">@Model.TotalPedidos</span>
+            </div>
+            <div class="funnel-row">
+                <span class="funnel-label">Concluídos</span>
+                <div class="funnel-bar-track"><div class="funnel-bar funnel-bar--concluida" style="width:@(Model.TaxaConclusaoPercentual.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture))%"></div></div>
+                <span class="funnel-value">@Model.PedidosConcluidosCount (@Model.TaxaConclusaoPercentual.ToString("0.0")%)</span>
+            </div>
+            <div class="funnel-row">
+                <span class="funnel-label">Cancelados/devolvidos</span>
+                <div class="funnel-bar-track"><div class="funnel-bar funnel-bar--perda" style="width:@(Model.TaxaPerdaPercentual.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture))%"></div></div>
+                <span class="funnel-value">@Model.PedidosPerdidosCount (@Model.TaxaPerdaPercentual.ToString("0.0")%)</span>
+            </div>
+        </div>
+    </div>
+}
+
+<div class="content-grid" style="margin-top:18px;">
     <section class="surface-card activity-card">
         <div class="section-heading"><div><span class="eyebrow">Faturamento</span><h2>@Model.FaturamentoTitulo</h2><p class="muted">@Model.ValorTotalConcluidos.ToString("C", ptBr) em pedidos concluídos @Model.PeriodoDescricao.</p></div></div>
         <div style="height:280px;"><canvas id="graficoFaturamento"></canvas></div>

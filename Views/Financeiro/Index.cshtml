@@ -22,6 +22,13 @@
     <article class="metric-card"><span class="metric-label">Vence em 7 dias</span><strong>@Model.TotalVenceEm7Dias.ToString("C", ptBr)</strong><span class="metric-caption">fique de olho</span></article>
 </div>
 
+<div class="section-heading" style="margin-bottom:14px;"><div><span class="eyebrow">Lucratividade</span><h2>Lucro realizado</h2><p class="muted">Receita menos o custo de compra dos produtos efetivamente vendidos (pedidos concluídos) — diferente do lucro potencial do catálogo.</p></div></div>
+<div class="metric-grid">
+    <article class="metric-card"><span class="metric-label">Custo dos produtos vendidos</span><strong>@Model.TotalCusto.ToString("C", ptBr)</strong><span class="metric-caption">valor de compra dos itens vendidos</span></article>
+    <article class="metric-card metric-highlight"><span class="metric-label">Lucro bruto</span><strong>@Model.LucroBruto.ToString("C", ptBr)</strong><span class="metric-caption">receita − custo</span></article>
+    <article class="metric-card"><span class="metric-label">Margem bruta</span><strong class="@(Model.MargemBrutaPercentual >= 0 ? "status-positive" : "status-negative")">@Model.MargemBrutaPercentual.ToString("0.0")%</strong><span class="metric-caption">lucro bruto / receita</span></article>
+</div>
+
 <div class="content-grid">
     <section class="surface-card users-card">
         <div class="section-heading"><div><h2>Entradas nos últimos 6 meses</h2><p class="muted">Só entram no cálculo vendas com status "Concluída", já com desconto aplicado.</p></div></div>
@@ -32,6 +39,8 @@
                     <tr>
                         <th>Mês</th>
                         <th>Entradas</th>
+                        <th>Custo</th>
+                        <th>Lucro bruto</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -40,6 +49,8 @@
                         <tr>
                             <td>@row.Mes.ToString("MMMM/yyyy", ptBr)</td>
                             <td>@row.Entradas.ToString("C", ptBr)</td>
+                            <td>@row.Custo.ToString("C", ptBr)</td>
+                            <td>@row.Lucro.ToString("C", ptBr)</td>
                         </tr>
                     }
                 </tbody>
@@ -130,32 +141,36 @@
 
         const mesesLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Meses.Select(m => m.Mes.ToString("MMM/yyyy", ptBr))));
         const mesesValores = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Meses.Select(m => m.Entradas)));
+        const mesesLucro = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Meses.Select(m => m.Lucro)));
 
         new Chart(document.getElementById('graficoEntradas'), {
             type: 'bar',
             data: {
                 labels: mesesLabels,
-                datasets: [{
-                    label: 'Entradas',
-                    data: mesesValores,
-                    backgroundColor: ctx => {
-                        const area = ctx.chart.chartArea;
-                        if (!area) return cor('--blue');
-                        const gradient = ctx.chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
-                        gradient.addColorStop(0, cor('--flare'));
-                        gradient.addColorStop(1, cor('--blue'));
-                        return gradient;
+                datasets: [
+                    {
+                        label: 'Receita',
+                        data: mesesValores,
+                        backgroundColor: cor('--flare'),
+                        hoverBackgroundColor: cor('--ember'),
+                        borderRadius: 8,
+                        maxBarThickness: 32
                     },
-                    hoverBackgroundColor: cor('--ember'),
-                    borderRadius: 8,
-                    maxBarThickness: 46
-                }]
+                    {
+                        label: 'Lucro bruto',
+                        data: mesesLucro,
+                        backgroundColor: cor('--green'),
+                        hoverBackgroundColor: cor('--neutral'),
+                        borderRadius: 8,
+                        maxBarThickness: 32
+                    }
+                ]
             },
             options: {
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { display: false },
-                    tooltip: { callbacks: { label: ctx => ptBrCurrency(ctx.parsed.y) } }
+                    legend: { display: true, position: 'top', align: 'end' },
+                    tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ptBrCurrency(ctx.parsed.y)}` } }
                 },
                 scales: {
                     y: { grid: { color: cor('--line') }, ticks: { callback: value => ptBrCurrency(value) } },

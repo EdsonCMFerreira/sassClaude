@@ -136,6 +136,7 @@ public class PedidosController : Controller
             .ToList();
 
         var valorTotalConcluidos = concluidos.Sum(ValorComDesconto);
+        var perdidosCount = pedidos.Count(p => p.Status is "Cancelada" or "Devolução");
 
         var model = new PedidoDashboardViewModel
         {
@@ -150,7 +151,11 @@ public class PedidosController : Controller
             MesSelecionado = mes,
             AnoSelecionado = ano,
             AnosDisponiveis = anosDisponiveis,
-            PeriodoDescricao = periodoDescricao
+            PeriodoDescricao = periodoDescricao,
+            PedidosConcluidosCount = concluidos.Count,
+            PedidosPerdidosCount = perdidosCount,
+            TaxaConclusaoPercentual = pedidos.Count > 0 ? Math.Round((decimal)concluidos.Count / pedidos.Count * 100, 1) : 0,
+            TaxaPerdaPercentual = pedidos.Count > 0 ? Math.Round((decimal)perdidosCount / pedidos.Count * 100, 1) : 0
         };
 
         return View(model);

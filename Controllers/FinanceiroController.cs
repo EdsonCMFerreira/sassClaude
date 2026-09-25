@@ -20,7 +20,7 @@ public class FinanceiroController : Controller
     {
         var todosPedidos = await _context.Pedidos
             .Include(p => p.Cliente)
-            .Include(p => p.Itens)
+            .Include(p => p.Itens).ThenInclude(i => i.Produto)
             .ToListAsync();
 
         var concluidos = todosPedidos.Where(p => p.Status == "Concluída").ToList();
@@ -29,9 +29,13 @@ public class FinanceiroController : Controller
         var meses = Enumerable.Range(0, 6)
             .Select(i => new DateTime(hoje.Year, hoje.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(-i))
             .OrderBy(d => d)
-            .Select(mes => new DreRow(
-                mes,
-                concluidos.Where(p => p.DataPedido.Year == mes.Year && p.DataPedido.Month == mes.Month).Sum(ValorLiquido)))
+            .Select(mes =>
+            {
+                var doMes = concluidos.Where(p => p.DataPedido.Year == mes.Year && p.DataPedido.Month == mes.Month).ToList();
+                var receitaMes = doMes.Sum(ValorLiquido);
+                var custoMes = doMes.Sum(CustoTotal);
+                return new DreRow(mes, receitaMes, custoMes, receitaMes - custoMes);
+            })
             .ToList();
 
         var contasAReceber = todosPedidos
@@ -57,16 +61,23 @@ public class FinanceiroController : Controller
             .OrderByDescending(r => r.Total)
             .ToList();
 
+        var totalReceita = concluidos.Sum(ValorLiquido);
+        var totalCusto = concluidos.Sum(CustoTotal);
+        var lucroBruto = totalReceita - totalCusto;
+
         var model = new FinanceiroViewModel
         {
-            TotalEntradas = concluidos.Sum(ValorLiquido),
+            TotalEntradas = totalReceita,
             Meses = meses,
             TotalEmAberto = contasAReceber.Sum(r => r.Valor),
             TotalVencido = contasAReceber.Where(r => r.Situacao == "Vencido").Sum(r => r.Valor),
             TotalVenceEm7Dias = contasAReceber.Where(r => r.Situacao == "Vence em breve").Sum(r => r.Valor),
             QuantidadeEmAberto = contasAReceber.Count,
             ContasAReceber = contasAReceber,
-            VendasPorFormaPagamento = vendasPorFormaPagamento
+            VendasPorFormaPagamento = vendasPorFormaPagamento,
+            TotalCusto = totalCusto,
+            LucroBruto = lucroBruto,
+            MargemBrutaPercentual = totalReceita > 0 ? Math.Round(lucroBruto / totalReceita * 100, 1) : 0
         };
 
         return View(model);
@@ -76,5 +87,10 @@ public class FinanceiroController : Controller
     {
         var valorTotal = pedido.Itens.Sum(i => i.Quantidade * i.ValorUnitario);
         return Math.Round(valorTotal * (1 - pedido.PercentualDesconto / 100), 2);
+    }
+
+    private static decimal CustoTotal(Pedido pedido)
+    {
+        return pedido.Itens.Sum(i => i.Quantidade * (i.Produto?.ValorCompra ?? 0));
     }
 }

@@ -99,6 +99,52 @@ public class ProdutosController : Controller
 
         return View(model);
     }
+
+    public async Task<IActionResult> CurvaAbc()
+    {
+        var itensVendidos = await _context.PedidoItens
+            .Include(i => i.Produto)
+            .Include(i => i.Pedido)
+            .Where(i => i.ProdutoId != null && i.Pedido!.Status == "Concluída")
+            .ToListAsync();
+
+        var porProduto = itensVendidos
+            .GroupBy(i => i.ProdutoId!.Value)
+            .Select(g => new
+            {
+                Codigo = g.First().Produto?.Codigo ?? "—",
+                Descricao = g.First().Produto?.Descricao ?? "—",
+                Receita = g.Sum(i => i.Quantidade * i.ValorUnitario)
+            })
+            .OrderByDescending(x => x.Receita)
+            .ToList();
+
+        var receitaTotal = porProduto.Sum(x => x.Receita);
+        var acumulado = 0m;
+        var linhas = new List<ProdutoAbcRow>();
+
+        foreach (var item in porProduto)
+        {
+            var percentual = receitaTotal > 0 ? item.Receita / receitaTotal * 100 : 0;
+            acumulado += percentual;
+            var classe = acumulado <= 80 ? "A" : acumulado <= 95 ? "B" : "C";
+            linhas.Add(new ProdutoAbcRow(item.Codigo, item.Descricao, item.Receita, Math.Round(percentual, 2), Math.Round(acumulado, 2), classe));
+        }
+
+        var model = new ProdutoAbcViewModel
+        {
+            Produtos = linhas,
+            ReceitaTotal = receitaTotal,
+            ClasseACount = linhas.Count(l => l.Classe == "A"),
+            ClasseBCount = linhas.Count(l => l.Classe == "B"),
+            ClasseCCount = linhas.Count(l => l.Classe == "C"),
+            ClasseAPercentualReceita = linhas.Where(l => l.Classe == "A").Sum(l => l.PercentualReceita),
+            ClasseBPercentualReceita = linhas.Where(l => l.Classe == "B").Sum(l => l.PercentualReceita),
+            ClasseCPercentualReceita = linhas.Where(l => l.Classe == "C").Sum(l => l.PercentualReceita)
+        };
+
+        return View(model);
+    }
 }
 
 [ApiController]

@@ -1,0 +1,57 @@
+@model ProdutoAbcViewModel
+@{
+    ViewData["Title"] = "Curva ABC de produtos";
+    var ptBr = new System.Globalization.CultureInfo("pt-BR");
+
+    string BadgeClasse(string classe) => classe switch
+    {
+        "A" => "status-badge--concluida",
+        "B" => "status-badge--devolucao",
+        _ => "status-badge--pendente"
+    };
+}
+<div class="page-heading">
+    <div><span class="eyebrow">Catálogo</span><h1>Curva ABC de produtos.</h1><p class="muted">Quais produtos concentram a receita das vendas concluídas — priorize estoque e atenção nos itens classe A.</p></div>
+    <a class="button button-outline" asp-controller="Produtos" asp-action="Index">← Ver produtos</a>
+</div>
+
+<div class="metric-grid">
+    <article class="metric-card metric-highlight"><span class="metric-label">Classe A</span><strong>@Model.ClasseACount produto(s)</strong><span class="metric-caption">@Model.ClasseAPercentualReceita.ToString("0.0")% da receita — poucos itens, mais importantes</span></article>
+    <article class="metric-card"><span class="metric-label">Classe B</span><strong>@Model.ClasseBCount produto(s)</strong><span class="metric-caption">@Model.ClasseBPercentualReceita.ToString("0.0")% da receita — importância intermediária</span></article>
+    <article class="metric-card"><span class="metric-label">Classe C</span><strong>@Model.ClasseCCount produto(s)</strong><span class="metric-caption">@Model.ClasseCPercentualReceita.ToString("0.0")% da receita — cauda longa</span></article>
+</div>
+
+<div class="surface-card users-card">
+    <div class="section-heading"><div><h2>Produtos por receita (vendas concluídas)</h2><p class="muted">Classe A = até 80% da receita acumulada · Classe B = de 80% a 95% · Classe C = os últimos 5%. Ordenado do produto que mais vende para o que menos vende.</p></div></div>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead class="table-light">
+                <tr>
+                    <th>Código</th>
+                    <th>Descrição</th>
+                    <th>Receita</th>
+                    <th>% da receita</th>
+                    <th>% acumulado</th>
+                    <th>Classe</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Produtos.Any())
+                {
+                    <tr><td colspan="6" class="muted">Nenhuma venda concluída ainda.</td></tr>
+                }
+                @foreach (var item in Model.Produtos)
+                {
+                    <tr>
+                        <td>@item.Codigo</td>
+                        <td>@item.Descricao</td>
+                        <td>@item.Receita.ToString("C", ptBr)</td>
+                        <td>@item.PercentualReceita.ToString("0.0")%</td>
+                        <td>@item.PercentualAcumulado.ToString("0.0")%</td>
+                        <td><span class="status-badge @BadgeClasse(item.Classe)">Classe @item.Classe</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

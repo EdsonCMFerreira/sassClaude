@@ -31,4 +31,9 @@ public sealed class PedidoDashboardViewModel
     public List<int> AnosDisponiveis { get; set; } = [];
 
     public string PeriodoDescricao { get; set; } = "no total";
+
+    public int PedidosConcluidosCount { get; set; }
+    public int PedidosPerdidosCount { get; set; }
+    public decimal TaxaConclusaoPercentual { get; set; }
+    public decimal TaxaPerdaPercentual { get; set; }
 }

@@ -1,6 +1,6 @@
 namespace Saas.Models;
 
-public sealed record DreRow(DateTime Mes, decimal Entradas);
+public sealed record DreRow(DateTime Mes, decimal Entradas, decimal Custo, decimal Lucro);
 
 public sealed record ContaReceberRow(
     int PedidoId, int NumeroPedido, string ClienteNome, decimal Valor,
@@ -20,4 +20,8 @@ public sealed class FinanceiroViewModel
     public List<ContaReceberRow> ContasAReceber { get; set; } = new();
 
     public List<FormaPagamentoRow> VendasPorFormaPagamento { get; set; } = new();
+
+    public decimal TotalCusto { get; set; }
+    public decimal LucroBruto { get; set; }
+    public decimal MargemBrutaPercentual { get; set; }
 }
