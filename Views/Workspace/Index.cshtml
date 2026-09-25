@@ -140,10 +140,6 @@
         let projetoTarefasAtual = null;
         let tarefasCarregadas = [];
 
-        function formatDate(value) {
-            return new Date(value).toLocaleDateString('pt-BR');
-        }
-
         async function loadProjetos() {
             const response = await fetch('/api/projetos');
             if (!response.ok) {

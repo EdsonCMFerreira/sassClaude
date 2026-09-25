@@ -28,10 +28,6 @@
     <script>
         const tableBody = document.getElementById('produtoTableBody');
 
-        function formatDate(value) {
-            return new Date(value).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
-        }
-
         async function loadProdutosSemFornecedor() {
             const response = await fetch('/api/produtos');
             if (!response.ok) {

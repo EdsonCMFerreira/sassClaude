@@ -297,7 +297,7 @@
                     <td>${formatValorFinalCell(item)}</td>
                     <td>${formatDate(item.dataPedido)}</td>
                     <td>${formatVencimentoPagamentoCell(item)}</td>
-                    <td>${item.status}</td>
+                    <td>${formatStatusBadge(item.status)}</td>
                     <td>
                         <span class="actions-cell">
                             ${item.status === 'Concluída' ? `<a class="table-action" href="/Pedidos/Recibo/${item.id}" target="_blank" rel="noopener">Recibo</a>` : ''}

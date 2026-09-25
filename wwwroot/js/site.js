@@ -24,6 +24,17 @@ function formatValorFinalCell(item) {
     return `${formatCurrency(item.valorComDesconto)}${desconto}`;
 }
 
+function formatStatusBadge(status) {
+    const classes = {
+        'Concluída': 'status-badge--concluida',
+        'Pendente': 'status-badge--pendente',
+        'Cancelada': 'status-badge--cancelada',
+        'Devolução': 'status-badge--devolucao'
+    };
+    const classe = classes[status] || 'status-badge--pendente';
+    return `<span class="status-badge ${classe}">${status}</span>`;
+}
+
 function formatVencimentoPagamentoCell(item) {
     if (item.dataPagamento) {
         const venc = item.dataVencimento ? `<br><small class="muted">Venc.: ${formatDate(item.dataVencimento)}</small>` : '';

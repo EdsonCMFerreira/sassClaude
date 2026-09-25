@@ -30,10 +30,6 @@
     <script>
         const tableBody = document.getElementById('produtoTableBody');
 
-        function formatDate(value) {
-            return new Date(value).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
-        }
-
         async function loadProdutosVencendoEm30Dias() {
             const response = await fetch('/api/produtos');
             if (!response.ok) {

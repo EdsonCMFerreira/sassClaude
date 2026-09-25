@@ -101,10 +101,6 @@
         const tableBody = document.getElementById('clienteTableBody');
         const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
 
-        function formatDate(value) {
-            return new Date(value).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
-        }
-
         function hoje() {
             return new Date().toISOString().slice(0, 10);
         }

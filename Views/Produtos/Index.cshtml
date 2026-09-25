@@ -69,16 +69,8 @@
         const tableBody = document.getElementById('produtoTableBody');
         const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
 
-        function formatCurrency(value) {
-            return Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        }
-
         function formatPercent(value) {
             return `${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
-        }
-
-        function formatDate(value) {
-            return new Date(value).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
         }
 
         function calcularLucro(compra, venda) {
