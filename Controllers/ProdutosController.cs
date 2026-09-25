@@ -294,6 +294,12 @@ public class ApiProdutosController : ControllerBase
             return NotFound();
         }
 
+        var temPedido = await _context.PedidoItens.AnyAsync(i => i.ProdutoId == id);
+        if (temPedido)
+        {
+            return BadRequest("Não é possível excluir um produto que já possui pedidos.");
+        }
+
         _context.Produtos.Remove(produto);
         await _context.SaveChangesAsync();
         return NoContent();

@@ -182,7 +182,8 @@
                 toast('Produto excluído.');
                 await loadProdutos();
             } else {
-                toast('Não foi possível excluir o produto.', 'error');
+                const errorText = await response.text();
+                toast(errorText || 'Não foi possível excluir o produto.', 'error');
             }
         }
 

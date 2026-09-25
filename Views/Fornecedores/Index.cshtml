@@ -196,7 +196,8 @@
                 toast('Fornecedor excluído.');
                 await loadFornecedores();
             } else {
-                toast('Não foi possível excluir o fornecedor.', 'error');
+                const errorText = await response.text();
+                toast(errorText || 'Não foi possível excluir o fornecedor.', 'error');
             }
         }
 

@@ -105,6 +105,12 @@ public class ApiFornecedoresController : ControllerBase
             return NotFound();
         }
 
+        var temPedido = await _context.PedidoItens.AnyAsync(i => i.Produto != null && i.Produto.FornecedorId == id);
+        if (temPedido)
+        {
+            return BadRequest("Não é possível excluir um fornecedor que já possui pedidos em algum de seus produtos.");
+        }
+
         _context.Fornecedores.Remove(fornecedor);
         await _context.SaveChangesAsync();
         return NoContent();
