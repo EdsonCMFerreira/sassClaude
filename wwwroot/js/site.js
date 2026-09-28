@@ -95,18 +95,11 @@ function renderPaginacao(elemento, paginaAtual, totalPaginas, aoMudarPagina) {
     });
 }
 
-function exportarTabelaCsv(tableSelector, nomeArquivo) {
-    const tabela = document.querySelector(tableSelector);
-    if (!tabela) return;
-
-    const linhas = Array.from(tabela.querySelectorAll('tr'));
-    const csv = linhas.map(tr => {
-        const celulas = Array.from(tr.querySelectorAll('th,td'));
-        return celulas.map(celula => {
-            const texto = celula.textContent.replace(/\s+/g, ' ').trim();
-            return `"${texto.replace(/"/g, '""')}"`;
-        }).join(';');
-    }).join('\r\n');
+function baixarCsv(linhas, nomeArquivo) {
+    const csv = linhas.map(colunas => colunas.map(valor => {
+        const texto = String(valor ?? '').replace(/\s+/g, ' ').trim();
+        return `"${texto.replace(/"/g, '""')}"`;
+    }).join(';')).join('\r\n');
 
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -117,6 +110,16 @@ function exportarTabelaCsv(tableSelector, nomeArquivo) {
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
+}
+
+function exportarTabelaCsv(tableSelector, nomeArquivo) {
+    const tabela = document.querySelector(tableSelector);
+    if (!tabela) return;
+
+    const linhas = Array.from(tabela.querySelectorAll('tr')).map(tr =>
+        Array.from(tr.querySelectorAll('th,td')).map(celula => celula.textContent)
+    );
+    baixarCsv(linhas, nomeArquivo);
 }
 
 function formatVencimentoPagamentoCell(item) {

@@ -2,14 +2,6 @@
 @{
     ViewData["Title"] = "Financeiro";
     var ptBr = new System.Globalization.CultureInfo("pt-BR");
-
-    string BadgeClasse(string situacao) => situacao switch
-    {
-        "Vencido" => "status-badge--cancelada",
-        "Vence em breve" => "status-badge--devolucao",
-        "Em dia" => "status-badge--concluida",
-        _ => "status-badge--pendente"
-    };
 }
 <div class="page-heading">
     <div><span class="eyebrow">Financeiro</span><h1>Resumo financeiro.</h1><p class="muted">Entradas realizadas e contas a receber, a partir dos pedidos registrados.</p></div>
@@ -104,36 +96,10 @@
                     <th>Ações</th>
                 </tr>
             </thead>
-            <tbody>
-                @if (!Model.ContasAReceber.Any())
-                {
-                    <tr><td colspan="6" class="muted">Nenhuma conta em aberto — tudo pago ou não há pedidos ativos.</td></tr>
-                }
-                @foreach (var conta in Model.ContasAReceber)
-                {
-                    <tr>
-                        <td>@conta.NumeroPedido</td>
-                        <td>@conta.ClienteNome</td>
-                        <td>@conta.Valor.ToString("C", ptBr)</td>
-                        <td>
-                            @(conta.DataVencimento?.ToString("dd/MM/yyyy") ?? "—")
-                            @if (conta.DiasParaVencer.HasValue)
-                            {
-                                <br />
-                                <small class="muted">
-                                    @(conta.DiasParaVencer.Value < 0
-                                        ? $"{Math.Abs(conta.DiasParaVencer.Value)} dia(s) em atraso"
-                                        : conta.DiasParaVencer.Value == 0 ? "Vence hoje" : $"em {conta.DiasParaVencer.Value} dia(s)")
-                                </small>
-                            }
-                        </td>
-                        <td><span class="status-badge @BadgeClasse(conta.Situacao)">@conta.Situacao</span></td>
-                        <td><a class="table-action" href="/Pedidos?editar=@conta.PedidoId">Editar</a></td>
-                    </tr>
-                }
-            </tbody>
+            <tbody id="tabelaContasReceberBody"></tbody>
         </table>
     </div>
+    <div class="table-pagination" id="paginacaoContasReceber"></div>
 </div>
 
 <div class="surface-card users-card" style="margin-top:18px;">
@@ -153,36 +119,10 @@
                     <th>Ações</th>
                 </tr>
             </thead>
-            <tbody>
-                @if (!Model.ContasAPagar.Any())
-                {
-                    <tr><td colspan="6" class="muted">Nenhuma conta em aberto — tudo pago ou não há compras ativas.</td></tr>
-                }
-                @foreach (var conta in Model.ContasAPagar)
-                {
-                    <tr>
-                        <td>@conta.NumeroCompra</td>
-                        <td>@conta.FornecedorNome</td>
-                        <td>@conta.Valor.ToString("C", ptBr)</td>
-                        <td>
-                            @(conta.DataVencimento?.ToString("dd/MM/yyyy") ?? "—")
-                            @if (conta.DiasParaVencer.HasValue)
-                            {
-                                <br />
-                                <small class="muted">
-                                    @(conta.DiasParaVencer.Value < 0
-                                        ? $"{Math.Abs(conta.DiasParaVencer.Value)} dia(s) em atraso"
-                                        : conta.DiasParaVencer.Value == 0 ? "Vence hoje" : $"em {conta.DiasParaVencer.Value} dia(s)")
-                                </small>
-                            }
-                        </td>
-                        <td><span class="status-badge @BadgeClasse(conta.Situacao)">@conta.Situacao</span></td>
-                        <td><a class="table-action" href="/Compras?editar=@conta.CompraId">Editar</a></td>
-                    </tr>
-                }
-            </tbody>
+            <tbody id="tabelaContasPagarBody"></tbody>
         </table>
     </div>
+    <div class="table-pagination" id="paginacaoContasPagar"></div>
 </div>
 
 <div class="surface-card users-card" style="margin-top:18px;">
@@ -268,11 +208,97 @@
             }
         });
 
+        const dadosContasReceber = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ContasAReceber.Select(c => new {
+            pedidoId = c.PedidoId, numeroPedido = c.NumeroPedido, clienteNome = c.ClienteNome,
+            valor = c.Valor, dataVencimento = c.DataVencimento, diasParaVencer = c.DiasParaVencer, situacao = c.Situacao
+        })));
+        const dadosContasPagar = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ContasAPagar.Select(c => new {
+            compraId = c.CompraId, numeroCompra = c.NumeroCompra, fornecedorNome = c.FornecedorNome,
+            valor = c.Valor, dataVencimento = c.DataVencimento, diasParaVencer = c.DiasParaVencer, situacao = c.Situacao
+        })));
+
+        function badgeClasseSituacao(situacao) {
+            const classes = {
+                'Vencido': 'status-badge--cancelada',
+                'Vence em breve': 'status-badge--devolucao',
+                'Em dia': 'status-badge--concluida'
+            };
+            return classes[situacao] || 'status-badge--pendente';
+        }
+
+        function diasParaVencerHtml(dias) {
+            if (dias === null || dias === undefined) return '';
+            if (dias < 0) return `<br><small class="muted">${Math.abs(dias)} dia(s) em atraso</small>`;
+            if (dias === 0) return `<br><small class="muted">Vence hoje</small>`;
+            return `<br><small class="muted">em ${dias} dia(s)</small>`;
+        }
+
+        const CONTAS_POR_PAGINA = 10;
+        let paginaContasReceber = 1;
+        let paginaContasPagar = 1;
+
+        function renderContasReceber() {
+            const corpo = document.getElementById('tabelaContasReceberBody');
+            const { itens, totalPaginas, paginaAtual } = filtrarEPaginar(dadosContasReceber, { pagina: paginaContasReceber, porPagina: CONTAS_POR_PAGINA });
+            paginaContasReceber = paginaAtual;
+
+            corpo.innerHTML = itens.map(conta => `
+                <tr>
+                    <td>${conta.numeroPedido}</td>
+                    <td>${conta.clienteNome}</td>
+                    <td>${formatCurrency(conta.valor)}</td>
+                    <td>${conta.dataVencimento ? formatDate(conta.dataVencimento) : '—'}${diasParaVencerHtml(conta.diasParaVencer)}</td>
+                    <td><span class="status-badge ${badgeClasseSituacao(conta.situacao)}">${conta.situacao}</span></td>
+                    <td><a class="table-action" href="/Pedidos?editar=${conta.pedidoId}">Editar</a></td>
+                </tr>
+            `).join('') || '<tr><td colspan="6" class="muted">Nenhuma conta em aberto — tudo pago ou não há pedidos ativos.</td></tr>';
+
+            renderPaginacao(document.getElementById('paginacaoContasReceber'), paginaContasReceber, totalPaginas, (novaPagina) => {
+                paginaContasReceber = novaPagina;
+                renderContasReceber();
+            });
+        }
+
+        function renderContasPagar() {
+            const corpo = document.getElementById('tabelaContasPagarBody');
+            const { itens, totalPaginas, paginaAtual } = filtrarEPaginar(dadosContasPagar, { pagina: paginaContasPagar, porPagina: CONTAS_POR_PAGINA });
+            paginaContasPagar = paginaAtual;
+
+            corpo.innerHTML = itens.map(conta => `
+                <tr>
+                    <td>${conta.numeroCompra}</td>
+                    <td>${conta.fornecedorNome}</td>
+                    <td>${formatCurrency(conta.valor)}</td>
+                    <td>${conta.dataVencimento ? formatDate(conta.dataVencimento) : '—'}${diasParaVencerHtml(conta.diasParaVencer)}</td>
+                    <td><span class="status-badge ${badgeClasseSituacao(conta.situacao)}">${conta.situacao}</span></td>
+                    <td><a class="table-action" href="/Compras?editar=${conta.compraId}">Editar</a></td>
+                </tr>
+            `).join('') || '<tr><td colspan="6" class="muted">Nenhuma conta em aberto — tudo pago ou não há compras ativas.</td></tr>';
+
+            renderPaginacao(document.getElementById('paginacaoContasPagar'), paginaContasPagar, totalPaginas, (novaPagina) => {
+                paginaContasPagar = novaPagina;
+                renderContasPagar();
+            });
+        }
+
+        renderContasReceber();
+        renderContasPagar();
+
         document.getElementById('exportarContasReceber')?.addEventListener('click', () => {
-            exportarTabelaCsv('#tabelaContasReceber', 'contas-a-receber.csv');
+            const cabecalho = ['Nº do pedido', 'Cliente', 'Valor', 'Vencimento', 'Dias', 'Situação'];
+            const linhas = dadosContasReceber.map(c => [
+                c.numeroPedido, c.clienteNome, formatCurrency(c.valor),
+                c.dataVencimento ? formatDate(c.dataVencimento) : '—', c.diasParaVencer, c.situacao
+            ]);
+            baixarCsv([cabecalho, ...linhas], 'contas-a-receber.csv');
         });
         document.getElementById('exportarContasPagar')?.addEventListener('click', () => {
-            exportarTabelaCsv('#tabelaContasPagar', 'contas-a-pagar.csv');
+            const cabecalho = ['Nº da conta', 'Fornecedor', 'Valor', 'Vencimento', 'Dias', 'Situação'];
+            const linhas = dadosContasPagar.map(c => [
+                c.numeroCompra, c.fornecedorNome, formatCurrency(c.valor),
+                c.dataVencimento ? formatDate(c.dataVencimento) : '—', c.diasParaVencer, c.situacao
+            ]);
+            baixarCsv([cabecalho, ...linhas], 'contas-a-pagar.csv');
         });
 
         const fluxoCaixaLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.FluxoCaixa.Select(f => f.Mes.ToString("MMM/yyyy", ptBr))));
