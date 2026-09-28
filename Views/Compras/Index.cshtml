@@ -132,6 +132,7 @@
         let allProdutos = [];
         let todosCompras = [];
         let paginaAtual = 1;
+        let ultimoFornecedorId = '';
 
         function hoje() {
             return new Date().toISOString().slice(0, 10);
@@ -139,8 +140,18 @@
 
         dataCompra.value = hoje();
 
+        function produtosDoFornecedorSelecionado() {
+            const idFornecedor = Number(fornecedorId.value) || 0;
+            if (!idFornecedor) return [];
+            return allProdutos.filter(p => p.fornecedorId === idFornecedor);
+        }
+
         function optionsProdutosHtml(selectedId) {
-            return '<option value="">Selecione...</option>' + allProdutos.map(p =>
+            const produtosFiltrados = produtosDoFornecedorSelecionado();
+            if (produtosFiltrados.length === 0) {
+                return '<option value="">Selecione um fornecedor primeiro</option>';
+            }
+            return '<option value="">Selecione...</option>' + produtosFiltrados.map(p =>
                 `<option value="${p.id}" ${p.id === selectedId ? 'selected' : ''}>${p.codigo} — ${p.descricao}</option>`
             ).join('');
         }
@@ -212,6 +223,7 @@
             compraId.value = '';
             numeroCompra.value = '';
             dataCompra.value = hoje();
+            ultimoFornecedorId = '';
             itensTableBody.innerHTML = '';
             addItemRow();
             valorTotalDisplay.value = '';
@@ -287,6 +299,7 @@
             compraId.value = data.id;
             numeroCompra.value = data.numeroCompra;
             fornecedorId.value = data.fornecedorId;
+            ultimoFornecedorId = fornecedorId.value;
             dataCompra.value = data.dataCompra.slice(0, 10);
             dataVencimento.value = data.dataVencimento ? data.dataVencimento.slice(0, 10) : '';
             dataPagamento.value = data.dataPagamento ? data.dataPagamento.slice(0, 10) : '';
@@ -315,6 +328,17 @@
                 toast(errorText || 'Não foi possível excluir a conta a pagar.', 'error');
             }
         }
+
+        fornecedorId.addEventListener('change', () => {
+            const temItensPreenchidos = Array.from(itensTableBody.querySelectorAll('.item-produto')).some(select => select.value);
+            if (temItensPreenchidos && !confirm('Trocar o fornecedor vai limpar os produtos já adicionados, já que cada fornecedor tem seus próprios produtos. Continuar?')) {
+                fornecedorId.value = ultimoFornecedorId;
+                return;
+            }
+            ultimoFornecedorId = fornecedorId.value;
+            itensTableBody.innerHTML = '';
+            addItemRow();
+        });
 
         addItemButton.addEventListener('click', () => addItemRow());
 
