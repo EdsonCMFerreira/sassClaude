@@ -74,7 +74,6 @@
                         <tbody id="itensTableBody"></tbody>
                     </table>
                 </div>
-                <button type="button" id="addItemButton" class="table-action" style="margin-top:14px;">+ Adicionar produto</button>
             </div>
 
             <div class="user-form-grid form-summary-row">
@@ -124,7 +123,6 @@
         const cancelEdit = document.getElementById('cancelEdit');
         const tableBody = document.getElementById('compraTableBody');
         const itensTableBody = document.getElementById('itensTableBody');
-        const addItemButton = document.getElementById('addItemButton');
         const busca = document.getElementById('compraBusca');
         const paginacaoEl = document.getElementById('compraPaginacao');
         const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
@@ -339,8 +337,6 @@
             itensTableBody.innerHTML = '';
             addItemRow();
         });
-
-        addItemButton.addEventListener('click', () => addItemRow());
 
         form.addEventListener('submit', async (event) => {
             event.preventDefault();

@@ -88,12 +88,11 @@
                         <tbody id="itensTableBody"></tbody>
                     </table>
                 </div>
-                <button type="button" id="addItemButton" class="table-action" style="margin-top:14px;">+ Adicionar produto</button>
             </div>
 
-            <div class="user-form-grid">
-                <div class="field-sm"><label for="valorTotal">Valor total</label><input id="valorTotal" type="text" readonly disabled /></div>
-                <div class="field-sm"><label for="valorComDesconto">Valor com desconto</label><input id="valorComDesconto" type="text" readonly disabled /></div>
+            <div class="user-form-grid form-summary-row-3">
+                <div><label for="valorTotal">Valor total</label><input id="valorTotal" type="text" readonly disabled /></div>
+                <div><label for="valorComDesconto">Valor com desconto</label><input id="valorComDesconto" type="text" readonly disabled /></div>
                 <div class="user-form-actions"><button type="submit" class="button button-primary">Salvar</button><button type="button" id="cancelEdit" class="button button-outline hidden">Cancelar</button></div>
             </div>
         </form>
@@ -147,7 +146,6 @@
         const cancelEdit = document.getElementById('cancelEdit');
         const tableBody = document.getElementById('pedidoTableBody');
         const itensTableBody = document.getElementById('itensTableBody');
-        const addItemButton = document.getElementById('addItemButton');
         const busca = document.getElementById('pedidoBusca');
         const paginacaoEl = document.getElementById('pedidoPaginacao');
         const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
@@ -408,7 +406,6 @@
             }
         }
 
-        addItemButton.addEventListener('click', () => addItemRow());
         percentualDesconto.addEventListener('input', atualizarTotais);
         status.addEventListener('change', atualizarCampoDesconto);
         clienteId.addEventListener('change', atualizarEnderecoCliente);
