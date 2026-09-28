@@ -29,6 +29,13 @@
     <article class="metric-card"><span class="metric-label">Margem bruta</span><strong class="@(Model.MargemBrutaPercentual >= 0 ? "status-positive" : "status-negative")">@Model.MargemBrutaPercentual.ToString("0.0")%</strong><span class="metric-caption">lucro bruto / receita</span></article>
 </div>
 
+<div class="section-heading" style="margin-bottom:14px;"><div><span class="eyebrow">Fornecedores</span><h2>Contas a pagar</h2><p class="muted">Compras não canceladas que ainda não têm data de pagamento registrada.</p></div></div>
+<div class="metric-grid">
+    <article class="metric-card metric-highlight"><span class="metric-label">Em aberto</span><strong>@Model.TotalEmAbertoPagar.ToString("C", ptBr)</strong><span class="metric-caption">@Model.QuantidadeEmAbertoPagar compra(s) aguardando pagamento</span></article>
+    <article class="metric-card"><span class="metric-label">Vencido</span><strong class="@(Model.TotalVencidoPagar > 0 ? "status-negative" : "")">@Model.TotalVencidoPagar.ToString("C", ptBr)</strong><span class="metric-caption">precisa de atenção</span></article>
+    <article class="metric-card"><span class="metric-label">Vence em 7 dias</span><strong>@Model.TotalVenceEm7DiasPagar.ToString("C", ptBr)</strong><span class="metric-caption">fique de olho</span></article>
+</div>
+
 <div class="content-grid">
     <section class="surface-card users-card">
         <div class="section-heading"><div><h2>Entradas nos últimos 6 meses</h2><p class="muted">Só entram no cálculo vendas com status "Concluída", já com desconto aplicado.</p></div></div>
@@ -81,9 +88,12 @@
 </div>
 
 <div class="surface-card users-card" style="margin-top:18px;">
-    <div class="section-heading"><div><h2>Contas a receber</h2><p class="muted">Pedidos não cancelados/devolvidos que ainda não têm data de pagamento registrada, do vencimento mais próximo para o mais distante.</p></div></div>
+    <div class="section-heading">
+        <div><h2>Contas a receber</h2><p class="muted">Pedidos não cancelados/devolvidos que ainda não têm data de pagamento registrada, do vencimento mais próximo para o mais distante.</p></div>
+        <button type="button" class="button button-outline" id="exportarContasReceber">Exportar CSV</button>
+    </div>
     <div class="table-wrap">
-        <table class="data-table">
+        <table class="data-table" id="tabelaContasReceber">
             <thead class="table-light">
                 <tr>
                     <th>Nº do pedido</th>
@@ -119,6 +129,85 @@
                         </td>
                         <td><span class="status-badge @BadgeClasse(conta.Situacao)">@conta.Situacao</span></td>
                         <td><a class="table-action" href="/Pedidos?editar=@conta.PedidoId">Editar</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="surface-card users-card" style="margin-top:18px;">
+    <div class="section-heading">
+        <div><h2>Contas a pagar</h2><p class="muted">Compras não canceladas que ainda não têm data de pagamento registrada, do vencimento mais próximo para o mais distante.</p></div>
+        <button type="button" class="button button-outline" id="exportarContasPagar">Exportar CSV</button>
+    </div>
+    <div class="table-wrap">
+        <table class="data-table" id="tabelaContasPagar">
+            <thead class="table-light">
+                <tr>
+                    <th>Nº da compra</th>
+                    <th>Fornecedor</th>
+                    <th>Valor</th>
+                    <th>Vencimento</th>
+                    <th>Situação</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.ContasAPagar.Any())
+                {
+                    <tr><td colspan="6" class="muted">Nenhuma conta em aberto — tudo pago ou não há compras ativas.</td></tr>
+                }
+                @foreach (var conta in Model.ContasAPagar)
+                {
+                    <tr>
+                        <td>@conta.NumeroCompra</td>
+                        <td>@conta.FornecedorNome</td>
+                        <td>@conta.Valor.ToString("C", ptBr)</td>
+                        <td>
+                            @(conta.DataVencimento?.ToString("dd/MM/yyyy") ?? "—")
+                            @if (conta.DiasParaVencer.HasValue)
+                            {
+                                <br />
+                                <small class="muted">
+                                    @(conta.DiasParaVencer.Value < 0
+                                        ? $"{Math.Abs(conta.DiasParaVencer.Value)} dia(s) em atraso"
+                                        : conta.DiasParaVencer.Value == 0 ? "Vence hoje" : $"em {conta.DiasParaVencer.Value} dia(s)")
+                                </small>
+                            }
+                        </td>
+                        <td><span class="status-badge @BadgeClasse(conta.Situacao)">@conta.Situacao</span></td>
+                        <td><a class="table-action" href="/Compras?editar=@conta.CompraId">Editar</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="surface-card users-card" style="margin-top:18px;">
+    <div class="section-heading"><div><span class="eyebrow">Projeção</span><h2>Fluxo de caixa consolidado</h2><p class="muted">Entradas previstas (contas a receber) menos saídas previstas (contas a pagar), por mês de vencimento, com saldo acumulado.</p></div></div>
+    <div style="padding:10px 27px 0;"><div style="height:240px;"><canvas id="graficoFluxoCaixa"></canvas></div></div>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead class="table-light">
+                <tr>
+                    <th>Mês</th>
+                    <th>Entradas previstas</th>
+                    <th>Saídas previstas</th>
+                    <th>Saldo do mês</th>
+                    <th>Saldo acumulado</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model.FluxoCaixa)
+                {
+                    <tr>
+                        <td>@row.Mes.ToString("MMMM/yyyy", ptBr)</td>
+                        <td>@row.EntradasPrevistas.ToString("C", ptBr)</td>
+                        <td>@row.SaidasPrevistas.ToString("C", ptBr)</td>
+                        <td class="@(row.SaldoMes < 0 ? "status-negative" : "status-positive")">@row.SaldoMes.ToString("C", ptBr)</td>
+                        <td class="@(row.SaldoAcumulado < 0 ? "status-negative" : "")">@row.SaldoAcumulado.ToString("C", ptBr)</td>
                     </tr>
                 }
             </tbody>
@@ -163,6 +252,63 @@
                         hoverBackgroundColor: cor('--neutral'),
                         borderRadius: 8,
                         maxBarThickness: 32
+                    }
+                ]
+            },
+            options: {
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: true, position: 'top', align: 'end' },
+                    tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ptBrCurrency(ctx.parsed.y)}` } }
+                },
+                scales: {
+                    y: { grid: { color: cor('--line') }, ticks: { callback: value => ptBrCurrency(value) } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+
+        document.getElementById('exportarContasReceber')?.addEventListener('click', () => {
+            exportarTabelaCsv('#tabelaContasReceber', 'contas-a-receber.csv');
+        });
+        document.getElementById('exportarContasPagar')?.addEventListener('click', () => {
+            exportarTabelaCsv('#tabelaContasPagar', 'contas-a-pagar.csv');
+        });
+
+        const fluxoCaixaLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.FluxoCaixa.Select(f => f.Mes.ToString("MMM/yyyy", ptBr))));
+        const fluxoCaixaEntradas = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.FluxoCaixa.Select(f => f.EntradasPrevistas)));
+        const fluxoCaixaSaidas = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.FluxoCaixa.Select(f => f.SaidasPrevistas)));
+        const fluxoCaixaSaldoAcumulado = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.FluxoCaixa.Select(f => f.SaldoAcumulado)));
+
+        new Chart(document.getElementById('graficoFluxoCaixa'), {
+            data: {
+                labels: fluxoCaixaLabels,
+                datasets: [
+                    {
+                        type: 'bar',
+                        label: 'Entradas previstas',
+                        data: fluxoCaixaEntradas,
+                        backgroundColor: cor('--green'),
+                        borderRadius: 8,
+                        maxBarThickness: 32
+                    },
+                    {
+                        type: 'bar',
+                        label: 'Saídas previstas',
+                        data: fluxoCaixaSaidas,
+                        backgroundColor: cor('--coral'),
+                        borderRadius: 8,
+                        maxBarThickness: 32
+                    },
+                    {
+                        type: 'line',
+                        label: 'Saldo acumulado',
+                        data: fluxoCaixaSaldoAcumulado,
+                        borderColor: cor('--blue'),
+                        backgroundColor: cor('--blue'),
+                        tension: 0.35,
+                        pointRadius: 4,
+                        yAxisID: 'y'
                     }
                 ]
             },

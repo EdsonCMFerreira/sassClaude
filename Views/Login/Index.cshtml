@@ -16,6 +16,14 @@
                             <div><label for="email">E-mail</label><input id="email" type="email" required /></div>
                             <div><label for="role">Cargo</label><select id="role"><option value="Colaborador">Colaborador</option><option value="Admin">Admin</option></select></div>
                             <div><label for="password">Senha</label><input id="password" type="password" /><small>Obrigatória ao criar. Em branco ao editar mantém a atual.</small></div>
+                            <div class="field-full">
+                                <label>Permissões extras (só valem para o cargo Colaborador — Admin sempre tem acesso completo)</label>
+                                <div style="display:flex;gap:20px;margin-top:6px;">
+                                    <label class="inline-checkbox"><input type="checkbox" id="acessoCadastros" checked /> Cadastros (clientes, fornecedores, produtos)</label>
+                                    <label class="inline-checkbox"><input type="checkbox" id="acessoCompras" checked /> Compras</label>
+                                </div>
+                                <small>Uma permissão alterada só entra em vigor no próximo login do usuário.</small>
+                            </div>
                             <div class="user-form-actions"><button type="submit" class="button button-primary">Salvar</button><button type="button" id="cancelEdit" class="button button-outline hidden">Cancelar</button></div>
                         </div>
         </form>
@@ -29,6 +37,7 @@
                             <th>Usuário</th>
                             <th>E-mail</th>
                             <th>Cargo</th>
+                            <th>Permissões</th>
                             <th>Data</th>
                             <th>Ações</th>
                         </tr>
@@ -46,6 +55,8 @@
         const email = document.getElementById('email');
         const role = document.getElementById('role');
         const password = document.getElementById('password');
+        const acessoCadastros = document.getElementById('acessoCadastros');
+        const acessoCompras = document.getElementById('acessoCompras');
         const cancelEdit = document.getElementById('cancelEdit');
         const tableBody = document.getElementById('loginTableBody');
         const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
@@ -63,6 +74,7 @@
                     <td>${item.username}</td>
                     <td>${item.email}</td>
                     <td>${item.role}</td>
+                    <td>${item.role === 'Admin' ? '<span class="muted">Completo</span>' : [item.acessoCadastros ? 'Cadastros' : null, item.acessoCompras ? 'Compras' : null].filter(Boolean).join(', ') || '<span class="muted">Nenhuma</span>'}</td>
                     <td>${new Date(item.createdAt).toLocaleString('pt-BR')}</td>
                     <td>
                         <button class="table-action" data-edit="${item.id}">Editar</button>
@@ -88,6 +100,8 @@
             email.value = data.email;
             role.value = data.role;
             password.value = '';
+            acessoCadastros.checked = data.acessoCadastros;
+            acessoCompras.checked = data.acessoCompras;
             cancelEdit.classList.remove('hidden');
             username.focus();
         }
@@ -113,7 +127,9 @@
                 username: username.value.trim(),
                 email: email.value.trim(),
                 role: role.value,
-                password: password.value.trim()
+                password: password.value.trim(),
+                acessoCadastros: acessoCadastros.checked,
+                acessoCompras: acessoCompras.checked
             };
 
             const method = payload.id ? 'PUT' : 'POST';

@@ -27,9 +27,12 @@
 }
 
 <div class="surface-card users-card" style="margin-top:18px;">
-    <div class="section-heading"><div><h2>Todos os clientes compradores</h2><p class="muted">Ordenado do maior para o menor valor comprado. Só considera pedidos com status "Concluída".</p></div></div>
+    <div class="section-heading">
+        <div><h2>Todos os clientes compradores</h2><p class="muted">Ordenado do maior para o menor valor comprado. Só considera pedidos com status "Concluída".</p></div>
+        <button type="button" class="button button-outline" id="exportarRanking">Exportar CSV</button>
+    </div>
     <div class="table-wrap">
-        <table class="data-table">
+        <table class="data-table" id="tabelaRanking">
             <thead class="table-light">
                 <tr>
                     <th>#</th>
@@ -66,6 +69,10 @@
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     <script>
+        document.getElementById('exportarRanking')?.addEventListener('click', () => {
+            exportarTabelaCsv('#tabelaRanking', 'ranking-de-clientes.csv');
+        });
+
         const rankingCanvas = document.getElementById('graficoRanking');
         if (rankingCanvas) {
             const tema = getComputedStyle(document.documentElement);

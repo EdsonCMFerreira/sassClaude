@@ -27,6 +27,7 @@ function formatValorFinalCell(item) {
 function formatStatusBadge(status) {
     const classes = {
         'Concluída': 'status-badge--concluida',
+        'Paga': 'status-badge--concluida',
         'Pendente': 'status-badge--pendente',
         'Cancelada': 'status-badge--cancelada',
         'Devolução': 'status-badge--devolucao'
@@ -92,6 +93,30 @@ function renderPaginacao(elemento, paginaAtual, totalPaginas, aoMudarPagina) {
     elemento.querySelectorAll('[data-pagina]').forEach(botao => {
         botao.addEventListener('click', () => aoMudarPagina(Number(botao.dataset.pagina)));
     });
+}
+
+function exportarTabelaCsv(tableSelector, nomeArquivo) {
+    const tabela = document.querySelector(tableSelector);
+    if (!tabela) return;
+
+    const linhas = Array.from(tabela.querySelectorAll('tr'));
+    const csv = linhas.map(tr => {
+        const celulas = Array.from(tr.querySelectorAll('th,td'));
+        return celulas.map(celula => {
+            const texto = celula.textContent.replace(/\s+/g, ' ').trim();
+            return `"${texto.replace(/"/g, '""')}"`;
+        }).join(';');
+    }).join('\r\n');
+
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = nomeArquivo;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
 }
 
 function formatVencimentoPagamentoCell(item) {

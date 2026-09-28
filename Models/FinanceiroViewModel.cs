@@ -8,6 +8,12 @@ public sealed record ContaReceberRow(
 
 public sealed record FormaPagamentoRow(string FormaPagamento, decimal Total, int Quantidade);
 
+public sealed record ContaPagarRow(
+    int CompraId, int NumeroCompra, string FornecedorNome, decimal Valor,
+    DateTime? DataVencimento, int? DiasParaVencer, string Situacao);
+
+public sealed record FluxoCaixaRow(DateTime Mes, decimal EntradasPrevistas, decimal SaidasPrevistas, decimal SaldoMes, decimal SaldoAcumulado);
+
 public sealed class FinanceiroViewModel
 {
     public decimal TotalEntradas { get; set; }
@@ -18,6 +24,14 @@ public sealed class FinanceiroViewModel
     public decimal TotalVenceEm7Dias { get; set; }
     public int QuantidadeEmAberto { get; set; }
     public List<ContaReceberRow> ContasAReceber { get; set; } = new();
+
+    public decimal TotalEmAbertoPagar { get; set; }
+    public decimal TotalVencidoPagar { get; set; }
+    public decimal TotalVenceEm7DiasPagar { get; set; }
+    public int QuantidadeEmAbertoPagar { get; set; }
+    public List<ContaPagarRow> ContasAPagar { get; set; } = new();
+
+    public List<FluxoCaixaRow> FluxoCaixa { get; set; } = new();
 
     public List<FormaPagamentoRow> VendasPorFormaPagamento { get; set; } = new();
 

@@ -6,7 +6,7 @@ using Saas.Models;
 
 namespace Saas.Controllers;
 
-[Authorize]
+[Authorize(Policy = "AcessoCadastros")]
 public class ProdutosController : Controller
 {
     private readonly SassDbContext _context;

@@ -34,6 +34,8 @@ public class SassDbContext : DbContext
     public DbSet<Fornecedor> Fornecedores => Set<Fornecedor>();
     public DbSet<Pedido> Pedidos => Set<Pedido>();
     public DbSet<PedidoItem> PedidoItens => Set<PedidoItem>();
+    public DbSet<Compra> Compras => Set<Compra>();
+    public DbSet<CompraItem> CompraItens => Set<CompraItem>();
     public DbSet<AuditLogEntry> AuditLogEntries => Set<AuditLogEntry>();
     public DbSet<Projeto> Projetos => Set<Projeto>();
     public DbSet<Tarefa> Tarefas => Set<Tarefa>();
@@ -256,6 +258,34 @@ public class SassDbContext : DbContext
             entity.HasOne(x => x.Pedido)
                 .WithMany(x => x.Itens)
                 .HasForeignKey(x => x.PedidoId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.Produto)
+                .WithMany()
+                .HasForeignKey(x => x.ProdutoId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.HasQueryFilter(x => !_currentTenantAccessor!.EmpresaId.HasValue || x.EmpresaId == _currentTenantAccessor!.EmpresaId);
+        });
+
+        modelBuilder.Entity<Compra>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.NumeroCompra).IsRequired();
+            entity.Property(x => x.Status).IsRequired().HasMaxLength(20);
+            entity.HasIndex(x => new { x.EmpresaId, x.NumeroCompra }).IsUnique();
+            entity.HasOne(x => x.Fornecedor)
+                .WithMany()
+                .HasForeignKey(x => x.FornecedorId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.HasQueryFilter(x => !_currentTenantAccessor!.EmpresaId.HasValue || x.EmpresaId == _currentTenantAccessor!.EmpresaId);
+        });
+
+        modelBuilder.Entity<CompraItem>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.ValorUnitario).HasColumnType("decimal(10,2)");
+            entity.HasOne(x => x.Compra)
+                .WithMany(x => x.Itens)
+                .HasForeignKey(x => x.CompraId)
                 .OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(x => x.Produto)
                 .WithMany()

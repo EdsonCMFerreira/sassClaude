@@ -43,7 +43,7 @@ public class ApiLoginController : ControllerBase
     {
         return await _context.Logins
             .OrderByDescending(x => x.CreatedAt)
-            .Select(login => new LoginResponse(login.Id, login.Username, login.Email, login.Role, login.CreatedAt))
+            .Select(login => new LoginResponse(login.Id, login.Username, login.Email, login.Role, login.AcessoCadastros, login.AcessoCompras, login.CreatedAt))
             .ToListAsync();
     }
 
@@ -56,7 +56,7 @@ public class ApiLoginController : ControllerBase
             return NotFound();
         }
 
-        return new LoginResponse(login.Id, login.Username, login.Email, login.Role, login.CreatedAt);
+        return new LoginResponse(login.Id, login.Username, login.Email, login.Role, login.AcessoCadastros, login.AcessoCompras, login.CreatedAt);
     }
 
     [HttpPost]
@@ -77,6 +77,8 @@ public class ApiLoginController : ControllerBase
             Username = request.Username.Trim(),
             Email = request.Email.Trim(),
             Role = role,
+            AcessoCadastros = request.AcessoCadastros,
+            AcessoCompras = request.AcessoCompras,
             CreatedAt = DateTime.UtcNow
         };
         login.Password = _passwordHasher.HashPassword(login, request.Password);
@@ -84,7 +86,7 @@ public class ApiLoginController : ControllerBase
         await _context.SaveChangesAsync();
 
         return CreatedAtAction(nameof(GetLogin), new { id = login.Id },
-            new LoginResponse(login.Id, login.Username, login.Email, login.Role, login.CreatedAt));
+            new LoginResponse(login.Id, login.Username, login.Email, login.Role, login.AcessoCadastros, login.AcessoCompras, login.CreatedAt));
     }
 
     [HttpPut("{id:int}")]
@@ -111,6 +113,8 @@ public class ApiLoginController : ControllerBase
         existing.Username = request.Username.Trim();
         existing.Email = request.Email.Trim();
         existing.Role = role;
+        existing.AcessoCadastros = request.AcessoCadastros;
+        existing.AcessoCompras = request.AcessoCompras;
         if (!string.IsNullOrWhiteSpace(request.Password))
         {
             existing.Password = _passwordHasher.HashPassword(existing, request.Password);
@@ -146,6 +150,6 @@ public class ApiLoginController : ControllerBase
     }
 }
 
-public sealed record LoginRequest(string Username, string Password, string Email, string Role);
+public sealed record LoginRequest(string Username, string Password, string Email, string Role, bool AcessoCadastros, bool AcessoCompras);
 
-public sealed record LoginResponse(int Id, string Username, string Email, string Role, DateTime CreatedAt);
+public sealed record LoginResponse(int Id, string Username, string Email, string Role, bool AcessoCadastros, bool AcessoCompras, DateTime CreatedAt);

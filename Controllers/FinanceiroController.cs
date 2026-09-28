@@ -23,6 +23,11 @@ public class FinanceiroController : Controller
             .Include(p => p.Itens).ThenInclude(i => i.Produto)
             .ToListAsync();
 
+        var todasCompras = await _context.Compras
+            .Include(c => c.Fornecedor)
+            .Include(c => c.Itens)
+            .ToListAsync();
+
         var concluidos = todosPedidos.Where(p => p.Status == "Concluída").ToList();
 
         var hoje = DateTime.UtcNow.Date;
@@ -55,6 +60,39 @@ public class FinanceiroController : Controller
             .OrderBy(r => r.DataVencimento ?? DateTime.MaxValue)
             .ToList();
 
+        var contasAPagar = todasCompras
+            .Where(c => c.Status != "Cancelada" && !c.DataPagamento.HasValue)
+            .Select(c =>
+            {
+                int? dias = c.DataVencimento.HasValue ? (int)(c.DataVencimento.Value.Date - hoje).TotalDays : null;
+                var situacao = dias switch
+                {
+                    null => "Sem vencimento",
+                    < 0 => "Vencido",
+                    <= 7 => "Vence em breve",
+                    _ => "Em dia"
+                };
+                return new ContaPagarRow(c.Id, c.NumeroCompra, c.Fornecedor?.Nome ?? "—", ValorCompra(c), c.DataVencimento, dias, situacao);
+            })
+            .OrderBy(r => r.DataVencimento ?? DateTime.MaxValue)
+            .ToList();
+
+        var fluxoCaixa = new List<FluxoCaixaRow>();
+        var saldoAcumulado = 0m;
+        for (var i = 0; i < 6; i++)
+        {
+            var mes = new DateTime(hoje.Year, hoje.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(i);
+            var entradasMes = contasAReceber
+                .Where(r => r.DataVencimento.HasValue && r.DataVencimento.Value.Year == mes.Year && r.DataVencimento.Value.Month == mes.Month)
+                .Sum(r => r.Valor);
+            var saidasMes = contasAPagar
+                .Where(r => r.DataVencimento.HasValue && r.DataVencimento.Value.Year == mes.Year && r.DataVencimento.Value.Month == mes.Month)
+                .Sum(r => r.Valor);
+            var saldoMes = entradasMes - saidasMes;
+            saldoAcumulado += saldoMes;
+            fluxoCaixa.Add(new FluxoCaixaRow(mes, entradasMes, saidasMes, saldoMes, saldoAcumulado));
+        }
+
         var vendasPorFormaPagamento = concluidos
             .GroupBy(p => string.IsNullOrWhiteSpace(p.FormaPagamento) ? "Não informado" : p.FormaPagamento)
             .Select(g => new FormaPagamentoRow(g.Key, g.Sum(ValorLiquido), g.Count()))
@@ -74,6 +112,12 @@ public class FinanceiroController : Controller
             TotalVenceEm7Dias = contasAReceber.Where(r => r.Situacao == "Vence em breve").Sum(r => r.Valor),
             QuantidadeEmAberto = contasAReceber.Count,
             ContasAReceber = contasAReceber,
+            TotalEmAbertoPagar = contasAPagar.Sum(r => r.Valor),
+            TotalVencidoPagar = contasAPagar.Where(r => r.Situacao == "Vencido").Sum(r => r.Valor),
+            TotalVenceEm7DiasPagar = contasAPagar.Where(r => r.Situacao == "Vence em breve").Sum(r => r.Valor),
+            QuantidadeEmAbertoPagar = contasAPagar.Count,
+            ContasAPagar = contasAPagar,
+            FluxoCaixa = fluxoCaixa,
             VendasPorFormaPagamento = vendasPorFormaPagamento,
             TotalCusto = totalCusto,
             LucroBruto = lucroBruto,
@@ -92,5 +136,10 @@ public class FinanceiroController : Controller
     private static decimal CustoTotal(Pedido pedido)
     {
         return pedido.Itens.Sum(i => i.Quantidade * (i.Produto?.ValorCompra ?? 0));
+    }
+
+    private static decimal ValorCompra(Compra compra)
+    {
+        return compra.Itens.Sum(i => i.Quantidade * i.ValorUnitario);
     }
 }

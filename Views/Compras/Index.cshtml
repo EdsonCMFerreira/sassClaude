@@ -1,0 +1,387 @@
+@{
+    ViewData["Title"] = "Compras";
+}
+
+<style>
+    .items-section .data-table th {
+        padding: 6px 8px;
+    }
+
+    .items-section .data-table td {
+        padding: 6px 8px;
+    }
+
+    .items-section .data-table select,
+    .items-section .data-table input {
+        background: #fff;
+        border: 1px solid #e6ddd2;
+        border-radius: 7px;
+        box-sizing: border-box;
+        font: inherit;
+        font-size: 13px;
+        outline: none;
+        padding: 8px 10px;
+        width: 100%;
+    }
+
+    .items-section .data-table select:focus,
+    .items-section .data-table input:focus {
+        border-color: var(--blue);
+        box-shadow: 0 0 0 3px rgba(204,68,0,.12);
+    }
+</style>
+
+<div class="page-heading">
+    <div><span class="eyebrow">Movimentação</span><h1>Compras.</h1><p class="muted">Registre as compras feitas junto aos fornecedores e controle o que ainda falta pagar.</p></div>
+    <div class="hero-actions">
+        <a class="button button-outline" asp-controller="Financeiro" asp-action="Index">Ver contas a pagar <span>→</span></a>
+    </div>
+</div>
+<div class="surface-card users-card">
+    <div class="section-heading"><div><h2>Compras registradas</h2><p class="muted">Fornecedor, produtos, quantidades, valores e vencimento. Uma compra pode ter um ou mais produtos.</p></div></div>
+    <div class="user-form-wrap">
+        <form id="compraForm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" id="compraId" />
+            <div class="user-form-grid">
+                <div class="field-sm"><label for="numeroCompra">Número da compra</label><input id="numeroCompra" type="text" readonly disabled placeholder="Gerado automaticamente ao salvar" /></div>
+                <div class="field-lg"><label for="fornecedorId">Fornecedor</label><select id="fornecedorId" required><option value="">Selecione...</option></select></div>
+                <div class="field-sm"><label for="dataCompra">Data da compra</label><input id="dataCompra" type="date" required /></div>
+
+                <div class="form-section-title">Vencimento e pagamento</div>
+                <div class="field-sm"><label for="dataVencimento">Data de vencimento</label><input id="dataVencimento" type="date" /></div>
+                <div class="field-sm"><label for="dataPagamento">Data de pagamento</label><input id="dataPagamento" type="date" /></div>
+                <div><label for="formaPagamento">Forma de pagamento</label><select id="formaPagamento"><option value="">Selecione...</option><option>Dinheiro</option><option>Cartão de crédito</option><option>Cartão de débito</option><option>PIX</option><option>Boleto</option><option>Transferência</option></select></div>
+                <div class="field-sm"><label for="numeroNota">Número da nota</label><input id="numeroNota" /></div>
+                <div class="field-sm"><label for="status">Status</label><select id="status"><option>Pendente</option><option>Paga</option><option>Cancelada</option></select></div>
+
+                <div class="field-full"><label for="observacoes">Observações</label><textarea id="observacoes" rows="2"></textarea></div>
+            </div>
+
+            <div class="items-section">
+                <div class="section-heading"><div><h3>Produtos da compra</h3></div></div>
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Produto</th>
+                                <th style="width:110px;">Quantidade</th>
+                                <th style="width:130px;">Valor unitário</th>
+                                <th style="width:130px;">Subtotal</th>
+                                <th style="width:190px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="itensTableBody"></tbody>
+                    </table>
+                </div>
+                <button type="button" id="addItemButton" class="table-action" style="margin-top:14px;">+ Adicionar produto</button>
+            </div>
+
+            <div class="user-form-grid">
+                <div class="field-sm"><label for="valorTotal">Valor total</label><input id="valorTotal" type="text" readonly disabled /></div>
+                <div class="user-form-actions"><button type="submit" class="button button-primary">Salvar</button><button type="button" id="cancelEdit" class="button button-outline hidden">Cancelar</button></div>
+            </div>
+        </form>
+    </div>
+
+    <div class="table-toolbar">
+        <input type="search" id="compraBusca" class="table-search" placeholder="Buscar por fornecedor, nº da compra ou status..." />
+    </div>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead class="table-light">
+                <tr>
+                    <th>Nº da compra</th>
+                    <th>Fornecedor</th>
+                    <th>Produtos</th>
+                    <th>Valor total</th>
+                    <th>Data</th>
+                    <th>Vencimento / pagamento</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody id="compraTableBody"></tbody>
+        </table>
+    </div>
+    <div class="table-pagination" id="compraPaginacao"></div>
+</div>
+
+@section Scripts {
+    <script>
+        const form = document.getElementById('compraForm');
+        const compraId = document.getElementById('compraId');
+        const numeroCompra = document.getElementById('numeroCompra');
+        const fornecedorId = document.getElementById('fornecedorId');
+        const dataCompra = document.getElementById('dataCompra');
+        const dataVencimento = document.getElementById('dataVencimento');
+        const dataPagamento = document.getElementById('dataPagamento');
+        const numeroNota = document.getElementById('numeroNota');
+        const formaPagamento = document.getElementById('formaPagamento');
+        const status = document.getElementById('status');
+        const observacoes = document.getElementById('observacoes');
+        const valorTotalDisplay = document.getElementById('valorTotal');
+        const cancelEdit = document.getElementById('cancelEdit');
+        const tableBody = document.getElementById('compraTableBody');
+        const itensTableBody = document.getElementById('itensTableBody');
+        const addItemButton = document.getElementById('addItemButton');
+        const busca = document.getElementById('compraBusca');
+        const paginacaoEl = document.getElementById('compraPaginacao');
+        const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        const COMPRAS_POR_PAGINA = 8;
+        let allProdutos = [];
+        let todosCompras = [];
+        let paginaAtual = 1;
+
+        function hoje() {
+            return new Date().toISOString().slice(0, 10);
+        }
+
+        dataCompra.value = hoje();
+
+        function optionsProdutosHtml(selectedId) {
+            return '<option value="">Selecione...</option>' + allProdutos.map(p =>
+                `<option value="${p.id}" ${p.id === selectedId ? 'selected' : ''}>${p.codigo} — ${p.descricao}</option>`
+            ).join('');
+        }
+
+        function atualizarTotais() {
+            let total = 0;
+            itensTableBody.querySelectorAll('tr').forEach(tr => {
+                const qtd = Number(tr.querySelector('.item-quantidade').value) || 0;
+                const unitario = Number(tr.querySelector('.item-valor-unitario').value) || 0;
+                total += qtd * unitario;
+            });
+
+            valorTotalDisplay.value = formatCurrency(total);
+        }
+
+        function atualizarLinha(tr) {
+            const quantidadeInput = tr.querySelector('.item-quantidade');
+            const valorUnitarioInput = tr.querySelector('.item-valor-unitario');
+            const subtotalInput = tr.querySelector('.item-subtotal');
+
+            const qtd = Number(quantidadeInput.value) || 0;
+            const unitario = Number(valorUnitarioInput.value) || 0;
+            subtotalInput.value = formatCurrency(qtd * unitario);
+
+            atualizarTotais();
+        }
+
+        function addItemRow(initial, afterRow) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><select class="item-produto" required>${optionsProdutosHtml(initial ? initial.produtoId : null)}</select></td>
+                <td><input class="item-quantidade" type="number" min="1" step="1" value="${initial ? initial.quantidade : 1}" required /></td>
+                <td><input class="item-valor-unitario" type="number" step="0.01" min="0" value="${initial ? initial.valorUnitario : ''}" required /></td>
+                <td><input class="item-subtotal" type="text" readonly disabled /></td>
+                <td>
+                    <span class="actions-cell">
+                        <button type="button" class="table-action item-add">+ Adicionar</button>
+                        <button type="button" class="table-action danger item-remove">Remover</button>
+                    </span>
+                </td>
+            `;
+
+            if (afterRow) {
+                afterRow.after(tr);
+            } else {
+                itensTableBody.appendChild(tr);
+            }
+
+            tr.querySelector('.item-produto').addEventListener('change', () => {
+                const produto = allProdutos.find(p => p.id === Number(tr.querySelector('.item-produto').value));
+                if (produto) {
+                    tr.querySelector('.item-valor-unitario').value = produto.valorCompra;
+                }
+                atualizarLinha(tr);
+            });
+            tr.querySelector('.item-quantidade').addEventListener('input', () => atualizarLinha(tr));
+            tr.querySelector('.item-valor-unitario').addEventListener('input', () => atualizarLinha(tr));
+            tr.querySelector('.item-add').addEventListener('click', () => addItemRow(null, tr));
+            tr.querySelector('.item-remove').addEventListener('click', () => {
+                tr.remove();
+                atualizarTotais();
+            });
+
+            atualizarLinha(tr);
+        }
+
+        function resetForm() {
+            form.reset();
+            compraId.value = '';
+            numeroCompra.value = '';
+            dataCompra.value = hoje();
+            itensTableBody.innerHTML = '';
+            addItemRow();
+            valorTotalDisplay.value = '';
+            cancelEdit.classList.add('hidden');
+        }
+
+        async function loadFornecedoresOptions() {
+            const response = await fetch('/api/fornecedores');
+            const data = await response.json();
+            fornecedorId.innerHTML = '<option value="">Selecione...</option>' + data.map(item =>
+                `<option value="${item.id}">${item.nome} — ${item.cpfCnpj}</option>`
+            ).join('');
+        }
+
+        async function loadProdutosOptions() {
+            const response = await fetch('/api/produtos');
+            allProdutos = await response.json();
+        }
+
+        function renderCompras() {
+            const { itens, totalFiltrados, totalPaginas, paginaAtual: pagina } = filtrarEPaginar(todosCompras, {
+                termo: busca.value,
+                campos: ['numeroCompra', 'fornecedorNome', 'status', 'numeroNota'],
+                pagina: paginaAtual,
+                porPagina: COMPRAS_POR_PAGINA
+            });
+            paginaAtual = pagina;
+
+            tableBody.innerHTML = itens.map(item => `
+                <tr>
+                    <td>${item.numeroCompra}</td>
+                    <td>${item.fornecedorNome}</td>
+                    <td>${item.itens.map(i => `${i.produtoNome} (x${i.quantidade})`).join(', ')}</td>
+                    <td>${formatCurrency(item.valorTotal)}</td>
+                    <td>${formatDate(item.dataCompra)}</td>
+                    <td>${formatVencimentoPagamentoCell(item)}</td>
+                    <td>${formatStatusBadge(item.status)}</td>
+                    <td>
+                        <button class="table-action" data-edit="${item.id}">Editar</button>
+                        <button class="table-action danger" data-delete="${item.id}">Excluir</button>
+                    </td>
+                </tr>
+            `).join('') || `<tr><td colspan="8" class="muted">${totalFiltrados === 0 && todosCompras.length > 0 ? 'Nenhuma compra encontrada para essa busca.' : 'Nenhuma compra registrada ainda.'}</td></tr>`;
+
+            tableBody.querySelectorAll('[data-edit]').forEach(button => {
+                button.addEventListener('click', () => editCompra(Number(button.dataset.edit)));
+            });
+
+            tableBody.querySelectorAll('[data-delete]').forEach(button => {
+                button.addEventListener('click', () => deleteCompra(Number(button.dataset.delete)));
+            });
+
+            renderPaginacao(paginacaoEl, paginaAtual, totalPaginas, (novaPagina) => {
+                paginaAtual = novaPagina;
+                renderCompras();
+            });
+        }
+
+        async function loadCompras() {
+            tableBody.innerHTML = linhaCarregando(8);
+            const response = await fetch('/api/compras');
+            if (!response.ok) {
+                throw new Error('Erro ao carregar compras.');
+            }
+
+            todosCompras = await response.json();
+            renderCompras();
+        }
+
+        async function editCompra(id) {
+            const response = await fetch(`/api/compras/${id}`);
+            const data = await response.json();
+            compraId.value = data.id;
+            numeroCompra.value = data.numeroCompra;
+            fornecedorId.value = data.fornecedorId;
+            dataCompra.value = data.dataCompra.slice(0, 10);
+            dataVencimento.value = data.dataVencimento ? data.dataVencimento.slice(0, 10) : '';
+            dataPagamento.value = data.dataPagamento ? data.dataPagamento.slice(0, 10) : '';
+            numeroNota.value = data.numeroNota;
+            formaPagamento.value = data.formaPagamento;
+            status.value = data.status;
+            observacoes.value = data.observacoes;
+
+            itensTableBody.innerHTML = '';
+            data.itens.forEach(item => addItemRow({ produtoId: item.produtoId, quantidade: item.quantidade, valorUnitario: item.valorUnitario }));
+
+            cancelEdit.classList.remove('hidden');
+            fornecedorId.focus();
+        }
+
+        async function deleteCompra(id) {
+            const confirmed = confirm('Deseja excluir esta compra?');
+            if (!confirmed) return;
+
+            const response = await fetch(`/api/compras/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': csrfToken } });
+            if (response.ok) {
+                toast('Compra excluída.');
+                await loadCompras();
+            } else {
+                const errorText = await response.text();
+                toast(errorText || 'Não foi possível excluir a compra.', 'error');
+            }
+        }
+
+        addItemButton.addEventListener('click', () => addItemRow());
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const linhas = Array.from(itensTableBody.querySelectorAll('tr'));
+            if (linhas.length === 0) {
+                alert('Adicione ao menos um produto à compra.');
+                return;
+            }
+
+            const itens = linhas.map(tr => ({
+                produtoId: Number(tr.querySelector('.item-produto').value) || 0,
+                quantidade: Number(tr.querySelector('.item-quantidade').value) || 0,
+                valorUnitario: Number(tr.querySelector('.item-valor-unitario').value) || 0
+            }));
+
+            if (itens.some(i => !i.produtoId)) {
+                alert('Selecione um produto em todas as linhas.');
+                return;
+            }
+
+            const payload = {
+                id: Number(compraId.value || 0),
+                fornecedorId: Number(fornecedorId.value),
+                itens,
+                dataCompra: dataCompra.value,
+                dataVencimento: dataVencimento.value || null,
+                dataPagamento: dataPagamento.value || null,
+                numeroNota: numeroNota.value.trim(),
+                formaPagamento: formaPagamento.value,
+                status: status.value,
+                observacoes: observacoes.value.trim()
+            };
+
+            const method = payload.id ? 'PUT' : 'POST';
+            const url = payload.id ? `/api/compras/${payload.id}` : '/api/compras';
+
+            const response = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                const eraEdicao = Boolean(payload.id);
+                resetForm();
+                toast(eraEdicao ? 'Compra atualizada.' : 'Compra cadastrada.');
+                await loadCompras();
+            } else {
+                const errorText = await response.text();
+                toast(errorText || 'Erro ao salvar compra.', 'error');
+            }
+        });
+
+        cancelEdit.addEventListener('click', resetForm);
+        busca.addEventListener('input', () => {
+            paginaAtual = 1;
+            renderCompras();
+        });
+
+        Promise.all([loadFornecedoresOptions(), loadProdutosOptions()])
+            .then(() => {
+                addItemRow();
+                return loadCompras();
+            })
+            .catch(error => console.error(error));
+    </script>
+}

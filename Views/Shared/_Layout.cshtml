@@ -28,14 +28,25 @@
                         </div>
                     </div>
                 }
-                <div class="nav-dropdown">
-                    <button type="button" class="nav-dropdown-toggle" onclick="this.closest('.nav-dropdown').classList.toggle('open')">Cadastros <span class="nav-dropdown-caret">▾</span></button>
-                    <div class="nav-dropdown-menu">
-                        <a asp-controller="Clientes" asp-action="Index">Clientes</a>
-                        <a asp-controller="Fornecedores" asp-action="Index">Fornecedores</a>
-                        <a asp-controller="Produtos" asp-action="Index">Produtos</a>
+                @{
+                    var temAcessoCadastros = User.IsInRole("Admin") || User.HasClaim(TenantClaimTypes.AcessoCadastros, "true");
+                    var temAcessoCompras = User.IsInRole("Admin") || User.HasClaim(TenantClaimTypes.AcessoCompras, "true");
+                }
+                @if (temAcessoCadastros)
+                {
+                    <div class="nav-dropdown">
+                        <button type="button" class="nav-dropdown-toggle" onclick="this.closest('.nav-dropdown').classList.toggle('open')">Cadastros <span class="nav-dropdown-caret">▾</span></button>
+                        <div class="nav-dropdown-menu">
+                            <a asp-controller="Clientes" asp-action="Index">Clientes</a>
+                            <a asp-controller="Fornecedores" asp-action="Index">Fornecedores</a>
+                            <a asp-controller="Produtos" asp-action="Index">Produtos</a>
+                        </div>
                     </div>
-                </div>
+                }
+                @if (temAcessoCompras)
+                {
+                    <a asp-controller="Compras" asp-action="Index">Compras</a>
+                }
                 <a asp-controller="Pedidos" asp-action="Index">Pedidos</a>
                 <div class="nav-dropdown">
                     <button type="button" class="nav-dropdown-toggle" onclick="this.closest('.nav-dropdown').classList.toggle('open')">Pesquisa <span class="nav-dropdown-caret">▾</span></button>
@@ -47,14 +58,23 @@
                 <div class="nav-dropdown">
                     <button type="button" class="nav-dropdown-toggle" onclick="this.closest('.nav-dropdown').classList.toggle('open')">Relatórios <span class="nav-dropdown-caret">▾</span></button>
                     <div class="nav-dropdown-menu">
-                        <a asp-controller="Produtos" asp-action="CurvaAbc">Curva ABC de produtos</a>
+                        @if (temAcessoCadastros)
+                        {
+                            <a asp-controller="Produtos" asp-action="CurvaAbc">Curva ABC de produtos</a>
+                        }
                         <a asp-controller="Pedidos" asp-action="Dashboard">Dashboard de pedidos</a>
-                        <a asp-controller="Produtos" asp-action="Dashboard">Dashboard de produtos</a>
+                        @if (temAcessoCadastros)
+                        {
+                            <a asp-controller="Produtos" asp-action="Dashboard">Dashboard de produtos</a>
+                        }
                         @if (User.IsInRole("Admin"))
                         {
                             <a asp-controller="Financeiro" asp-action="Index">Financeiro</a>
                         }
-                        <a asp-controller="Clientes" asp-action="Ranking">Ranking de clientes</a>
+                        @if (temAcessoCadastros)
+                        {
+                            <a asp-controller="Clientes" asp-action="Ranking">Ranking de clientes</a>
+                        }
                     </div>
                 </div>
                 @if (User.HasClaim(TenantClaimTypes.IsSuperAdmin, "true"))

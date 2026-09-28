@@ -31,4 +31,8 @@ public class Login : ITenantScoped
     [Required]
     [StringLength(20)]
     public string Role { get; set; } = "Colaborador";
+
+    public bool AcessoCadastros { get; set; } = true;
+
+    public bool AcessoCompras { get; set; } = true;
 }

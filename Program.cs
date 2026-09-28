@@ -54,6 +54,10 @@ builder.Services.AddScoped<ICurrentTenantAccessor, HttpContextCurrentTenantAcces
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("SuperAdmin", policy => policy.RequireClaim(TenantClaimTypes.IsSuperAdmin, "true"));
+    options.AddPolicy("AcessoCadastros", policy => policy.RequireAssertion(ctx =>
+        ctx.User.IsInRole("Admin") || ctx.User.HasClaim(TenantClaimTypes.AcessoCadastros, "true")));
+    options.AddPolicy("AcessoCompras", policy => policy.RequireAssertion(ctx =>
+        ctx.User.IsInRole("Admin") || ctx.User.HasClaim(TenantClaimTypes.AcessoCompras, "true")));
 });
 
 var app = builder.Build();
@@ -727,6 +731,16 @@ using (var scope = app.Services.CreateScope())
             db.Database.ExecuteSqlRaw("ALTER TABLE Logins ADD COLUMN IsSuperAdmin INTEGER NOT NULL DEFAULT 0;");
         }
 
+        if (!loginColumns.Contains("AcessoCadastros"))
+        {
+            db.Database.ExecuteSqlRaw("ALTER TABLE Logins ADD COLUMN AcessoCadastros INTEGER NOT NULL DEFAULT 1;");
+        }
+
+        if (!loginColumns.Contains("AcessoCompras"))
+        {
+            db.Database.ExecuteSqlRaw("ALTER TABLE Logins ADD COLUMN AcessoCompras INTEGER NOT NULL DEFAULT 1;");
+        }
+
         var superAdminOptions = scope.ServiceProvider.GetRequiredService<IOptions<SuperAdminOptions>>().Value;
         var superAdminEmail = superAdminOptions.Email.Trim().ToLowerInvariant();
         if (!string.IsNullOrWhiteSpace(superAdminEmail))
@@ -750,6 +764,45 @@ using (var scope = app.Services.CreateScope())
         {
             db.Database.ExecuteSqlRaw($"ALTER TABLE Invoices ADD COLUMN EmpresaId INTEGER NOT NULL DEFAULT {defaultEmpresaId};");
         }
+
+        var comprasColumnsLegacy = GetColumns("Compras");
+        if (comprasColumnsLegacy.Contains("ProductId") && !comprasColumnsLegacy.Contains("EmpresaId"))
+        {
+            // Tabela Compras antiga (sem EmpresaId, um produto por linha) nunca teve controller/tela;
+            // está sempre vazia nesta base, então é seguro recriar com o esquema novo (cabeçalho + itens).
+            db.Database.ExecuteSqlRaw("DROP TABLE IF EXISTS Compras;");
+        }
+
+        db.Database.ExecuteSqlRaw("""
+            CREATE TABLE IF NOT EXISTS Compras (
+                Id INTEGER NOT NULL CONSTRAINT PK_Compras PRIMARY KEY AUTOINCREMENT,
+                EmpresaId INTEGER NOT NULL,
+                NumeroCompra INTEGER NOT NULL DEFAULT 0,
+                FornecedorId INTEGER NULL,
+                DataCompra TEXT NOT NULL,
+                DataVencimento TEXT NULL,
+                DataPagamento TEXT NULL,
+                NumeroNota TEXT NOT NULL,
+                FormaPagamento TEXT NOT NULL,
+                Status TEXT NOT NULL,
+                Observacoes TEXT NOT NULL,
+                CreatedAt TEXT NOT NULL,
+                CONSTRAINT FK_Compras_Fornecedores_FornecedorId FOREIGN KEY (FornecedorId) REFERENCES Fornecedores (Id) ON DELETE SET NULL
+            );
+            """);
+
+        db.Database.ExecuteSqlRaw("""
+            CREATE TABLE IF NOT EXISTS CompraItens (
+                Id INTEGER NOT NULL CONSTRAINT PK_CompraItens PRIMARY KEY AUTOINCREMENT,
+                EmpresaId INTEGER NOT NULL,
+                CompraId INTEGER NOT NULL,
+                ProdutoId INTEGER NULL,
+                Quantidade INTEGER NOT NULL,
+                ValorUnitario TEXT NOT NULL,
+                CONSTRAINT FK_CompraItens_Compras_CompraId FOREIGN KEY (CompraId) REFERENCES Compras (Id) ON DELETE CASCADE,
+                CONSTRAINT FK_CompraItens_Produtos_ProdutoId FOREIGN KEY (ProdutoId) REFERENCES Produtos (Id) ON DELETE SET NULL
+            );
+            """);
 
         db.Database.ExecuteSqlRaw("""
             CREATE TABLE IF NOT EXISTS AuditLogEntries (

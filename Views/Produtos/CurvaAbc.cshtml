@@ -22,9 +22,12 @@
 </div>
 
 <div class="surface-card users-card">
-    <div class="section-heading"><div><h2>Produtos por receita (vendas concluídas)</h2><p class="muted">Classe A = até 80% da receita acumulada · Classe B = de 80% a 95% · Classe C = os últimos 5%. Ordenado do produto que mais vende para o que menos vende.</p></div></div>
+    <div class="section-heading">
+        <div><h2>Produtos por receita (vendas concluídas)</h2><p class="muted">Classe A = até 80% da receita acumulada · Classe B = de 80% a 95% · Classe C = os últimos 5%. Ordenado do produto que mais vende para o que menos vende.</p></div>
+        <button type="button" class="button button-outline" id="exportarCurvaAbc">Exportar CSV</button>
+    </div>
     <div class="table-wrap">
-        <table class="data-table">
+        <table class="data-table" id="tabelaCurvaAbc">
             <thead class="table-light">
                 <tr>
                     <th>Código</th>
@@ -55,3 +58,11 @@
         </table>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        document.getElementById('exportarCurvaAbc')?.addEventListener('click', () => {
+            exportarTabelaCsv('#tabelaCurvaAbc', 'curva-abc-produtos.csv');
+        });
+    </script>
+}
