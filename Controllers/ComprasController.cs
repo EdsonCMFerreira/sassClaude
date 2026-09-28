@@ -62,7 +62,7 @@ public class ApiComprasController : ControllerBase
     {
         if (request.Itens is null || request.Itens.Count == 0)
         {
-            return BadRequest("Adicione ao menos um produto à compra.");
+            return BadRequest("Adicione ao menos um produto à conta a pagar.");
         }
 
         if (request.Itens.Any(i => i.Quantidade <= 0))
@@ -145,7 +145,7 @@ public class ApiComprasController : ControllerBase
 
         if (request.Itens is null || request.Itens.Count == 0)
         {
-            return BadRequest("Adicione ao menos um produto à compra.");
+            return BadRequest("Adicione ao menos um produto à conta a pagar.");
         }
 
         if (request.Itens.Any(i => i.Quantidade <= 0))
@@ -223,12 +223,12 @@ public class ApiComprasController : ControllerBase
         var numeroNotaTrimmed = numeroNota.Trim();
         if (string.IsNullOrWhiteSpace(numeroNotaTrimmed) || numeroNotaTrimmed == "0")
         {
-            return "Informe o número da nota para marcar a compra como paga.";
+            return "Informe o número da nota para marcar a conta a pagar como paga.";
         }
 
         if (string.IsNullOrWhiteSpace(formaPagamento))
         {
-            return "Selecione a forma de pagamento para marcar a compra como paga.";
+            return "Selecione a forma de pagamento para marcar a conta a pagar como paga.";
         }
 
         return null;

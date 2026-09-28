@@ -1,5 +1,5 @@
 @{
-    ViewData["Title"] = "Compras";
+    ViewData["Title"] = "Contas a pagar";
 }
 
 <style>
@@ -32,21 +32,21 @@
 </style>
 
 <div class="page-heading">
-    <div><span class="eyebrow">Movimentação</span><h1>Compras.</h1><p class="muted">Registre as compras feitas junto aos fornecedores e controle o que ainda falta pagar.</p></div>
+    <div><span class="eyebrow">Movimentação</span><h1>Contas a pagar.</h1><p class="muted">Registre as compras feitas junto aos fornecedores e controle o que ainda falta pagar.</p></div>
     <div class="hero-actions">
-        <a class="button button-outline" asp-controller="Financeiro" asp-action="Index">Ver contas a pagar <span>→</span></a>
+        <a class="button button-outline" asp-controller="Financeiro" asp-action="Index">Ver resumo financeiro <span>→</span></a>
     </div>
 </div>
 <div class="surface-card users-card">
-    <div class="section-heading"><div><h2>Compras registradas</h2><p class="muted">Fornecedor, produtos, quantidades, valores e vencimento. Uma compra pode ter um ou mais produtos.</p></div></div>
+    <div class="section-heading"><div><h2>Contas a pagar registradas</h2><p class="muted">Fornecedor, produtos, quantidades, valores e vencimento. Uma conta a pagar pode ter um ou mais produtos.</p></div></div>
     <div class="user-form-wrap">
         <form id="compraForm">
             @Html.AntiForgeryToken()
             <input type="hidden" id="compraId" />
             <div class="user-form-grid">
-                <div class="field-sm"><label for="numeroCompra">Número da compra</label><input id="numeroCompra" type="text" readonly disabled placeholder="Gerado automaticamente ao salvar" /></div>
+                <div class="field-sm"><label for="numeroCompra">Número da conta</label><input id="numeroCompra" type="text" readonly disabled placeholder="Gerado automaticamente ao salvar" /></div>
                 <div class="field-lg"><label for="fornecedorId">Fornecedor</label><select id="fornecedorId" required><option value="">Selecione...</option></select></div>
-                <div class="field-sm"><label for="dataCompra">Data da compra</label><input id="dataCompra" type="date" required /></div>
+                <div class="field-sm"><label for="dataCompra">Data de emissão</label><input id="dataCompra" type="date" required /></div>
 
                 <div class="form-section-title">Vencimento e pagamento</div>
                 <div class="field-sm"><label for="dataVencimento">Data de vencimento</label><input id="dataVencimento" type="date" /></div>
@@ -59,7 +59,7 @@
             </div>
 
             <div class="items-section">
-                <div class="section-heading"><div><h3>Produtos da compra</h3></div></div>
+                <div class="section-heading"><div><h3>Produtos da conta</h3></div></div>
                 <div class="table-wrap">
                     <table class="data-table">
                         <thead class="table-light">
@@ -85,13 +85,13 @@
     </div>
 
     <div class="table-toolbar">
-        <input type="search" id="compraBusca" class="table-search" placeholder="Buscar por fornecedor, nº da compra ou status..." />
+        <input type="search" id="compraBusca" class="table-search" placeholder="Buscar por fornecedor, nº da conta ou status..." />
     </div>
     <div class="table-wrap">
         <table class="data-table">
             <thead class="table-light">
                 <tr>
-                    <th>Nº da compra</th>
+                    <th>Nº da conta</th>
                     <th>Fornecedor</th>
                     <th>Produtos</th>
                     <th>Valor total</th>
@@ -254,7 +254,7 @@
                         <button class="table-action danger" data-delete="${item.id}">Excluir</button>
                     </td>
                 </tr>
-            `).join('') || `<tr><td colspan="8" class="muted">${totalFiltrados === 0 && todosCompras.length > 0 ? 'Nenhuma compra encontrada para essa busca.' : 'Nenhuma compra registrada ainda.'}</td></tr>`;
+            `).join('') || `<tr><td colspan="8" class="muted">${totalFiltrados === 0 && todosCompras.length > 0 ? 'Nenhuma conta a pagar encontrada para essa busca.' : 'Nenhuma conta a pagar registrada ainda.'}</td></tr>`;
 
             tableBody.querySelectorAll('[data-edit]').forEach(button => {
                 button.addEventListener('click', () => editCompra(Number(button.dataset.edit)));
@@ -274,7 +274,7 @@
             tableBody.innerHTML = linhaCarregando(8);
             const response = await fetch('/api/compras');
             if (!response.ok) {
-                throw new Error('Erro ao carregar compras.');
+                throw new Error('Erro ao carregar contas a pagar.');
             }
 
             todosCompras = await response.json();
@@ -303,16 +303,16 @@
         }
 
         async function deleteCompra(id) {
-            const confirmed = confirm('Deseja excluir esta compra?');
+            const confirmed = confirm('Deseja excluir esta conta a pagar?');
             if (!confirmed) return;
 
             const response = await fetch(`/api/compras/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': csrfToken } });
             if (response.ok) {
-                toast('Compra excluída.');
+                toast('Conta a pagar excluída.');
                 await loadCompras();
             } else {
                 const errorText = await response.text();
-                toast(errorText || 'Não foi possível excluir a compra.', 'error');
+                toast(errorText || 'Não foi possível excluir a conta a pagar.', 'error');
             }
         }
 
@@ -323,7 +323,7 @@
 
             const linhas = Array.from(itensTableBody.querySelectorAll('tr'));
             if (linhas.length === 0) {
-                alert('Adicione ao menos um produto à compra.');
+                alert('Adicione ao menos um produto à conta a pagar.');
                 return;
             }
 
@@ -363,11 +363,11 @@
             if (response.ok) {
                 const eraEdicao = Boolean(payload.id);
                 resetForm();
-                toast(eraEdicao ? 'Compra atualizada.' : 'Compra cadastrada.');
+                toast(eraEdicao ? 'Conta a pagar atualizada.' : 'Conta a pagar cadastrada.');
                 await loadCompras();
             } else {
                 const errorText = await response.text();
-                toast(errorText || 'Erro ao salvar compra.', 'error');
+                toast(errorText || 'Erro ao salvar conta a pagar.', 'error');
             }
         });
 
