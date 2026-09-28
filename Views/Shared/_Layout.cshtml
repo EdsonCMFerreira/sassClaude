@@ -17,30 +17,26 @@
                 <button class="mobile-nav-toggle" type="button" onclick="document.body.classList.toggle('nav-open')" aria-label="Abrir menu">☰</button>
             </div>
             <nav class="sidebar-nav">
-                <a asp-controller="Dashboard" asp-action="Index">Visão geral</a>
-                <a asp-controller="Workspace" asp-action="Index">Workspace</a>
+                @if (User.IsInRole("Admin"))
+                {
+                    <div class="nav-dropdown">
+                        <button type="button" class="nav-dropdown-toggle" onclick="this.closest('.nav-dropdown').classList.toggle('open')">Administração <span class="nav-dropdown-caret">▾</span></button>
+                        <div class="nav-dropdown-menu">
+                            <a asp-controller="AuditLog" asp-action="Index">Auditoria</a>
+                            <a asp-controller="Billing" asp-action="Index">Plano</a>
+                            <a asp-controller="Login" asp-action="Index">Usuários</a>
+                        </div>
+                    </div>
+                }
                 <div class="nav-dropdown">
                     <button type="button" class="nav-dropdown-toggle" onclick="this.closest('.nav-dropdown').classList.toggle('open')">Cadastros <span class="nav-dropdown-caret">▾</span></button>
                     <div class="nav-dropdown-menu">
-                        <a asp-controller="Produtos" asp-action="Index">Produtos</a>
                         <a asp-controller="Clientes" asp-action="Index">Clientes</a>
                         <a asp-controller="Fornecedores" asp-action="Index">Fornecedores</a>
+                        <a asp-controller="Produtos" asp-action="Index">Produtos</a>
                     </div>
                 </div>
                 <a asp-controller="Pedidos" asp-action="Index">Pedidos</a>
-                <div class="nav-dropdown">
-                    <button type="button" class="nav-dropdown-toggle" onclick="this.closest('.nav-dropdown').classList.toggle('open')">Relatórios <span class="nav-dropdown-caret">▾</span></button>
-                    <div class="nav-dropdown-menu">
-                        <a asp-controller="Pedidos" asp-action="Dashboard">Dashboard de pedidos</a>
-                        <a asp-controller="Produtos" asp-action="Dashboard">Dashboard de produtos</a>
-                        <a asp-controller="Produtos" asp-action="CurvaAbc">Curva ABC de produtos</a>
-                        <a asp-controller="Clientes" asp-action="Ranking">Ranking de clientes</a>
-                        @if (User.IsInRole("Admin"))
-                        {
-                            <a asp-controller="Financeiro" asp-action="Index">Financeiro</a>
-                        }
-                    </div>
-                </div>
                 <div class="nav-dropdown">
                     <button type="button" class="nav-dropdown-toggle" onclick="this.closest('.nav-dropdown').classList.toggle('open')">Pesquisa <span class="nav-dropdown-caret">▾</span></button>
                     <div class="nav-dropdown-menu">
@@ -48,21 +44,25 @@
                         <a asp-controller="Pesquisa" asp-action="Linkedin">Vagas (LinkedIn)</a>
                     </div>
                 </div>
-                @if (User.IsInRole("Admin"))
-                {
-                    <div class="nav-dropdown">
-                        <button type="button" class="nav-dropdown-toggle" onclick="this.closest('.nav-dropdown').classList.toggle('open')">Administração <span class="nav-dropdown-caret">▾</span></button>
-                        <div class="nav-dropdown-menu">
-                            <a asp-controller="Login" asp-action="Index">Usuários</a>
-                            <a asp-controller="Billing" asp-action="Index">Plano</a>
-                            <a asp-controller="AuditLog" asp-action="Index">Auditoria</a>
-                        </div>
+                <div class="nav-dropdown">
+                    <button type="button" class="nav-dropdown-toggle" onclick="this.closest('.nav-dropdown').classList.toggle('open')">Relatórios <span class="nav-dropdown-caret">▾</span></button>
+                    <div class="nav-dropdown-menu">
+                        <a asp-controller="Produtos" asp-action="CurvaAbc">Curva ABC de produtos</a>
+                        <a asp-controller="Pedidos" asp-action="Dashboard">Dashboard de pedidos</a>
+                        <a asp-controller="Produtos" asp-action="Dashboard">Dashboard de produtos</a>
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <a asp-controller="Financeiro" asp-action="Index">Financeiro</a>
+                        }
+                        <a asp-controller="Clientes" asp-action="Ranking">Ranking de clientes</a>
                     </div>
-                }
+                </div>
                 @if (User.HasClaim(TenantClaimTypes.IsSuperAdmin, "true"))
                 {
                     <a asp-controller="SuperAdmin" asp-action="Index">Superadmin</a>
                 }
+                <a asp-controller="Dashboard" asp-action="Index">Visão geral</a>
+                <a asp-controller="Workspace" asp-action="Index">Workspace</a>
             </nav>
             <div class="sidebar-footer">
                 <a class="nav-icon-link" asp-controller="Settings" asp-action="Index" aria-label="Configurações">⚙ <span>Configurações</span></a>
