@@ -20,14 +20,14 @@
             @Html.AntiForgeryToken()
             <input type="hidden" id="produtoId" />
             <div class="user-form-grid">
-                <div><label for="codigo">Código</label><input id="codigo" required /></div>
-                <div><label for="descricao">Descrição</label><input id="descricao" required /></div>
-                <div><label for="validade">Validade</label><input id="validade" type="date" required /></div>
-                <div><label for="valorCompra">Valor de compra unitário</label><input id="valorCompra" type="number" step="0.01" min="0" required /></div>
-                <div><label for="valorVenda">Valor de venda unitário</label><input id="valorVenda" type="number" step="0.01" min="0" required /></div>
-                <div><label for="percentualLucro">% de lucro</label><input id="percentualLucro" type="text" readonly disabled /></div>
-                <div><label for="fornecedorId">Fornecedor</label><select id="fornecedorId" required><option value="">Selecione...</option></select></div>
-                <div><label for="quantidade">Quantidade</label><input id="quantidade" type="number" step="1" min="0" required /></div>
+                <div class="field-sm"><label for="codigo">Código</label><input id="codigo" required /></div>
+                <div class="field-lg"><label for="descricao">Descrição</label><input id="descricao" required /></div>
+                <div class="field-sm"><label for="validade">Validade</label><input id="validade" type="date" required /></div>
+                <div class="field-sm"><label for="valorCompra">Valor de compra unitário</label><input id="valorCompra" type="number" step="0.01" min="0" required /></div>
+                <div class="field-sm"><label for="valorVenda">Valor de venda unitário</label><input id="valorVenda" type="number" step="0.01" min="0" required /></div>
+                <div class="field-sm"><label for="percentualLucro">% de lucro</label><input id="percentualLucro" type="text" readonly disabled /></div>
+                <div class="field-lg"><label for="fornecedorId">Fornecedor</label><select id="fornecedorId" required><option value="">Selecione...</option></select></div>
+                <div class="field-sm"><label for="quantidade">Quantidade</label><input id="quantidade" type="number" step="1" min="0" required /></div>
                 <div class="user-form-actions"><button type="submit" class="button button-primary">Salvar</button><button type="button" id="cancelEdit" class="button button-outline hidden">Cancelar</button></div>
             </div>
         </form>

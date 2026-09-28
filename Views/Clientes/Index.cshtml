@@ -17,34 +17,34 @@
             @Html.AntiForgeryToken()
             <input type="hidden" id="clienteId" />
             <div class="user-form-grid">
-                <div><label for="nome">Nome / Razão social</label><input id="nome" required /></div>
-                <div><label for="dataCadastro">Data de cadastro</label><input id="dataCadastro" type="date" required /></div>
-                <div><label for="tipoPessoa">Tipo de pessoa</label><select id="tipoPessoa"><option value="Física">Física</option><option value="Jurídica">Jurídica</option></select></div>
-                <div><label for="cpfCnpj">CPF/CNPJ</label><input id="cpfCnpj" required /></div>
-                <div><label for="email">E-mail</label><input id="email" type="email" /></div>
-                <div><label for="site">Site</label><input id="site" type="url" placeholder="https://" /></div>
-                <div><label for="telefone">Telefone</label><input id="telefone" /></div>
+                <div class="field-lg"><label for="nome">Nome / Razão social</label><input id="nome" required /></div>
+                <div class="field-sm"><label for="dataCadastro">Data de cadastro</label><input id="dataCadastro" type="date" required /></div>
+                <div class="field-sm"><label for="tipoPessoa">Tipo de pessoa</label><select id="tipoPessoa"><option value="Física">Física</option><option value="Jurídica">Jurídica</option></select></div>
+                <div class="field-sm"><label for="cpfCnpj">CPF/CNPJ</label><input id="cpfCnpj" required /></div>
+                <div class="field-lg"><label for="email">E-mail</label><input id="email" type="email" /></div>
+                <div class="field-lg"><label for="site">Site</label><input id="site" type="url" placeholder="https://" /></div>
+                <div class="field-sm"><label for="telefone">Telefone</label><input id="telefone" /></div>
 
                 <div class="form-section-title">Endereço de cobrança</div>
-                <div><label for="cobrancaCep">CEP</label><input id="cobrancaCep" /></div>
-                <div><label for="cobrancaEndereco">Endereço</label><input id="cobrancaEndereco" /></div>
-                <div><label for="cobrancaNumero">Número</label><input id="cobrancaNumero" /></div>
+                <div class="field-sm"><label for="cobrancaCep">CEP</label><input id="cobrancaCep" /></div>
+                <div class="field-lg"><label for="cobrancaEndereco">Endereço</label><input id="cobrancaEndereco" /></div>
+                <div class="field-sm"><label for="cobrancaNumero">Número</label><input id="cobrancaNumero" /></div>
                 <div><label for="cobrancaComplemento">Complemento</label><input id="cobrancaComplemento" /></div>
                 <div><label for="cobrancaBairro">Bairro</label><input id="cobrancaBairro" /></div>
                 <div><label for="cobrancaCidade">Cidade</label><input id="cobrancaCidade" /></div>
-                <div><label for="cobrancaUf">UF</label><select id="cobrancaUf"><option value="">Selecione...</option><option value="AC">AC - Acre</option><option value="AL">AL - Alagoas</option><option value="AP">AP - Amapá</option><option value="AM">AM - Amazonas</option><option value="BA">BA - Bahia</option><option value="CE">CE - Ceará</option><option value="DF">DF - Distrito Federal</option><option value="ES">ES - Espírito Santo</option><option value="GO">GO - Goiás</option><option value="MA">MA - Maranhão</option><option value="MT">MT - Mato Grosso</option><option value="MS">MS - Mato Grosso do Sul</option><option value="MG">MG - Minas Gerais</option><option value="PA">PA - Pará</option><option value="PB">PB - Paraíba</option><option value="PR">PR - Paraná</option><option value="PE">PE - Pernambuco</option><option value="PI">PI - Piauí</option><option value="RJ">RJ - Rio de Janeiro</option><option value="RN">RN - Rio Grande do Norte</option><option value="RS">RS - Rio Grande do Sul</option><option value="RO">RO - Rondônia</option><option value="RR">RR - Roraima</option><option value="SC">SC - Santa Catarina</option><option value="SP">SP - São Paulo</option><option value="SE">SE - Sergipe</option><option value="TO">TO - Tocantins</option></select></div>
+                <div class="field-sm"><label for="cobrancaUf">UF</label><select id="cobrancaUf"><option value="">Selecione...</option><option value="AC">AC - Acre</option><option value="AL">AL - Alagoas</option><option value="AP">AP - Amapá</option><option value="AM">AM - Amazonas</option><option value="BA">BA - Bahia</option><option value="CE">CE - Ceará</option><option value="DF">DF - Distrito Federal</option><option value="ES">ES - Espírito Santo</option><option value="GO">GO - Goiás</option><option value="MA">MA - Maranhão</option><option value="MT">MT - Mato Grosso</option><option value="MS">MS - Mato Grosso do Sul</option><option value="MG">MG - Minas Gerais</option><option value="PA">PA - Pará</option><option value="PB">PB - Paraíba</option><option value="PR">PR - Paraná</option><option value="PE">PE - Pernambuco</option><option value="PI">PI - Piauí</option><option value="RJ">RJ - Rio de Janeiro</option><option value="RN">RN - Rio Grande do Norte</option><option value="RS">RS - Rio Grande do Sul</option><option value="RO">RO - Rondônia</option><option value="RR">RR - Roraima</option><option value="SC">SC - Santa Catarina</option><option value="SP">SP - São Paulo</option><option value="SE">SE - Sergipe</option><option value="TO">TO - Tocantins</option></select></div>
 
                 <div class="form-section-title form-section-title-with-toggle">
                     <span>Endereço de entrega</span>
                     <label class="inline-checkbox"><input type="checkbox" id="entregaIgualCobranca" checked /> Igual ao de cobrança</label>
                 </div>
-                <div><label for="entregaCep">CEP</label><input id="entregaCep" /></div>
-                <div><label for="entregaEndereco">Endereço</label><input id="entregaEndereco" /></div>
-                <div><label for="entregaNumero">Número</label><input id="entregaNumero" /></div>
+                <div class="field-sm"><label for="entregaCep">CEP</label><input id="entregaCep" /></div>
+                <div class="field-lg"><label for="entregaEndereco">Endereço</label><input id="entregaEndereco" /></div>
+                <div class="field-sm"><label for="entregaNumero">Número</label><input id="entregaNumero" /></div>
                 <div><label for="entregaComplemento">Complemento</label><input id="entregaComplemento" /></div>
                 <div><label for="entregaBairro">Bairro</label><input id="entregaBairro" /></div>
                 <div><label for="entregaCidade">Cidade</label><input id="entregaCidade" /></div>
-                <div><label for="entregaUf">UF</label><select id="entregaUf"><option value="">Selecione...</option><option value="AC">AC - Acre</option><option value="AL">AL - Alagoas</option><option value="AP">AP - Amapá</option><option value="AM">AM - Amazonas</option><option value="BA">BA - Bahia</option><option value="CE">CE - Ceará</option><option value="DF">DF - Distrito Federal</option><option value="ES">ES - Espírito Santo</option><option value="GO">GO - Goiás</option><option value="MA">MA - Maranhão</option><option value="MT">MT - Mato Grosso</option><option value="MS">MS - Mato Grosso do Sul</option><option value="MG">MG - Minas Gerais</option><option value="PA">PA - Pará</option><option value="PB">PB - Paraíba</option><option value="PR">PR - Paraná</option><option value="PE">PE - Pernambuco</option><option value="PI">PI - Piauí</option><option value="RJ">RJ - Rio de Janeiro</option><option value="RN">RN - Rio Grande do Norte</option><option value="RS">RS - Rio Grande do Sul</option><option value="RO">RO - Rondônia</option><option value="RR">RR - Roraima</option><option value="SC">SC - Santa Catarina</option><option value="SP">SP - São Paulo</option><option value="SE">SE - Sergipe</option><option value="TO">TO - Tocantins</option></select></div>
+                <div class="field-sm"><label for="entregaUf">UF</label><select id="entregaUf"><option value="">Selecione...</option><option value="AC">AC - Acre</option><option value="AL">AL - Alagoas</option><option value="AP">AP - Amapá</option><option value="AM">AM - Amazonas</option><option value="BA">BA - Bahia</option><option value="CE">CE - Ceará</option><option value="DF">DF - Distrito Federal</option><option value="ES">ES - Espírito Santo</option><option value="GO">GO - Goiás</option><option value="MA">MA - Maranhão</option><option value="MT">MT - Mato Grosso</option><option value="MS">MS - Mato Grosso do Sul</option><option value="MG">MG - Minas Gerais</option><option value="PA">PA - Pará</option><option value="PB">PB - Paraíba</option><option value="PR">PR - Paraná</option><option value="PE">PE - Pernambuco</option><option value="PI">PI - Piauí</option><option value="RJ">RJ - Rio de Janeiro</option><option value="RN">RN - Rio Grande do Norte</option><option value="RS">RS - Rio Grande do Sul</option><option value="RO">RO - Rondônia</option><option value="RR">RR - Roraima</option><option value="SC">SC - Santa Catarina</option><option value="SP">SP - São Paulo</option><option value="SE">SE - Sergipe</option><option value="TO">TO - Tocantins</option></select></div>
 
                 <div class="field-full"><label for="observacoes">Observações</label><textarea id="observacoes" rows="3"></textarea></div>
 
