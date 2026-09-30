@@ -1,4 +1,3 @@
-@model List<AuditLogEntry>
 @{
     ViewData["Title"] = "Log de auditoria";
     var entidadeSelecionada = (string)(ViewData["EntidadeSelecionada"] ?? string.Empty);
@@ -14,29 +13,28 @@
     };
 }
 <div class="page-heading">
-    <div><span class="eyebrow">Administração</span><h1>Log de auditoria.</h1><p class="muted">Últimas 200 alterações em produtos, clientes, fornecedores, pedidos, contas a pagar, usuários e projetos.</p></div>
+    <div><span class="eyebrow">Administração</span><h1>Log de auditoria.</h1><p class="muted">Últimas alterações em produtos, clientes, fornecedores, pedidos, contas a pagar, usuários e projetos.</p></div>
 </div>
 <div class="surface-card users-card">
     <div class="section-heading">
         <div><h2>Alterações registradas</h2><p class="muted">Quem fez o quê, e quando.</p></div>
-        <form method="get" class="settings-form filter-form">
-            <div><label for="entidade">Filtrar por</label>
-                <select id="entidade" name="entidade" onchange="this.form.submit()">
-                    <option value="">Todas</option>
-                    @foreach (var item in nomes)
+        <div>
+            <label for="entidade" style="display:block;font-size:12px;font-weight:700;margin-bottom:3px;">Filtrar por</label>
+            <select id="entidade">
+                <option value="">Todas</option>
+                @foreach (var item in nomes)
+                {
+                    if (item.Key == entidadeSelecionada)
                     {
-                        if (item.Key == entidadeSelecionada)
-                        {
-                            <option value="@item.Key" selected>@item.Value</option>
-                        }
-                        else
-                        {
-                            <option value="@item.Key">@item.Value</option>
-                        }
+                        <option value="@item.Key" selected>@item.Value</option>
                     }
-                </select>
-            </div>
-        </form>
+                    else
+                    {
+                        <option value="@item.Key">@item.Value</option>
+                    }
+                }
+            </select>
+        </div>
     </div>
     <div class="table-wrap">
         <table class="data-table">
@@ -50,23 +48,61 @@
                     <th>Detalhes</th>
                 </tr>
             </thead>
-            <tbody>
-                @if (!Model.Any())
-                {
-                    <tr><td colspan="6" class="muted">Nenhum registro de auditoria ainda.</td></tr>
-                }
-                @foreach (var entry in Model)
-                {
-                    <tr>
-                        <td>@entry.Timestamp.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
-                        <td>@(nomes.TryGetValue(entry.EntityName, out var nome) ? nome : entry.EntityName)</td>
-                        <td>@entry.EntityId</td>
-                        <td>@entry.Action</td>
-                        <td>@entry.UserName</td>
-                        <td>@(string.IsNullOrEmpty(entry.Details) ? "—" : entry.Details)</td>
-                    </tr>
-                }
-            </tbody>
+            <tbody id="auditLogTableBody"></tbody>
         </table>
     </div>
+    <div class="table-pagination" id="auditLogPaginacao"></div>
 </div>
+
+@section Scripts {
+    <script>
+        const nomesEntidade = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(nomes));
+        const entidadeSelect = document.getElementById('entidade');
+        const tableBody = document.getElementById('auditLogTableBody');
+        const paginacaoEl = document.getElementById('auditLogPaginacao');
+        const AUDITLOG_POR_PAGINA = 20;
+        let todasEntradas = [];
+        let paginaAtual = 1;
+
+        function renderAuditLog() {
+            const { itens, totalFiltrados, totalPaginas, paginaAtual: pagina } = filtrarEPaginar(todasEntradas, {
+                pagina: paginaAtual,
+                porPagina: AUDITLOG_POR_PAGINA
+            });
+            paginaAtual = pagina;
+
+            tableBody.innerHTML = itens.map(entry => `
+                <tr>
+                    <td>${new Date(entry.timestamp).toLocaleString('pt-BR')}</td>
+                    <td>${nomesEntidade[entry.entityName] || entry.entityName}</td>
+                    <td>${entry.entityId}</td>
+                    <td>${entry.action}</td>
+                    <td>${entry.userName}</td>
+                    <td>${entry.details || '—'}</td>
+                </tr>
+            `).join('') || '<tr><td colspan="6" class="muted">Nenhum registro de auditoria ainda.</td></tr>';
+
+            renderPaginacao(paginacaoEl, paginaAtual, totalPaginas, (novaPagina) => {
+                paginaAtual = novaPagina;
+                renderAuditLog();
+            });
+        }
+
+        async function carregarAuditLog() {
+            tableBody.innerHTML = linhaCarregando(6);
+            const parametro = entidadeSelect.value ? `?entidade=${encodeURIComponent(entidadeSelect.value)}` : '';
+            const response = await fetch(`/api/auditlog${parametro}`);
+            if (!response.ok) {
+                throw new Error('Erro ao carregar log de auditoria.');
+            }
+
+            todasEntradas = await response.json();
+            paginaAtual = 1;
+            renderAuditLog();
+        }
+
+        entidadeSelect.addEventListener('change', () => carregarAuditLog().catch(error => console.error(error)));
+
+        carregarAuditLog().catch(error => console.error(error));
+    </script>
+}

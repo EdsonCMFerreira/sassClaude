@@ -9,6 +9,10 @@ using Saas.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 6 * 1024 * 1024; // 6 MB: folga sobre o limite de 5 MB validado no upload de anexos
+});
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddDbContext<SassDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -552,6 +556,16 @@ using (var scope = app.Services.CreateScope())
             db.Database.ExecuteSqlRaw("ALTER TABLE Pedidos ADD COLUMN DataPagamento TEXT NULL;");
         }
 
+        if (!pedidoColumns.Contains("AnexoCaminho"))
+        {
+            db.Database.ExecuteSqlRaw("ALTER TABLE Pedidos ADD COLUMN AnexoCaminho TEXT NULL;");
+        }
+
+        if (!pedidoColumns.Contains("AnexoNomeOriginal"))
+        {
+            db.Database.ExecuteSqlRaw("ALTER TABLE Pedidos ADD COLUMN AnexoNomeOriginal TEXT NULL;");
+        }
+
         db.Database.ExecuteSqlRaw("""
             CREATE TABLE IF NOT EXISTS PedidoItens (
                 Id INTEGER NOT NULL CONSTRAINT PK_PedidoItens PRIMARY KEY AUTOINCREMENT,
@@ -790,6 +804,17 @@ using (var scope = app.Services.CreateScope())
                 CONSTRAINT FK_Compras_Fornecedores_FornecedorId FOREIGN KEY (FornecedorId) REFERENCES Fornecedores (Id) ON DELETE SET NULL
             );
             """);
+
+        var comprasColumns = GetColumns("Compras");
+        if (!comprasColumns.Contains("AnexoCaminho"))
+        {
+            db.Database.ExecuteSqlRaw("ALTER TABLE Compras ADD COLUMN AnexoCaminho TEXT NULL;");
+        }
+
+        if (!comprasColumns.Contains("AnexoNomeOriginal"))
+        {
+            db.Database.ExecuteSqlRaw("ALTER TABLE Compras ADD COLUMN AnexoNomeOriginal TEXT NULL;");
+        }
 
         db.Database.ExecuteSqlRaw("""
             CREATE TABLE IF NOT EXISTS CompraItens (

@@ -10,6 +10,17 @@
         <a class="button button-outline" asp-controller="Clientes" asp-action="Ranking">Ver ranking <span>→</span></a>
     </div>
 </div>
+<div class="surface-card users-card" style="margin-bottom:18px;">
+    <div class="section-heading">
+        <div><h2>Importar clientes em massa</h2><p class="muted">Envie um CSV com as colunas: Nome, CpfCnpj (obrigatórias), TipoPessoa, Email, Telefone, Site, Observacoes (opcionais).</p></div>
+        <button type="button" class="button button-outline" id="baixarModeloImportacao">Baixar modelo CSV</button>
+    </div>
+    <div style="align-items:center;display:flex;flex-wrap:wrap;gap:12px;padding:0 27px 27px;">
+        <input type="file" id="arquivoImportacao" accept=".csv,text/csv" />
+        <button type="button" class="button button-primary" id="importarClientesButton">Importar</button>
+    </div>
+    <div id="resultadoImportacao" style="display:none;padding:0 27px 27px;"></div>
+</div>
 <div class="surface-card users-card">
     <div class="section-heading"><div><h2>Clientes cadastrados</h2><p class="muted">Dados pessoais, endereço de cobrança e de entrega. A última compra é calculada automaticamente a partir dos registros em Pedidos.</p></div></div>
     <div class="user-form-wrap">
@@ -341,6 +352,47 @@
         busca.addEventListener('input', () => {
             paginaAtual = 1;
             renderClientes();
+        });
+
+        document.getElementById('baixarModeloImportacao').addEventListener('click', () => {
+            baixarCsv([
+                ['Nome', 'CpfCnpj', 'TipoPessoa', 'Email', 'Telefone', 'Site', 'Observacoes'],
+                ['Cliente de exemplo', '00000000000', 'Física', 'cliente@exemplo.com', '11999999999', '', '']
+            ], 'modelo-importacao-clientes.csv');
+        });
+
+        document.getElementById('importarClientesButton').addEventListener('click', async () => {
+            const arquivoInput = document.getElementById('arquivoImportacao');
+            const resultadoEl = document.getElementById('resultadoImportacao');
+            if (!arquivoInput.files.length) {
+                toast('Selecione um arquivo CSV.', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('arquivo', arquivoInput.files[0]);
+
+            const response = await fetch('/api/clientes/importar', {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': csrfToken },
+                body: formData
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                resultadoEl.style.display = 'block';
+                let html = `<p class="${data.importados > 0 ? 'status-positive' : 'muted'}">${data.importados} cliente(s) importado(s) com sucesso.</p>`;
+                if (data.erros.length > 0) {
+                    html += `<p class="status-negative" style="margin-top:8px;">${data.erros.length} linha(s) com erro:</p><ul style="margin:4px 0 0;padding-left:20px;">${data.erros.map(e => `<li class="muted">${e}</li>`).join('')}</ul>`;
+                }
+                resultadoEl.innerHTML = html;
+                toast(data.importados > 0 ? `${data.importados} cliente(s) importado(s).` : 'Nenhum cliente importado — veja os erros.', data.importados > 0 ? 'success' : 'error');
+                arquivoInput.value = '';
+                await loadClientes();
+            } else {
+                const errorText = await response.text();
+                toast(errorText || 'Erro ao importar clientes.', 'error');
+            }
         });
 
         updateEntregaDisabled();

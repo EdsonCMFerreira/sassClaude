@@ -71,6 +71,20 @@
                 <div class="field-sm"><label for="percentualDesconto">Desconto (%)</label><input id="percentualDesconto" type="number" step="0.01" min="0" max="100" value="0" /></div>
 
                 <div class="field-full"><label for="observacoes">Observações</label><textarea id="observacoes" rows="2"></textarea></div>
+                <div class="field-full">
+                    <label>Anexo (nota fiscal, comprovante...)</label>
+                    <p id="anexoSemPedido" class="muted" style="font-size:13px;margin:0;">Salve o pedido para anexar um comprovante.</p>
+                    <div id="anexoComPedido" class="hidden">
+                        <div id="anexoAtual" style="align-items:center;display:none;gap:12px;margin-bottom:8px;">
+                            <a id="anexoLink" href="#" target="_blank" rel="noopener">📎 <span id="anexoNome"></span></a>
+                            <button type="button" id="removerAnexoButton" class="table-action danger">Remover</button>
+                        </div>
+                        <div style="align-items:center;display:flex;flex-wrap:wrap;gap:12px;">
+                            <input type="file" id="anexoInput" accept=".pdf,.jpg,.jpeg,.png" />
+                            <button type="button" id="enviarAnexoButton" class="button button-outline">Enviar anexo</button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="items-section">
@@ -142,6 +156,14 @@
         const status = document.getElementById('status');
         const percentualDesconto = document.getElementById('percentualDesconto');
         const observacoes = document.getElementById('observacoes');
+        const anexoSemPedido = document.getElementById('anexoSemPedido');
+        const anexoComPedido = document.getElementById('anexoComPedido');
+        const anexoAtual = document.getElementById('anexoAtual');
+        const anexoLink = document.getElementById('anexoLink');
+        const anexoNome = document.getElementById('anexoNome');
+        const anexoInput = document.getElementById('anexoInput');
+        const enviarAnexoButton = document.getElementById('enviarAnexoButton');
+        const removerAnexoButton = document.getElementById('removerAnexoButton');
         const valorTotalDisplay = document.getElementById('valorTotal');
         const valorComDescontoDisplay = document.getElementById('valorComDesconto');
         const cancelEdit = document.getElementById('cancelEdit');
@@ -278,12 +300,31 @@
             atualizarTotais();
         }
 
+        function atualizarSecaoAnexo() {
+            const temPedido = Boolean(pedidoId.value);
+            anexoSemPedido.classList.toggle('hidden', temPedido);
+            anexoComPedido.classList.toggle('hidden', !temPedido);
+            anexoInput.value = '';
+        }
+
+        function exibirAnexoAtual(nomeArquivo) {
+            if (nomeArquivo) {
+                anexoNome.textContent = nomeArquivo;
+                anexoLink.href = `/api/pedidos/${pedidoId.value}/anexo`;
+                anexoAtual.style.display = 'flex';
+            } else {
+                anexoAtual.style.display = 'none';
+            }
+        }
+
         function resetForm() {
             form.reset();
             pedidoId.value = '';
             numeroPedido.value = '';
             dataPedido.value = hoje();
             atualizarEnderecoCliente();
+            atualizarSecaoAnexo();
+            exibirAnexoAtual(null);
             itensOriginais = [];
             itensTableBody.innerHTML = '';
             addItemRow();
@@ -385,6 +426,8 @@
             percentualDesconto.value = data.percentualDesconto;
             observacoes.value = data.observacoes;
             atualizarCampoDesconto();
+            atualizarSecaoAnexo();
+            exibirAnexoAtual(data.anexoNomeOriginal);
 
             itensOriginais = data.itens.map(i => ({ produtoId: i.produtoId, quantidade: i.quantidade }));
             itensTableBody.innerHTML = '';
@@ -393,6 +436,44 @@
             cancelEdit.classList.remove('hidden');
             clienteId.focus();
         }
+
+        enviarAnexoButton.addEventListener('click', async () => {
+            if (!anexoInput.files.length) {
+                toast('Selecione um arquivo.', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('arquivo', anexoInput.files[0]);
+            const response = await fetch(`/api/pedidos/${pedidoId.value}/anexo`, {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': csrfToken },
+                body: formData
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                exibirAnexoAtual(data.nomeArquivo);
+                anexoInput.value = '';
+                toast('Anexo enviado.');
+            } else {
+                const errorText = await response.text();
+                toast(errorText || 'Erro ao enviar anexo.', 'error');
+            }
+        });
+
+        removerAnexoButton.addEventListener('click', async () => {
+            const confirmed = confirm('Deseja remover o anexo deste pedido?');
+            if (!confirmed) return;
+
+            const response = await fetch(`/api/pedidos/${pedidoId.value}/anexo`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': csrfToken } });
+            if (response.ok) {
+                exibirAnexoAtual(null);
+                toast('Anexo removido.');
+            } else {
+                toast('Não foi possível remover o anexo.', 'error');
+            }
+        });
 
         async function deletePedido(id) {
             const confirmed = confirm('Deseja excluir este pedido?');
@@ -470,6 +551,8 @@
             paginaAtual = 1;
             renderPedidos();
         });
+
+        atualizarSecaoAnexo();
 
         Promise.all([loadClientesOptions(), loadProdutosOptions()])
             .then(() => {

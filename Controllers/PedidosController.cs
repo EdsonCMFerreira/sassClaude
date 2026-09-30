@@ -6,6 +6,7 @@ using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using Saas.Data;
 using Saas.Models;
+using Saas.Services;
 
 namespace Saas.Controllers;
 
@@ -320,10 +321,12 @@ public class PedidosController : Controller
 public class ApiPedidosController : ControllerBase
 {
     private readonly SassDbContext _context;
+    private readonly IWebHostEnvironment _ambiente;
 
-    public ApiPedidosController(SassDbContext context)
+    public ApiPedidosController(SassDbContext context, IWebHostEnvironment ambiente)
     {
         _context = context;
+        _ambiente = ambiente;
     }
 
     [HttpGet]
@@ -547,14 +550,84 @@ public class ApiPedidosController : ControllerBase
         }
 
         var clienteId = pedido.ClienteId;
+        var anexoCaminho = pedido.AnexoCaminho;
 
         _context.Pedidos.Remove(pedido);
         await _context.SaveChangesAsync();
+        AnexoStorage.Excluir(_ambiente.ContentRootPath, anexoCaminho);
 
         if (clienteId.HasValue)
         {
             await RecalcularUltimaCompraCliente(clienteId.Value);
         }
+
+        return NoContent();
+    }
+
+    [HttpPost("{id:int}/anexo")]
+    [ValidateAntiForgeryToken]
+    public async Task<ActionResult<AnexoResponse>> EnviarAnexo(int id, IFormFile? arquivo)
+    {
+        var pedido = await _context.Pedidos.FindAsync(id);
+        if (pedido is null)
+        {
+            return NotFound();
+        }
+
+        if (arquivo is null)
+        {
+            return BadRequest("Selecione um arquivo.");
+        }
+
+        var validacao = AnexoStorage.Validar(arquivo);
+        if (!validacao.Valido)
+        {
+            return BadRequest(validacao.Erro);
+        }
+
+        AnexoStorage.Excluir(_ambiente.ContentRootPath, pedido.AnexoCaminho);
+
+        var salvo = await AnexoStorage.SalvarAsync(_ambiente.ContentRootPath, pedido.EmpresaId, "Pedidos", pedido.Id, arquivo);
+        pedido.AnexoCaminho = salvo.CaminhoRelativo;
+        pedido.AnexoNomeOriginal = salvo.NomeOriginal;
+        await _context.SaveChangesAsync();
+
+        return new AnexoResponse(pedido.AnexoNomeOriginal);
+    }
+
+    [HttpGet("{id:int}/anexo")]
+    public async Task<IActionResult> BaixarAnexo(int id)
+    {
+        var pedido = await _context.Pedidos.FindAsync(id);
+        if (pedido is null || string.IsNullOrWhiteSpace(pedido.AnexoCaminho))
+        {
+            return NotFound();
+        }
+
+        var caminhoAbsoluto = Path.Combine(_ambiente.ContentRootPath, pedido.AnexoCaminho);
+        if (!System.IO.File.Exists(caminhoAbsoluto))
+        {
+            return NotFound();
+        }
+
+        var bytes = await System.IO.File.ReadAllBytesAsync(caminhoAbsoluto);
+        return File(bytes, AnexoStorage.ContentTypeDe(pedido.AnexoNomeOriginal ?? pedido.AnexoCaminho), pedido.AnexoNomeOriginal ?? "anexo");
+    }
+
+    [HttpDelete("{id:int}/anexo")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ExcluirAnexo(int id)
+    {
+        var pedido = await _context.Pedidos.FindAsync(id);
+        if (pedido is null)
+        {
+            return NotFound();
+        }
+
+        AnexoStorage.Excluir(_ambiente.ContentRootPath, pedido.AnexoCaminho);
+        pedido.AnexoCaminho = null;
+        pedido.AnexoNomeOriginal = null;
+        await _context.SaveChangesAsync();
 
         return NoContent();
     }
@@ -652,6 +725,7 @@ public class ApiPedidosController : ControllerBase
             pedido.DataPagamento,
             pedido.NumeroNota,
             pedido.FormaPagamento,
+            pedido.AnexoNomeOriginal,
             pedido.Status,
             pedido.Observacoes,
             pedido.CreatedAt);
@@ -669,4 +743,6 @@ public sealed record PedidoItemResponse(int Id, int ProdutoId, string ProdutoNom
 public sealed record PedidoResponse(
     int Id, int NumeroPedido, int ClienteId, string ClienteNome, List<PedidoItemResponse> Itens,
     decimal ValorTotal, decimal PercentualDesconto, decimal ValorComDesconto, DateTime DataPedido, DateTime? DataVencimento, DateTime? DataPagamento,
-    string NumeroNota, string FormaPagamento, string Status, string Observacoes, DateTime CreatedAt);
+    string NumeroNota, string FormaPagamento, string? AnexoNomeOriginal, string Status, string Observacoes, DateTime CreatedAt);
+
+public sealed record AnexoResponse(string? NomeArquivo);

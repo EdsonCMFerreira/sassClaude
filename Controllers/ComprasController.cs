@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Saas.Data;
 using Saas.Models;
+using Saas.Services;
 
 namespace Saas.Controllers;
 
@@ -86,10 +87,12 @@ public class ComprasController : Controller
 public class ApiComprasController : ControllerBase
 {
     private readonly SassDbContext _context;
+    private readonly IWebHostEnvironment _ambiente;
 
-    public ApiComprasController(SassDbContext context)
+    public ApiComprasController(SassDbContext context, IWebHostEnvironment ambiente)
     {
         _context = context;
+        _ambiente = ambiente;
     }
 
     [HttpGet]
@@ -276,8 +279,79 @@ public class ApiComprasController : ControllerBase
             return NotFound();
         }
 
+        var anexoCaminho = compra.AnexoCaminho;
+
         _context.Compras.Remove(compra);
         await _context.SaveChangesAsync();
+        AnexoStorage.Excluir(_ambiente.ContentRootPath, anexoCaminho);
+        return NoContent();
+    }
+
+    [HttpPost("{id:int}/anexo")]
+    [ValidateAntiForgeryToken]
+    public async Task<ActionResult<AnexoResponse>> EnviarAnexo(int id, IFormFile? arquivo)
+    {
+        var compra = await _context.Compras.FindAsync(id);
+        if (compra is null)
+        {
+            return NotFound();
+        }
+
+        if (arquivo is null)
+        {
+            return BadRequest("Selecione um arquivo.");
+        }
+
+        var validacao = AnexoStorage.Validar(arquivo);
+        if (!validacao.Valido)
+        {
+            return BadRequest(validacao.Erro);
+        }
+
+        AnexoStorage.Excluir(_ambiente.ContentRootPath, compra.AnexoCaminho);
+
+        var salvo = await AnexoStorage.SalvarAsync(_ambiente.ContentRootPath, compra.EmpresaId, "Compras", compra.Id, arquivo);
+        compra.AnexoCaminho = salvo.CaminhoRelativo;
+        compra.AnexoNomeOriginal = salvo.NomeOriginal;
+        await _context.SaveChangesAsync();
+
+        return new AnexoResponse(compra.AnexoNomeOriginal);
+    }
+
+    [HttpGet("{id:int}/anexo")]
+    public async Task<IActionResult> BaixarAnexo(int id)
+    {
+        var compra = await _context.Compras.FindAsync(id);
+        if (compra is null || string.IsNullOrWhiteSpace(compra.AnexoCaminho))
+        {
+            return NotFound();
+        }
+
+        var caminhoAbsoluto = Path.Combine(_ambiente.ContentRootPath, compra.AnexoCaminho);
+        if (!System.IO.File.Exists(caminhoAbsoluto))
+        {
+            return NotFound();
+        }
+
+        var bytes = await System.IO.File.ReadAllBytesAsync(caminhoAbsoluto);
+        return File(bytes, AnexoStorage.ContentTypeDe(compra.AnexoNomeOriginal ?? compra.AnexoCaminho), compra.AnexoNomeOriginal ?? "anexo");
+    }
+
+    [HttpDelete("{id:int}/anexo")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ExcluirAnexo(int id)
+    {
+        var compra = await _context.Compras.FindAsync(id);
+        if (compra is null)
+        {
+            return NotFound();
+        }
+
+        AnexoStorage.Excluir(_ambiente.ContentRootPath, compra.AnexoCaminho);
+        compra.AnexoCaminho = null;
+        compra.AnexoNomeOriginal = null;
+        await _context.SaveChangesAsync();
+
         return NoContent();
     }
 
@@ -326,6 +400,7 @@ public class ApiComprasController : ControllerBase
             compra.DataPagamento,
             compra.NumeroNota,
             compra.FormaPagamento,
+            compra.AnexoNomeOriginal,
             compra.Status,
             compra.Observacoes,
             compra.CreatedAt);
@@ -343,4 +418,4 @@ public sealed record CompraItemResponse(int Id, int ProdutoId, string ProdutoNom
 public sealed record CompraResponse(
     int Id, int NumeroCompra, int FornecedorId, string FornecedorNome, List<CompraItemResponse> Itens, decimal ValorTotal,
     DateTime DataCompra, DateTime? DataVencimento, DateTime? DataPagamento,
-    string NumeroNota, string FormaPagamento, string Status, string Observacoes, DateTime CreatedAt);
+    string NumeroNota, string FormaPagamento, string? AnexoNomeOriginal, string Status, string Observacoes, DateTime CreatedAt);

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Saas.Data;
 using Saas.Models;
+using Saas.Services;
 
 namespace Saas.Controllers;
 
@@ -149,6 +150,106 @@ public class ApiClientesController : ControllerBase
         return NoContent();
     }
 
+    [HttpPost("importar")]
+    [ValidateAntiForgeryToken]
+    public async Task<ActionResult<ImportarClientesResponse>> ImportarClientes(IFormFile? arquivo)
+    {
+        if (arquivo is null || arquivo.Length == 0)
+        {
+            return BadRequest("Selecione um arquivo CSV.");
+        }
+
+        string conteudo;
+        using (var leitor = new StreamReader(arquivo.OpenReadStream()))
+        {
+            conteudo = await leitor.ReadToEndAsync();
+        }
+
+        var linhas = CsvImportHelper.ParseCsv(conteudo);
+        if (linhas.Count < 2)
+        {
+            return BadRequest("O arquivo precisa ter uma linha de cabeçalho e ao menos uma linha de dados.");
+        }
+
+        var cabecalho = linhas[0].Select(CsvImportHelper.NormalizarCabecalho).ToList();
+        int IndiceDe(params string[] nomes) => cabecalho.FindIndex(h => nomes.Contains(h));
+
+        var idxNome = IndiceDe("nome", "nomerazaosocial");
+        var idxCpfCnpj = IndiceDe("cpfcnpj");
+        var idxTipoPessoa = IndiceDe("tipopessoa");
+        var idxEmail = IndiceDe("email");
+        var idxTelefone = IndiceDe("telefone");
+        var idxSite = IndiceDe("site");
+        var idxObservacoes = IndiceDe("observacoes");
+
+        if (idxNome < 0 || idxCpfCnpj < 0)
+        {
+            return BadRequest("Cabeçalho inválido. Colunas mínimas esperadas: Nome, CpfCnpj (Email, Telefone, TipoPessoa, Site e Observacoes são opcionais).");
+        }
+
+        var documentosExistentes = (await _context.Clientes.Select(c => c.CpfCnpj).ToListAsync())
+            .Select(SomenteDigitos)
+            .ToHashSet();
+        var documentosNesteArquivo = new HashSet<string>();
+
+        var importados = 0;
+        var erros = new List<string>();
+
+        for (var i = 1; i < linhas.Count; i++)
+        {
+            var linha = linhas[i];
+            var numeroLinha = i + 1;
+            if (linha.Length <= 1 && string.IsNullOrWhiteSpace(linha.ElementAtOrDefault(0)))
+            {
+                continue;
+            }
+
+            string Campo(int idx) => idx >= 0 && idx < linha.Length ? linha[idx].Trim() : string.Empty;
+
+            var nome = Campo(idxNome);
+            var cpfCnpj = Campo(idxCpfCnpj);
+
+            if (string.IsNullOrWhiteSpace(nome) || string.IsNullOrWhiteSpace(cpfCnpj))
+            {
+                erros.Add($"Linha {numeroLinha}: nome e CPF/CNPJ são obrigatórios.");
+                continue;
+            }
+
+            var documento = SomenteDigitos(cpfCnpj);
+            if (documentosExistentes.Contains(documento) || !documentosNesteArquivo.Add(documento))
+            {
+                erros.Add($"Linha {numeroLinha}: já existe um cliente com o CPF/CNPJ \"{cpfCnpj}\".");
+                continue;
+            }
+
+            var tipoPessoa = Campo(idxTipoPessoa);
+            if (tipoPessoa is not ("Física" or "Jurídica"))
+            {
+                tipoPessoa = "Física";
+            }
+
+            _context.Clientes.Add(new Cliente
+            {
+                Nome = nome,
+                TipoPessoa = tipoPessoa,
+                CpfCnpj = cpfCnpj,
+                Email = Campo(idxEmail),
+                Telefone = Campo(idxTelefone),
+                Site = Campo(idxSite),
+                Observacoes = Campo(idxObservacoes),
+                CreatedAt = DateTime.UtcNow
+            });
+            importados++;
+        }
+
+        if (importados > 0)
+        {
+            await _context.SaveChangesAsync();
+        }
+
+        return new ImportarClientesResponse(importados, erros);
+    }
+
     [HttpDelete("{id:int}")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteCliente(int id)
@@ -228,3 +329,5 @@ public sealed record ClienteResponse(
     string EntregaBairro, string EntregaCidade, string EntregaUf,
     string Observacoes,
     DateTime? UltimaCompraData, decimal? UltimaCompraValor, DateTime CreatedAt);
+
+public sealed record ImportarClientesResponse(int Importados, List<string> Erros);

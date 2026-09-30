@@ -36,5 +36,9 @@ public class Compra : ITenantScoped
     [StringLength(500)]
     public string Observacoes { get; set; } = string.Empty;
 
+    public string? AnexoCaminho { get; set; }
+
+    public string? AnexoNomeOriginal { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
