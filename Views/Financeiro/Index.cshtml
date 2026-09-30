@@ -30,10 +30,13 @@
 
 <div class="content-grid">
     <section class="surface-card users-card">
-        <div class="section-heading"><div><h2>Entradas nos últimos 6 meses</h2><p class="muted">Só entram no cálculo vendas com status "Concluída", já com desconto aplicado.</p></div></div>
+        <div class="section-heading">
+            <div><h2>Entradas nos últimos 6 meses</h2><p class="muted">Só entram no cálculo vendas com status "Concluída", já com desconto aplicado.</p></div>
+            <button type="button" class="button button-outline" id="exportarEntradas">Exportar CSV</button>
+        </div>
         <div style="padding:10px 27px 0;"><div style="height:240px;"><canvas id="graficoEntradas"></canvas></div></div>
         <div class="table-wrap">
-            <table class="data-table">
+            <table class="data-table" id="tabelaEntradas">
                 <thead class="table-light">
                     <tr>
                         <th>Mês</th>
@@ -57,8 +60,13 @@
         </div>
     </section>
     <aside class="surface-card settings-card">
-        <span class="eyebrow">Formas de pagamento</span>
-        <h2>Vendas por forma de pagamento</h2>
+        <div style="align-items:start;display:flex;justify-content:space-between;">
+            <div><span class="eyebrow">Formas de pagamento</span><h2>Vendas por forma de pagamento</h2></div>
+            @if (Model.VendasPorFormaPagamento.Any())
+            {
+                <button type="button" class="button button-outline" id="exportarFormaPagamento">Exportar CSV</button>
+            }
+        </div>
         @if (!Model.VendasPorFormaPagamento.Any())
         {
             <p class="muted">Nenhuma venda concluída ainda.</p>
@@ -66,7 +74,7 @@
         else
         {
             <div style="height:200px;"><canvas id="graficoFormaPagamento"></canvas></div>
-            <div style="margin-top:14px;">
+            <div style="margin-top:14px;" id="tabelaFormaPagamento">
                 @foreach (var forma in Model.VendasPorFormaPagamento)
                 {
                     <div class="settings-row">
@@ -126,10 +134,13 @@
 </div>
 
 <div class="surface-card users-card" style="margin-top:18px;">
-    <div class="section-heading"><div><span class="eyebrow">Projeção</span><h2>Fluxo de caixa consolidado</h2><p class="muted">Entradas previstas (contas a receber) menos saídas previstas (contas a pagar), por mês de vencimento, com saldo acumulado.</p></div></div>
+    <div class="section-heading">
+        <div><span class="eyebrow">Projeção</span><h2>Fluxo de caixa consolidado</h2><p class="muted">Entradas previstas (contas a receber) menos saídas previstas (contas a pagar), por mês de vencimento, com saldo acumulado.</p></div>
+        <button type="button" class="button button-outline" id="exportarFluxoCaixa">Exportar CSV</button>
+    </div>
     <div style="padding:10px 27px 0;"><div style="height:240px;"><canvas id="graficoFluxoCaixa"></canvas></div></div>
     <div class="table-wrap">
-        <table class="data-table">
+        <table class="data-table" id="tabelaFluxoCaixa">
             <thead class="table-light">
                 <tr>
                     <th>Mês</th>
@@ -299,6 +310,21 @@
                 c.dataVencimento ? formatDate(c.dataVencimento) : '—', c.diasParaVencer, c.situacao
             ]);
             baixarCsv([cabecalho, ...linhas], 'contas-a-pagar.csv');
+        });
+
+        document.getElementById('exportarEntradas')?.addEventListener('click', () => {
+            exportarTabelaCsv('#tabelaEntradas', 'entradas-ultimos-6-meses.csv');
+        });
+        document.getElementById('exportarFluxoCaixa')?.addEventListener('click', () => {
+            exportarTabelaCsv('#tabelaFluxoCaixa', 'fluxo-de-caixa.csv');
+        });
+        document.getElementById('exportarFormaPagamento')?.addEventListener('click', () => {
+            const cabecalho = ['Forma de pagamento', 'Pedidos', 'Total'];
+            const dadosFormaPagamento = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.VendasPorFormaPagamento.Select(f => new {
+                formaPagamento = f.FormaPagamento, quantidade = f.Quantidade, total = f.Total
+            })));
+            const linhas = dadosFormaPagamento.map(f => [f.formaPagamento, f.quantidade, formatCurrency(f.total)]);
+            baixarCsv([cabecalho, ...linhas], 'vendas-por-forma-de-pagamento.csv');
         });
 
         const fluxoCaixaLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.FluxoCaixa.Select(f => f.Mes.ToString("MMM/yyyy", ptBr))));

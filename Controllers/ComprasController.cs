@@ -9,7 +9,75 @@ namespace Saas.Controllers;
 [Authorize(Policy = "AcessoCompras")]
 public class ComprasController : Controller
 {
+    private readonly SassDbContext _context;
+
+    public ComprasController(SassDbContext context)
+    {
+        _context = context;
+    }
+
     public IActionResult Index() => View();
+
+    public async Task<IActionResult> Dashboard()
+    {
+        var todasCompras = await _context.Compras
+            .Include(c => c.Fornecedor)
+            .Include(c => c.Itens).ThenInclude(i => i.Produto)
+            .ToListAsync();
+
+        decimal ValorCompra(Compra compra) => compra.Itens.Sum(i => i.Quantidade * i.ValorUnitario);
+
+        var naoCanceladas = todasCompras.Where(c => c.Status != "Cancelada").ToList();
+
+        var hoje = DateTime.UtcNow.Date;
+        var gastoMensal = Enumerable.Range(0, 6)
+            .Select(i => new DateTime(hoje.Year, hoje.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(-i))
+            .OrderBy(d => d)
+            .Select(mes =>
+            {
+                var doMes = naoCanceladas.Where(c => c.DataCompra.Year == mes.Year && c.DataCompra.Month == mes.Month);
+                var ptBr = new System.Globalization.CultureInfo("pt-BR");
+                var rotulo = mes.ToString("MMM/yyyy", ptBr);
+                return new GastoMensalRow(rotulo, doMes.Sum(ValorCompra));
+            })
+            .ToList();
+
+        var topFornecedores = naoCanceladas
+            .Where(c => c.FornecedorId.HasValue)
+            .GroupBy(c => c.FornecedorId!.Value)
+            .Select(g => new FornecedorGastoRow(g.First().Fornecedor?.Nome ?? "—", g.Sum(ValorCompra), g.Count()))
+            .OrderByDescending(r => r.Total)
+            .Take(10)
+            .ToList();
+
+        var produtosMaisComprados = naoCanceladas
+            .SelectMany(c => c.Itens)
+            .Where(i => i.ProdutoId.HasValue)
+            .GroupBy(i => i.ProdutoId!.Value)
+            .Select(g => new ProdutoMaisCompradoRow(g.First().Produto?.Descricao ?? "—", g.Sum(i => i.Quantidade)))
+            .OrderByDescending(r => r.QuantidadeTotal)
+            .Take(10)
+            .ToList();
+
+        var porStatus = todasCompras
+            .GroupBy(c => c.Status)
+            .Select(g => new StatusBreakdownRow(g.Key, g.Count()))
+            .ToList();
+
+        var model = new CompraDashboardViewModel
+        {
+            TotalCompras = todasCompras.Count,
+            GastoTotal = naoCanceladas.Sum(ValorCompra),
+            TotalEmAberto = naoCanceladas.Where(c => !c.DataPagamento.HasValue).Sum(ValorCompra),
+            TotalPago = naoCanceladas.Where(c => c.DataPagamento.HasValue).Sum(ValorCompra),
+            PorStatus = porStatus,
+            GastoMensal = gastoMensal,
+            TopFornecedores = topFornecedores,
+            ProdutosMaisComprados = produtosMaisComprados
+        };
+
+        return View(model);
+    }
 }
 
 [ApiController]

@@ -60,7 +60,7 @@
 @if (Model.TotalPedidos > 0)
 {
     <div class="surface-card activity-card">
-        <div class="section-heading"><div><span class="eyebrow">Funil</span><h2>Funil de conclusão</h2><p class="muted">De todos os pedidos @Model.PeriodoDescricao, quantos viraram venda concluída e quantos se perderam por cancelamento ou devolução.</p></div></div>
+        <div class="section-heading"><div><span class="eyebrow">Funil</span><h2>Funil de conclusão</h2><p class="muted">De todos os pedidos @Model.PeriodoDescricao, quantos viraram venda concluída e quantos se perderam por cancelamento ou devolução.</p></div><button type="button" class="button button-outline" id="exportarFunil">Exportar CSV</button></div>
         <div class="funnel">
             <div class="funnel-row">
                 <span class="funnel-label">Total de pedidos</span>
@@ -83,13 +83,18 @@
 
 <div class="content-grid" style="margin-top:18px;">
     <section class="surface-card activity-card">
-        <div class="section-heading"><div><span class="eyebrow">Faturamento</span><h2>@Model.FaturamentoTitulo</h2><p class="muted">@Model.ValorTotalConcluidos.ToString("C", ptBr) em pedidos concluídos @Model.PeriodoDescricao.</p></div></div>
+        <div class="section-heading"><div><span class="eyebrow">Faturamento</span><h2>@Model.FaturamentoTitulo</h2><p class="muted">@Model.ValorTotalConcluidos.ToString("C", ptBr) em pedidos concluídos @Model.PeriodoDescricao.</p></div><button type="button" class="button button-outline" id="exportarFaturamento">Exportar CSV</button></div>
         <div style="height:280px;"><canvas id="graficoFaturamento"></canvas></div>
     </section>
     <aside class="settings-stack">
         <div class="surface-card settings-card">
-            <span class="eyebrow">Status</span>
-            <h2>Pedidos por status</h2>
+            <div style="align-items:start;display:flex;justify-content:space-between;">
+                <div><span class="eyebrow">Status</span><h2>Pedidos por status</h2></div>
+                @if (Model.PorStatus.Any())
+                {
+                    <button type="button" class="button button-outline" id="exportarStatus">Exportar CSV</button>
+                }
+            </div>
             @if (!Model.PorStatus.Any())
             {
                 <p class="muted">Nenhum pedido registrado @Model.PeriodoDescricao.</p>
@@ -101,8 +106,13 @@
             }
         </div>
         <div class="surface-card settings-card">
-            <span class="eyebrow">Produtos</span>
-            <h2>Mais pedidos</h2>
+            <div style="align-items:start;display:flex;justify-content:space-between;">
+                <div><span class="eyebrow">Produtos</span><h2>Mais pedidos</h2></div>
+                @if (Model.ProdutosMaisPedidos.Any())
+                {
+                    <button type="button" class="button button-outline" id="exportarProdutosMaisPedidos">Exportar CSV</button>
+                }
+            </div>
             @if (!Model.ProdutosMaisPedidos.Any())
             {
                 <p class="muted">Nenhum item de pedido registrado ainda.</p>
@@ -139,6 +149,31 @@
 
         const faturamentoLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Faturamento.Select(f => f.Rotulo)));
         const faturamentoValores = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Faturamento.Select(f => f.Total)));
+
+        document.getElementById('exportarFunil')?.addEventListener('click', () => {
+            baixarCsv([
+                ['Etapa', 'Quantidade', 'Percentual'],
+                ['Total de pedidos', '@Model.TotalPedidos', '100%'],
+                ['Concluídos', '@Model.PedidosConcluidosCount', '@Model.TaxaConclusaoPercentual.ToString("0.0")%'],
+                ['Cancelados/devolvidos', '@Model.PedidosPerdidosCount', '@Model.TaxaPerdaPercentual.ToString("0.0")%']
+            ], 'funil-de-conclusao.csv');
+        });
+        document.getElementById('exportarFaturamento')?.addEventListener('click', () => {
+            const linhas = faturamentoLabels.map((rotulo, i) => [rotulo, formatCurrency(faturamentoValores[i])]);
+            baixarCsv([['Período', 'Faturamento'], ...linhas], 'faturamento.csv');
+        });
+        document.getElementById('exportarStatus')?.addEventListener('click', () => {
+            const labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PorStatus.Select(s => s.Status)));
+            const valores = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PorStatus.Select(s => s.Quantidade)));
+            const linhas = labels.map((status, i) => [status, valores[i]]);
+            baixarCsv([['Status', 'Quantidade'], ...linhas], 'pedidos-por-status.csv');
+        });
+        document.getElementById('exportarProdutosMaisPedidos')?.addEventListener('click', () => {
+            const labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ProdutosMaisPedidos.Select(p => p.ProdutoNome)));
+            const valores = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ProdutosMaisPedidos.Select(p => p.QuantidadeTotal)));
+            const linhas = labels.map((produto, i) => [produto, valores[i]]);
+            baixarCsv([['Produto', 'Quantidade pedida'], ...linhas], 'produtos-mais-pedidos.csv');
+        });
 
         new Chart(document.getElementById('graficoFaturamento'), {
             type: 'bar',

@@ -62,6 +62,10 @@
                         {
                             <a asp-controller="Produtos" asp-action="CurvaAbc">Curva ABC de produtos</a>
                         }
+                        @if (temAcessoCompras)
+                        {
+                            <a asp-controller="Compras" asp-action="Dashboard">Dashboard de contas a pagar</a>
+                        }
                         <a asp-controller="Pedidos" asp-action="Dashboard">Dashboard de pedidos</a>
                         @if (temAcessoCadastros)
                         {

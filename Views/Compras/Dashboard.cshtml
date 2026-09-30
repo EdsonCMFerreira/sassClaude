@@ -1,0 +1,267 @@
+@model CompraDashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard de contas a pagar";
+    var ptBr = new System.Globalization.CultureInfo("pt-BR");
+}
+<div class="page-heading">
+    <div><span class="eyebrow">Fornecedores</span><h1>Dashboard de contas a pagar.</h1><p class="muted">Gastos, status e fornecedores que mais recebem.</p></div>
+    <a class="button button-outline" asp-controller="Compras" asp-action="Index">← Ver contas a pagar</a>
+</div>
+
+<div class="metric-grid">
+    <article class="metric-card metric-highlight"><span class="metric-label">Contas registradas</span><strong>@Model.TotalCompras</strong><span class="metric-caption">no total</span></article>
+    <article class="metric-card"><span class="metric-label">Gasto total</span><strong>@Model.GastoTotal.ToString("C", ptBr)</strong><span class="metric-caption">compras não canceladas</span></article>
+    <article class="metric-card"><span class="metric-label">Em aberto</span><strong>@Model.TotalEmAberto.ToString("C", ptBr)</strong><span class="metric-caption">ainda não pago</span></article>
+    <article class="metric-card"><span class="metric-label">Pago</span><strong>@Model.TotalPago.ToString("C", ptBr)</strong><span class="metric-caption">já quitado</span></article>
+</div>
+
+<div class="content-grid" style="margin-top:18px;">
+    <section class="surface-card activity-card">
+        <div class="section-heading">
+            <div><span class="eyebrow">Gastos</span><h2>Gasto nos últimos 6 meses</h2><p class="muted">Soma das compras não canceladas, por mês da compra.</p></div>
+            <button type="button" class="button button-outline" id="exportarGastoMensal">Exportar CSV</button>
+        </div>
+        <div style="height:280px;"><canvas id="graficoGastoMensal"></canvas></div>
+    </section>
+    <aside class="settings-stack">
+        <div class="surface-card settings-card">
+            <div style="align-items:start;display:flex;justify-content:space-between;">
+                <div><span class="eyebrow">Status</span><h2>Contas por status</h2></div>
+                @if (Model.PorStatus.Any())
+                {
+                    <button type="button" class="button button-outline" id="exportarStatus">Exportar CSV</button>
+                }
+            </div>
+            @if (!Model.PorStatus.Any())
+            {
+                <p class="muted">Nenhuma conta a pagar registrada ainda.</p>
+            }
+            else
+            {
+                <p class="muted" style="margin-bottom:10px;">@Model.TotalCompras conta(s) no total.</p>
+                <div style="height:220px;"><canvas id="graficoStatus"></canvas></div>
+            }
+        </div>
+    </aside>
+</div>
+
+@if (Model.TopFornecedores.Any())
+{
+    <div class="surface-card activity-card" style="margin-top:18px;">
+        <div class="section-heading">
+            <div><span class="eyebrow">Top 10</span><h2>Fornecedores que mais recebem</h2><p class="muted">Soma das compras não canceladas por fornecedor.</p></div>
+            <button type="button" class="button button-outline" id="exportarFornecedores">Exportar CSV</button>
+        </div>
+        <div style="height:@(Math.Max(220, Model.TopFornecedores.Count * 40))px;"><canvas id="graficoFornecedores"></canvas></div>
+    </div>
+
+    <div class="surface-card users-card" style="margin-top:18px;">
+        <div class="section-heading"><div><h2>Todos os fornecedores</h2><p class="muted">Ordenado do maior para o menor valor gasto.</p></div></div>
+        <div class="table-wrap">
+            <table class="data-table" id="tabelaFornecedores">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>Fornecedor</th>
+                        <th>Total gasto</th>
+                        <th>Compras</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{ var posicao = 0; }
+                    @foreach (var fornecedor in Model.TopFornecedores)
+                    {
+                        posicao++;
+                        <tr>
+                            <td>@posicao</td>
+                            <td>@fornecedor.FornecedorNome</td>
+                            <td>@fornecedor.Total.ToString("C", ptBr)</td>
+                            <td>@fornecedor.Quantidade</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@if (Model.ProdutosMaisComprados.Any())
+{
+    <div class="surface-card activity-card" style="margin-top:18px;">
+        <div class="section-heading">
+            <div><span class="eyebrow">Produtos</span><h2>Produtos mais comprados</h2><p class="muted">Quantidade total comprada em contas não canceladas.</p></div>
+            <button type="button" class="button button-outline" id="exportarProdutos">Exportar CSV</button>
+        </div>
+        <div style="height:@(Math.Max(220, Model.ProdutosMaisComprados.Count * 36))px;"><canvas id="graficoProdutos"></canvas></div>
+    </div>
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script>
+        const tema = getComputedStyle(document.documentElement);
+        const cor = nomeVariavel => tema.getPropertyValue(nomeVariavel).trim();
+
+        Chart.defaults.font.family = "'Segoe UI', sans-serif";
+        Chart.defaults.color = cor('--muted');
+        Chart.defaults.animation.duration = 1300;
+        Chart.defaults.animation.easing = 'easeOutQuart';
+
+        const ptBrCurrency = value => Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+        function gradiente(ctx, corInicio, corFim) {
+            const area = ctx.chart.chartArea;
+            if (!area) return corInicio;
+            const gradient = ctx.chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
+            gradient.addColorStop(0, corInicio);
+            gradient.addColorStop(1, corFim);
+            return gradient;
+        }
+
+        const gastoMensalLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.GastoMensal.Select(g => g.Rotulo)));
+        const gastoMensalValores = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.GastoMensal.Select(g => g.Total)));
+
+        new Chart(document.getElementById('graficoGastoMensal'), {
+            type: 'bar',
+            data: {
+                labels: gastoMensalLabels,
+                datasets: [{
+                    label: 'Gasto',
+                    data: gastoMensalValores,
+                    backgroundColor: ctx => gradiente(ctx, cor('--coral'), cor('--blue')),
+                    hoverBackgroundColor: cor('--ember'),
+                    borderRadius: 8,
+                    maxBarThickness: 46
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                animation: { delay: ctx => ctx.type === 'data' ? ctx.dataIndex * 90 : 0 },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: ctx => ptBrCurrency(ctx.parsed.y) } }
+                },
+                scales: {
+                    y: { grid: { color: cor('--line') }, ticks: { callback: value => ptBrCurrency(value) } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+
+        document.getElementById('exportarGastoMensal')?.addEventListener('click', () => {
+            const linhas = gastoMensalLabels.map((rotulo, i) => [rotulo, formatCurrency(gastoMensalValores[i])]);
+            baixarCsv([['Mês', 'Gasto'], ...linhas], 'gasto-mensal.csv');
+        });
+
+        const statusCanvas = document.getElementById('graficoStatus');
+        if (statusCanvas) {
+            const statusLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PorStatus.Select(s => s.Status)));
+            const statusValores = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PorStatus.Select(s => s.Quantidade)));
+            const statusCores = { 'Paga': cor('--green'), 'Pendente': cor('--neutral'), 'Cancelada': cor('--coral') };
+
+            new Chart(statusCanvas, {
+                type: 'doughnut',
+                data: {
+                    labels: statusLabels,
+                    datasets: [{
+                        data: statusValores,
+                        backgroundColor: statusLabels.map(s => statusCores[s] || cor('--flare')),
+                        borderColor: '#fff',
+                        borderWidth: 3,
+                        hoverOffset: 10
+                    }]
+                },
+                options: {
+                    cutout: '62%',
+                    maintainAspectRatio: false,
+                    animation: { animateRotate: true, animateScale: true },
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.parsed} conta(s)` } }
+                    }
+                }
+            });
+
+            document.getElementById('exportarStatus')?.addEventListener('click', () => {
+                const linhas = statusLabels.map((status, i) => [status, statusValores[i]]);
+                baixarCsv([['Status', 'Quantidade'], ...linhas], 'contas-a-pagar-por-status.csv');
+            });
+        }
+
+        const fornecedoresCanvas = document.getElementById('graficoFornecedores');
+        if (fornecedoresCanvas) {
+            const fornecedoresLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TopFornecedores.Select(f => f.FornecedorNome)));
+            const fornecedoresValores = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TopFornecedores.Select(f => f.Total)));
+
+            new Chart(fornecedoresCanvas, {
+                type: 'bar',
+                data: {
+                    labels: fornecedoresLabels,
+                    datasets: [{
+                        label: 'Total gasto',
+                        data: fornecedoresValores,
+                        backgroundColor: ctx => {
+                            const area = ctx.chart.chartArea;
+                            if (!area) return cor('--coral');
+                            const gradient = ctx.chart.ctx.createLinearGradient(area.left, 0, area.right, 0);
+                            gradient.addColorStop(0, cor('--coral'));
+                            gradient.addColorStop(1, cor('--blue'));
+                            return gradient;
+                        },
+                        hoverBackgroundColor: cor('--ember'),
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    maintainAspectRatio: false,
+                    animation: { delay: ctx => ctx.type === 'data' ? ctx.dataIndex * 90 : 0 },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { callbacks: { label: ctx => ptBrCurrency(ctx.parsed.x) } }
+                    },
+                    scales: {
+                        x: { grid: { color: cor('--line') }, ticks: { callback: value => ptBrCurrency(value) } },
+                        y: { grid: { display: false } }
+                    }
+                }
+            });
+
+            document.getElementById('exportarFornecedores')?.addEventListener('click', () => {
+                exportarTabelaCsv('#tabelaFornecedores', 'fornecedores-que-mais-recebem.csv');
+            });
+        }
+
+        const produtosCanvas = document.getElementById('graficoProdutos');
+        if (produtosCanvas) {
+            const produtosLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ProdutosMaisComprados.Select(p => p.ProdutoNome)));
+            const produtosValores = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ProdutosMaisComprados.Select(p => p.QuantidadeTotal)));
+
+            new Chart(produtosCanvas, {
+                type: 'bar',
+                data: {
+                    labels: produtosLabels,
+                    datasets: [{
+                        label: 'Quantidade comprada',
+                        data: produtosValores,
+                        backgroundColor: ctx => gradiente(ctx, cor('--green'), cor('--blue')),
+                        hoverBackgroundColor: cor('--ember'),
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    maintainAspectRatio: false,
+                    animation: { delay: ctx => ctx.type === 'data' ? ctx.dataIndex * 90 : 0 },
+                    plugins: { legend: { display: false } },
+                    scales: { x: { grid: { color: cor('--line') }, ticks: { precision: 0 } }, y: { grid: { display: false } } }
+                }
+            });
+
+            document.getElementById('exportarProdutos')?.addEventListener('click', () => {
+                const linhas = produtosLabels.map((produto, i) => [produto, produtosValores[i]]);
+                baixarCsv([['Produto', 'Quantidade comprada'], ...linhas], 'produtos-mais-comprados.csv');
+            });
+        }
+    </script>
+}

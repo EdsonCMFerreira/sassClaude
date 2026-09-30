@@ -1,6 +1,7 @@
 @model Saas.Controllers.DashboardViewModel
 @{
     ViewData["Title"] = "Visão geral";
+    var ptBr = new System.Globalization.CultureInfo("pt-BR");
 }
 <div class="page-heading">
     <div><span class="eyebrow">Visão geral</span><h1>Bom trabalho, @User.Identity?.Name.</h1><p class="muted">Aqui está o que está acontecendo no seu workspace hoje.</p></div>
@@ -11,6 +12,18 @@
     <article class="metric-card"><span class="metric-label">Plano atual</span><strong>Starter</strong><span class="metric-caption">ciclo mensal ativo</span></article>
     <article class="metric-card"><span class="metric-label">Status</span><strong class="status-positive">Ativo</strong><span class="metric-caption">tudo funcionando bem</span></article>
 </div>
+@if (Model.VendidoEsteMes.HasValue)
+{
+    <div class="section-heading" style="margin-bottom:14px;">
+        <div><span class="eyebrow">Financeiro</span><h2>Resumo do mês</h2><p class="muted">Números reais do seu negócio, atualizados agora.</p></div>
+        <a class="text-link" asp-controller="Financeiro" asp-action="Index">Ver financeiro completo <span>→</span></a>
+    </div>
+    <div class="metric-grid" style="margin-bottom:18px;">
+        <article class="metric-card metric-highlight"><span class="metric-label">Vendido este mês</span><strong>@Model.VendidoEsteMes.Value.ToString("C", ptBr)</strong><span class="metric-caption">pedidos concluídos</span></article>
+        <article class="metric-card"><span class="metric-label">A receber</span><strong>@Model.AReceber!.Value.ToString("C", ptBr)</strong><span class="metric-caption">em aberto, de clientes</span></article>
+        <article class="metric-card"><span class="metric-label">A pagar</span><strong>@Model.APagar!.Value.ToString("C", ptBr)</strong><span class="metric-caption">em aberto, a fornecedores</span></article>
+    </div>
+}
 <div class="surface-card activity-card" style="margin-bottom:18px;">
     <div class="section-heading"><div><span class="eyebrow">Atenção</span><h2>Central de alertas</h2><p class="muted">Itens que valem uma olhada — vencimentos, estoque e contas em aberto.</p></div></div>
     @if (!Model.Alertas.Any())

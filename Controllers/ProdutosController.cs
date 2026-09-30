@@ -284,6 +284,217 @@ public class ApiProdutosController : ControllerBase
         return NoContent();
     }
 
+    [HttpPost("importar")]
+    [ValidateAntiForgeryToken]
+    public async Task<ActionResult<ImportarProdutosResponse>> ImportarProdutos(IFormFile? arquivo)
+    {
+        if (arquivo is null || arquivo.Length == 0)
+        {
+            return BadRequest("Selecione um arquivo CSV.");
+        }
+
+        string conteudo;
+        using (var leitor = new StreamReader(arquivo.OpenReadStream()))
+        {
+            conteudo = await leitor.ReadToEndAsync();
+        }
+
+        var linhas = ParseCsv(conteudo);
+        if (linhas.Count < 2)
+        {
+            return BadRequest("O arquivo precisa ter uma linha de cabeçalho e ao menos uma linha de dados.");
+        }
+
+        var cabecalho = linhas[0].Select(NormalizarCabecalho).ToList();
+        int IndiceDe(params string[] nomes) => cabecalho.FindIndex(h => nomes.Contains(h));
+
+        var idxCodigo = IndiceDe("codigo");
+        var idxDescricao = IndiceDe("descricao");
+        var idxValidade = IndiceDe("validade");
+        var idxValorCompra = IndiceDe("valorcompra", "valordecompra", "valordecompraunitario");
+        var idxValorVenda = IndiceDe("valorvenda", "valordevenda", "valordevendaunitario");
+        var idxFornecedor = IndiceDe("fornecedor", "fornecedorcpfcnpj", "cpfcnpjfornecedor", "cpfcnpjdofornecedor");
+        var idxQuantidade = IndiceDe("quantidade");
+
+        if (idxCodigo < 0 || idxDescricao < 0 || idxValidade < 0 || idxValorCompra < 0 || idxValorVenda < 0 || idxFornecedor < 0 || idxQuantidade < 0)
+        {
+            return BadRequest("Cabeçalho inválido. Colunas esperadas: Codigo, Descricao, Validade, ValorCompra, ValorVenda, FornecedorCpfCnpj, Quantidade.");
+        }
+
+        var fornecedoresPorDocumento = (await _context.Fornecedores.ToListAsync())
+            .GroupBy(f => SomenteDigitos(f.CpfCnpj))
+            .ToDictionary(g => g.Key, g => g.First());
+        var codigosExistentes = (await _context.Produtos.Select(p => p.Codigo).ToListAsync()).ToHashSet();
+        var codigosNesteArquivo = new HashSet<string>();
+
+        var importados = 0;
+        var erros = new List<string>();
+
+        for (var i = 1; i < linhas.Count; i++)
+        {
+            var linha = linhas[i];
+            var numeroLinha = i + 1;
+            if (linha.Length <= 1 && string.IsNullOrWhiteSpace(linha.ElementAtOrDefault(0)))
+            {
+                continue;
+            }
+
+            string Campo(int idx) => idx >= 0 && idx < linha.Length ? linha[idx].Trim() : string.Empty;
+
+            var codigo = Campo(idxCodigo);
+            var descricao = Campo(idxDescricao);
+
+            if (string.IsNullOrWhiteSpace(codigo) || string.IsNullOrWhiteSpace(descricao))
+            {
+                erros.Add($"Linha {numeroLinha}: código e descrição são obrigatórios.");
+                continue;
+            }
+
+            if (codigosExistentes.Contains(codigo) || !codigosNesteArquivo.Add(codigo))
+            {
+                erros.Add($"Linha {numeroLinha}: já existe um produto com o código \"{codigo}\".");
+                continue;
+            }
+
+            if (!TryParseDataFlexivel(Campo(idxValidade), out var validade))
+            {
+                erros.Add($"Linha {numeroLinha}: data de validade inválida (\"{Campo(idxValidade)}\").");
+                continue;
+            }
+
+            if (!TryParseDecimalFlexivel(Campo(idxValorCompra), out var valorCompra))
+            {
+                erros.Add($"Linha {numeroLinha}: valor de compra inválido (\"{Campo(idxValorCompra)}\").");
+                continue;
+            }
+
+            if (!TryParseDecimalFlexivel(Campo(idxValorVenda), out var valorVenda))
+            {
+                erros.Add($"Linha {numeroLinha}: valor de venda inválido (\"{Campo(idxValorVenda)}\").");
+                continue;
+            }
+
+            var documentoFornecedor = SomenteDigitos(Campo(idxFornecedor));
+            if (!fornecedoresPorDocumento.TryGetValue(documentoFornecedor, out var fornecedor))
+            {
+                erros.Add($"Linha {numeroLinha}: fornecedor com CPF/CNPJ \"{Campo(idxFornecedor)}\" não encontrado.");
+                continue;
+            }
+
+            if (!int.TryParse(Campo(idxQuantidade), out var quantidade))
+            {
+                erros.Add($"Linha {numeroLinha}: quantidade inválida (\"{Campo(idxQuantidade)}\").");
+                continue;
+            }
+
+            _context.Produtos.Add(new Produto
+            {
+                Codigo = codigo,
+                Descricao = descricao,
+                Validade = validade,
+                ValorCompra = valorCompra,
+                ValorVenda = valorVenda,
+                FornecedorId = fornecedor.Id,
+                Quantidade = quantidade,
+                CreatedAt = DateTime.UtcNow
+            });
+            importados++;
+        }
+
+        if (importados > 0)
+        {
+            await _context.SaveChangesAsync();
+        }
+
+        return new ImportarProdutosResponse(importados, erros);
+    }
+
+    private static string NormalizarCabecalho(string valor)
+    {
+        var semAcento = new string(valor.Normalize(System.Text.NormalizationForm.FormD)
+            .Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark)
+            .ToArray());
+        return new string(semAcento.Where(char.IsLetterOrDigit).ToArray()).ToLowerInvariant();
+    }
+
+    private static string SomenteDigitos(string valor) => new(valor.Where(char.IsDigit).ToArray());
+
+    private static bool TryParseDecimalFlexivel(string valor, out decimal resultado)
+    {
+        valor = valor.Replace("R$", "", StringComparison.OrdinalIgnoreCase).Trim();
+        return decimal.TryParse(valor, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out resultado)
+            || decimal.TryParse(valor, System.Globalization.NumberStyles.Any, new System.Globalization.CultureInfo("pt-BR"), out resultado);
+    }
+
+    private static bool TryParseDataFlexivel(string valor, out DateTime resultado)
+    {
+        return DateTime.TryParse(valor, new System.Globalization.CultureInfo("pt-BR"), System.Globalization.DateTimeStyles.None, out resultado)
+            || DateTime.TryParse(valor, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out resultado);
+    }
+
+    private static List<string[]> ParseCsv(string conteudo)
+    {
+        var linhas = conteudo.Replace("\r\n", "\n").Replace("\r", "\n").Split('\n')
+            .Where(l => l.Length > 0)
+            .ToList();
+        if (linhas.Count == 0)
+        {
+            return [];
+        }
+
+        var separador = linhas[0].Count(c => c == ';') >= linhas[0].Count(c => c == ',') ? ';' : ',';
+        var resultado = new List<string[]>();
+
+        foreach (var linha in linhas)
+        {
+            var campos = new List<string>();
+            var atual = new System.Text.StringBuilder();
+            var dentroDeAspas = false;
+
+            for (var i = 0; i < linha.Length; i++)
+            {
+                var c = linha[i];
+                if (dentroDeAspas)
+                {
+                    if (c == '"')
+                    {
+                        if (i + 1 < linha.Length && linha[i + 1] == '"')
+                        {
+                            atual.Append('"');
+                            i++;
+                        }
+                        else
+                        {
+                            dentroDeAspas = false;
+                        }
+                    }
+                    else
+                    {
+                        atual.Append(c);
+                    }
+                }
+                else if (c == '"')
+                {
+                    dentroDeAspas = true;
+                }
+                else if (c == separador)
+                {
+                    campos.Add(atual.ToString());
+                    atual.Clear();
+                }
+                else
+                {
+                    atual.Append(c);
+                }
+            }
+
+            campos.Add(atual.ToString());
+            resultado.Add(campos.ToArray());
+        }
+
+        return resultado;
+    }
+
     [HttpDelete("{id:int}")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteProduto(int id)
@@ -330,3 +541,5 @@ public class ApiProdutosController : ControllerBase
 public sealed record ProdutoRequest(string Codigo, string Descricao, DateTime Validade, decimal ValorCompra, decimal ValorVenda, int FornecedorId, int Quantidade);
 
 public sealed record ProdutoResponse(int Id, string Codigo, string Descricao, DateTime Validade, decimal ValorCompra, decimal ValorVenda, decimal PercentualLucro, int FornecedorId, string FornecedorNome, int Quantidade, int Saldo, DateTime CreatedAt);
+
+public sealed record ImportarProdutosResponse(int Importados, List<string> Erros);

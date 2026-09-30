@@ -11,7 +11,7 @@ public class SassDbContext : DbContext
 {
     private static readonly Type[] AuditableTypes =
     [
-        typeof(Produto), typeof(Cliente), typeof(Fornecedor), typeof(Pedido), typeof(Login), typeof(Projeto)
+        typeof(Produto), typeof(Cliente), typeof(Fornecedor), typeof(Pedido), typeof(Compra), typeof(Login), typeof(Projeto)
     ];
 
     private readonly IHttpContextAccessor? _httpContextAccessor;

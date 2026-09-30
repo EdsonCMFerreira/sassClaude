@@ -23,9 +23,9 @@
 
 <div class="content-grid">
     <section class="surface-card activity-card">
-        <div class="section-heading"><div><span class="eyebrow">Atenção</span><h2>Próximos vencimentos</h2></div></div>
+        <div class="section-heading"><div><span class="eyebrow">Atenção</span><h2>Próximos vencimentos</h2></div><button type="button" class="button button-outline" id="exportarVencimentos">Exportar CSV</button></div>
         <div class="table-wrap">
-            <table class="data-table">
+            <table class="data-table" id="tabelaVencimentos">
                 <thead class="table-light"><tr><th>Código</th><th>Descrição</th><th>Validade</th><th>Dias restantes</th></tr></thead>
                 <tbody>
                     @if (!Model.ProximosVencimentos.Any())
@@ -80,16 +80,16 @@
 @if (Model.ProdutosPorLucro.Any())
 {
     <div class="surface-card activity-card" style="margin-top:18px;">
-        <div class="section-heading"><div><span class="eyebrow">Margem</span><h2>Produtos que mais dão lucro</h2><p class="muted">Percentual de lucro entre valor de compra e valor de venda.</p></div></div>
+        <div class="section-heading"><div><span class="eyebrow">Margem</span><h2>Produtos que mais dão lucro</h2><p class="muted">Percentual de lucro entre valor de compra e valor de venda.</p></div><button type="button" class="button button-outline" id="exportarLucro">Exportar CSV</button></div>
         <div style="height:@(Math.Max(220, Model.ProdutosPorLucro.Count * 36))px;"><canvas id="graficoLucro"></canvas></div>
     </div>
 }
 
 <div class="content-grid" style="margin-top:18px;">
     <section class="surface-card users-card">
-        <div class="section-heading"><div><span class="eyebrow">Giro de estoque</span><h2>Produtos parados</h2><p class="muted">Maior estoque com menor percentual vendido (só entram vendas com status "Concluída"). Vale considerar promoção ou reduzir reposição.</p></div></div>
+        <div class="section-heading"><div><span class="eyebrow">Giro de estoque</span><h2>Produtos parados</h2><p class="muted">Maior estoque com menor percentual vendido (só entram vendas com status "Concluída"). Vale considerar promoção ou reduzir reposição.</p></div><button type="button" class="button button-outline" id="exportarParados">Exportar CSV</button></div>
         <div class="table-wrap">
-            <table class="data-table">
+            <table class="data-table" id="tabelaParados">
                 <thead class="table-light"><tr><th>Código</th><th>Descrição</th><th>Em estoque</th><th>Vendido</th><th>Giro</th></tr></thead>
                 <tbody>
                     @if (!Model.ProdutosParados.Any())
@@ -111,9 +111,9 @@
         </div>
     </section>
     <aside class="surface-card users-card">
-        <div class="section-heading"><div><span class="eyebrow">Giro de estoque</span><h2>Maior giro</h2><p class="muted">Produtos que mais venderam em relação ao estoque cadastrado.</p></div></div>
+        <div class="section-heading"><div><span class="eyebrow">Giro de estoque</span><h2>Maior giro</h2><p class="muted">Produtos que mais venderam em relação ao estoque cadastrado.</p></div><button type="button" class="button button-outline" id="exportarMaiorGiro">Exportar CSV</button></div>
         <div class="table-wrap">
-            <table class="data-table">
+            <table class="data-table" id="tabelaMaiorGiro">
                 <thead class="table-light"><tr><th>Código</th><th>Descrição</th><th>Giro</th></tr></thead>
                 <tbody>
                     @if (!Model.ProdutosComMaiorGiro.Any())
@@ -144,6 +144,23 @@
         Chart.defaults.color = cor('--muted');
         Chart.defaults.animation.duration = 1300;
         Chart.defaults.animation.easing = 'easeOutQuart';
+
+        document.getElementById('exportarVencimentos')?.addEventListener('click', () => {
+            exportarTabelaCsv('#tabelaVencimentos', 'proximos-vencimentos.csv');
+        });
+        document.getElementById('exportarParados')?.addEventListener('click', () => {
+            exportarTabelaCsv('#tabelaParados', 'produtos-parados.csv');
+        });
+        document.getElementById('exportarMaiorGiro')?.addEventListener('click', () => {
+            exportarTabelaCsv('#tabelaMaiorGiro', 'produtos-maior-giro.csv');
+        });
+        document.getElementById('exportarLucro')?.addEventListener('click', () => {
+            const cabecalho = ['Produto', '% de lucro'];
+            const nomes = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ProdutosPorLucro.Select(p => p.ProdutoNome)));
+            const percentuais = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ProdutosPorLucro.Select(p => p.PercentualLucro)));
+            const linhas = nomes.map((nome, i) => [nome, `${percentuais[i].toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`]);
+            baixarCsv([cabecalho, ...linhas], 'produtos-mais-lucro.csv');
+        });
 
         const lucroCanvas = document.getElementById('graficoLucro');
         if (lucroCanvas) {

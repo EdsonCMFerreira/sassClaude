@@ -35,6 +35,7 @@
 <div class="page-heading">
     <div><span class="eyebrow">Movimentação</span><h1>Contas a pagar.</h1><p class="muted">Registre as compras feitas junto aos fornecedores e controle o que ainda falta pagar.</p></div>
     <div class="hero-actions">
+        <a class="button button-outline" asp-controller="Compras" asp-action="Dashboard">Ver dashboard <span>→</span></a>
         <a class="button button-outline" asp-controller="Financeiro" asp-action="Index">Ver resumo financeiro <span>→</span></a>
     </div>
 </div>
@@ -86,6 +87,7 @@
 
     <div class="table-toolbar">
         <input type="search" id="compraBusca" class="table-search" placeholder="Buscar por fornecedor, nº da conta ou status..." />
+        <button type="button" class="button button-outline" id="exportarCompras">Exportar CSV</button>
     </div>
     <div class="table-wrap">
         <table class="data-table">
@@ -396,6 +398,15 @@
         busca.addEventListener('input', () => {
             paginaAtual = 1;
             renderCompras();
+        });
+        document.getElementById('exportarCompras')?.addEventListener('click', () => {
+            const cabecalho = ['Nº da conta', 'Fornecedor', 'Produtos', 'Valor total', 'Data', 'Status'];
+            const linhas = todosCompras.map(item => [
+                item.numeroCompra, item.fornecedorNome,
+                item.itens.map(i => `${i.produtoNome} (x${i.quantidade})`).join(', '),
+                formatCurrency(item.valorTotal), formatDate(item.dataCompra), item.status
+            ]);
+            baixarCsv([cabecalho, ...linhas], 'contas-a-pagar-lista.csv');
         });
 
         Promise.all([loadFornecedoresOptions(), loadProdutosOptions()])
