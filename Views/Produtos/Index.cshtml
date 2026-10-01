@@ -112,7 +112,7 @@
 
             const data = await response.json();
             fornecedorId.innerHTML = '<option value="">Selecione...</option>' + data.map(item =>
-                `<option value="${item.id}">${item.nome} — ${item.cpfCnpj}</option>`
+                `<option value="${item.id}">${escapeHtml(item.nome)} — ${escapeHtml(item.cpfCnpj)}</option>`
             ).join('');
         }
 
@@ -127,13 +127,13 @@
 
             tableBody.innerHTML = itens.map(item => `
                 <tr>
-                    <td>${item.codigo}</td>
-                    <td>${item.descricao}</td>
+                    <td>${escapeHtml(item.codigo)}</td>
+                    <td>${escapeHtml(item.descricao)}</td>
                     <td>${formatDate(item.validade)}</td>
                     <td>${formatCurrency(item.valorCompra)}</td>
                     <td>${formatCurrency(item.valorVenda)}</td>
                     <td>${formatPercent(item.percentualLucro)}</td>
-                    <td>${item.fornecedorNome}</td>
+                    <td>${escapeHtml(item.fornecedorNome)}</td>
                     <td>${item.quantidade}</td>
                     <td class="${item.saldo < 0 ? 'text-negative' : ''}">${item.saldo}</td>
                     <td style="white-space:nowrap;">

@@ -53,11 +53,11 @@
                 const diasRestantes = Math.floor((new Date(item.validade) - hoje) / 86400000);
                 return `
                     <tr>
-                        <td>${item.codigo}</td>
-                        <td>${item.descricao}</td>
+                        <td>${escapeHtml(item.codigo)}</td>
+                        <td>${escapeHtml(item.descricao)}</td>
                         <td>${formatDate(item.validade)}</td>
                         <td>${diasRestantes} dia(s)</td>
-                        <td>${item.fornecedorNome}</td>
+                        <td>${escapeHtml(item.fornecedorNome)}</td>
                         <td>${item.quantidade}</td>
                         <td><a class="table-action" href="/Produtos?editar=${item.id}">Editar</a></td>
                     </tr>

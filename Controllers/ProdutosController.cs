@@ -194,6 +194,11 @@ public class ApiProdutosController : ControllerBase
             return BadRequest("Código e descrição são obrigatórios.");
         }
 
+        if (request.ValorCompra < 0)
+        {
+            return BadRequest("O valor de compra não pode ser negativo.");
+        }
+
         if (request.ValorVenda <= request.ValorCompra)
         {
             return BadRequest("O valor de venda deve ser maior que o valor de compra.");
@@ -248,6 +253,11 @@ public class ApiProdutosController : ControllerBase
         if (string.IsNullOrWhiteSpace(request.Codigo) || string.IsNullOrWhiteSpace(request.Descricao))
         {
             return BadRequest("Código e descrição são obrigatórios.");
+        }
+
+        if (request.ValorCompra < 0)
+        {
+            return BadRequest("O valor de compra não pode ser negativo.");
         }
 
         if (request.ValorVenda <= request.ValorCompra)

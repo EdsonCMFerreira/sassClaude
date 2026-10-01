@@ -31,6 +31,7 @@
                 @{
                     var temAcessoCadastros = User.IsInRole("Admin") || User.HasClaim(TenantClaimTypes.AcessoCadastros, "true");
                     var temAcessoCompras = User.IsInRole("Admin") || User.HasClaim(TenantClaimTypes.AcessoCompras, "true");
+                    var temAcessoPedidos = User.IsInRole("Admin") || User.HasClaim(TenantClaimTypes.AcessoPedidos, "true");
                 }
                 @if (temAcessoCadastros)
                 {
@@ -47,7 +48,10 @@
                 {
                     <a asp-controller="Compras" asp-action="Index">Contas a pagar</a>
                 }
-                <a asp-controller="Pedidos" asp-action="Index">Contas a receber</a>
+                @if (temAcessoPedidos)
+                {
+                    <a asp-controller="Pedidos" asp-action="Index">Contas a receber</a>
+                }
                 <div class="nav-dropdown">
                     <button type="button" class="nav-dropdown-toggle" onclick="this.closest('.nav-dropdown').classList.toggle('open')">Pesquisa <span class="nav-dropdown-caret">▾</span></button>
                     <div class="nav-dropdown-menu">
@@ -66,7 +70,10 @@
                         {
                             <a asp-controller="Compras" asp-action="Dashboard">Dashboard de contas a pagar</a>
                         }
-                        <a asp-controller="Pedidos" asp-action="Dashboard">Dashboard de pedidos</a>
+                        @if (temAcessoPedidos)
+                        {
+                            <a asp-controller="Pedidos" asp-action="Dashboard">Dashboard de pedidos</a>
+                        }
                         @if (temAcessoCadastros)
                         {
                             <a asp-controller="Produtos" asp-action="Dashboard">Dashboard de produtos</a>

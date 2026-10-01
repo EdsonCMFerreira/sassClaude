@@ -6,4 +6,5 @@ public static class TenantClaimTypes
     public const string IsSuperAdmin = "IsSuperAdmin";
     public const string AcessoCadastros = "AcessoCadastros";
     public const string AcessoCompras = "AcessoCompras";
+    public const string AcessoPedidos = "AcessoPedidos";
 }

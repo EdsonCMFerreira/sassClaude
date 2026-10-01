@@ -150,8 +150,8 @@
             projetosCarregados = data;
             projetoTableBody.innerHTML = data.map(item => `
                 <tr>
-                    <td>${item.nome}</td>
-                    <td>${item.descricao || '—'}</td>
+                    <td>${escapeHtml(item.nome)}</td>
+                    <td>${escapeHtml(item.descricao) || '—'}</td>
                     <td>${formatDate(item.createdAt)}</td>
                     <td style="white-space:nowrap;">
                         <button class="table-action" data-tarefas="${item.id}">Tarefas</button>
@@ -222,7 +222,7 @@
             tarefaTableBody.innerHTML = tarefasCarregadas.map(item => `
                 <tr>
                     <td><input type="checkbox" data-toggle="${item.id}" ${item.concluida ? 'checked' : ''} /></td>
-                    <td style="${item.concluida ? 'text-decoration:line-through;color:var(--muted);' : ''}">${item.titulo}</td>
+                    <td style="${item.concluida ? 'text-decoration:line-through;color:var(--muted);' : ''}">${escapeHtml(item.titulo)}</td>
                     <td><button class="table-action danger" data-remove="${item.id}">Excluir</button></td>
                 </tr>
             `).join('') || '<tr><td colspan="3" class="muted">Nenhuma tarefa ainda.</td></tr>';

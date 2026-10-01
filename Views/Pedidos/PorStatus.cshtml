@@ -48,9 +48,9 @@
 
             tableBody.innerHTML = data.map(item => `
                 <tr>
-                    <td>${item.numeroPedido}</td>
-                    <td>${item.clienteNome}</td>
-                    <td>${item.itens.map(i => `${i.produtoNome} (x${i.quantidade})`).join(', ')}</td>
+                    <td>${escapeHtml(item.numeroPedido)}</td>
+                    <td>${escapeHtml(item.clienteNome)}</td>
+                    <td>${item.itens.map(i => `${escapeHtml(i.produtoNome)} (x${i.quantidade})`).join(', ')}</td>
                     <td>${formatValorFinalCell(item)}</td>
                     <td>${formatDate(item.dataPedido)}</td>
                     <td>${formatVencimentoPagamentoCell(item)}</td>

@@ -35,4 +35,6 @@ public class Login : ITenantScoped
     public bool AcessoCadastros { get; set; } = true;
 
     public bool AcessoCompras { get; set; } = true;
+
+    public bool AcessoPedidos { get; set; } = true;
 }

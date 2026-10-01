@@ -41,10 +41,10 @@
 
             tableBody.innerHTML = semContato.map(item => `
                 <tr>
-                    <td>${item.nome}</td>
-                    <td>${item.cpfCnpj}</td>
-                    <td>${item.telefone || '—'}</td>
-                    <td>${[item.cidade, item.uf].filter(Boolean).join('/') || '—'}</td>
+                    <td>${escapeHtml(item.nome)}</td>
+                    <td>${escapeHtml(item.cpfCnpj)}</td>
+                    <td>${escapeHtml(item.telefone) || '—'}</td>
+                    <td>${escapeHtml([item.cidade, item.uf].filter(Boolean).join('/')) || '—'}</td>
                     <td><a class="table-action" href="/Fornecedores?editar=${item.id}">Editar</a></td>
                 </tr>
             `).join('') || '<tr><td colspan="5" class="muted">Todos os fornecedores têm um contato cadastrado.</td></tr>';

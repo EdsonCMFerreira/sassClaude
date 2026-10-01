@@ -41,8 +41,8 @@
 
             tableBody.innerHTML = semFornecedor.map(item => `
                 <tr>
-                    <td>${item.codigo}</td>
-                    <td>${item.descricao}</td>
+                    <td>${escapeHtml(item.codigo)}</td>
+                    <td>${escapeHtml(item.descricao)}</td>
                     <td>${formatDate(item.validade)}</td>
                     <td>${item.quantidade}</td>
                     <td><a class="table-action" href="/Produtos?editar=${item.id}">Editar</a></td>

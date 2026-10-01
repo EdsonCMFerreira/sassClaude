@@ -10,13 +10,6 @@ namespace Saas.Controllers;
 [Authorize(Roles = "Admin")]
 public class LoginController : Controller
 {
-    private readonly SassDbContext _context;
-
-    public LoginController(SassDbContext context)
-    {
-        _context = context;
-    }
-
     public IActionResult Index()
     {
         return View();
@@ -43,7 +36,7 @@ public class ApiLoginController : ControllerBase
     {
         return await _context.Logins
             .OrderByDescending(x => x.CreatedAt)
-            .Select(login => new LoginResponse(login.Id, login.Username, login.Email, login.Role, login.AcessoCadastros, login.AcessoCompras, login.CreatedAt))
+            .Select(login => new LoginResponse(login.Id, login.Username, login.Email, login.Role, login.AcessoCadastros, login.AcessoCompras, login.AcessoPedidos, login.CreatedAt))
             .ToListAsync();
     }
 
@@ -56,7 +49,7 @@ public class ApiLoginController : ControllerBase
             return NotFound();
         }
 
-        return new LoginResponse(login.Id, login.Username, login.Email, login.Role, login.AcessoCadastros, login.AcessoCompras, login.CreatedAt);
+        return new LoginResponse(login.Id, login.Username, login.Email, login.Role, login.AcessoCadastros, login.AcessoCompras, login.AcessoPedidos, login.CreatedAt);
     }
 
     [HttpPost]
@@ -70,15 +63,31 @@ public class ApiLoginController : ControllerBase
             return BadRequest("Dados de login inválidos.");
         }
 
+        var username = request.Username.Trim();
+        var email = request.Email.Trim().ToLowerInvariant();
+
+        var emailTaken = await _context.Logins.IgnoreQueryFilters().AnyAsync(item => item.Email == email);
+        if (emailTaken)
+        {
+            return BadRequest("Já existe um usuário com esse e-mail.");
+        }
+
+        var usernameTaken = await _context.Logins.AnyAsync(item => item.Username == username);
+        if (usernameTaken)
+        {
+            return BadRequest("Já existe um usuário com esse nome de usuário.");
+        }
+
         var role = ValidRoles.Contains(request.Role) ? request.Role : "Colaborador";
 
         var login = new Login
         {
-            Username = request.Username.Trim(),
-            Email = request.Email.Trim(),
+            Username = username,
+            Email = email,
             Role = role,
             AcessoCadastros = request.AcessoCadastros,
             AcessoCompras = request.AcessoCompras,
+            AcessoPedidos = request.AcessoPedidos,
             CreatedAt = DateTime.UtcNow
         };
         login.Password = _passwordHasher.HashPassword(login, request.Password);
@@ -86,7 +95,7 @@ public class ApiLoginController : ControllerBase
         await _context.SaveChangesAsync();
 
         return CreatedAtAction(nameof(GetLogin), new { id = login.Id },
-            new LoginResponse(login.Id, login.Username, login.Email, login.Role, login.AcessoCadastros, login.AcessoCompras, login.CreatedAt));
+            new LoginResponse(login.Id, login.Username, login.Email, login.Role, login.AcessoCadastros, login.AcessoCompras, login.AcessoPedidos, login.CreatedAt));
     }
 
     [HttpPut("{id:int}")]
@@ -104,17 +113,33 @@ public class ApiLoginController : ControllerBase
             return BadRequest("Usuário e e-mail são obrigatórios.");
         }
 
+        var username = request.Username.Trim();
+        var email = request.Email.Trim().ToLowerInvariant();
+
+        var emailTaken = await _context.Logins.IgnoreQueryFilters().AnyAsync(item => item.Id != id && item.Email == email);
+        if (emailTaken)
+        {
+            return BadRequest("Já existe um usuário com esse e-mail.");
+        }
+
+        var usernameTaken = await _context.Logins.AnyAsync(item => item.Id != id && item.Username == username);
+        if (usernameTaken)
+        {
+            return BadRequest("Já existe um usuário com esse nome de usuário.");
+        }
+
         var role = ValidRoles.Contains(request.Role) ? request.Role : existing.Role;
         if (existing.Role == "Admin" && role != "Admin" && await IsLastAdmin(existing.Id))
         {
             return BadRequest("Não é possível remover o último administrador.");
         }
 
-        existing.Username = request.Username.Trim();
-        existing.Email = request.Email.Trim();
+        existing.Username = username;
+        existing.Email = email;
         existing.Role = role;
         existing.AcessoCadastros = request.AcessoCadastros;
         existing.AcessoCompras = request.AcessoCompras;
+        existing.AcessoPedidos = request.AcessoPedidos;
         if (!string.IsNullOrWhiteSpace(request.Password))
         {
             existing.Password = _passwordHasher.HashPassword(existing, request.Password);
@@ -150,6 +175,6 @@ public class ApiLoginController : ControllerBase
     }
 }
 
-public sealed record LoginRequest(string Username, string Password, string Email, string Role, bool AcessoCadastros, bool AcessoCompras);
+public sealed record LoginRequest(string Username, string Password, string Email, string Role, bool AcessoCadastros, bool AcessoCompras, bool AcessoPedidos);
 
-public sealed record LoginResponse(int Id, string Username, string Email, string Role, bool AcessoCadastros, bool AcessoCompras, DateTime CreatedAt);
+public sealed record LoginResponse(int Id, string Username, string Email, string Role, bool AcessoCadastros, bool AcessoCompras, bool AcessoPedidos, DateTime CreatedAt);

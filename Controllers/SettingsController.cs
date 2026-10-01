@@ -186,7 +186,10 @@ public class SettingsController : Controller
             new Claim(ClaimTypes.Email, login.Email),
             new Claim(ClaimTypes.Role, login.Role),
             new Claim(TenantClaimTypes.EmpresaId, login.EmpresaId.ToString()),
-            new Claim(TenantClaimTypes.IsSuperAdmin, login.IsSuperAdmin ? "true" : "false")
+            new Claim(TenantClaimTypes.IsSuperAdmin, login.IsSuperAdmin ? "true" : "false"),
+            new Claim(TenantClaimTypes.AcessoCadastros, login.AcessoCadastros ? "true" : "false"),
+            new Claim(TenantClaimTypes.AcessoCompras, login.AcessoCompras ? "true" : "false"),
+            new Claim(TenantClaimTypes.AcessoPedidos, login.AcessoPedidos ? "true" : "false")
         };
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         await HttpContext.SignInAsync(

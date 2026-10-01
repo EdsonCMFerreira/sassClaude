@@ -48,11 +48,11 @@
                 const diasVencido = Math.floor((hoje - new Date(item.validade)) / 86400000);
                 return `
                     <tr>
-                        <td>${item.codigo}</td>
-                        <td>${item.descricao}</td>
+                        <td>${escapeHtml(item.codigo)}</td>
+                        <td>${escapeHtml(item.descricao)}</td>
                         <td>${formatDate(item.validade)}</td>
                         <td class="text-negative">${diasVencido} dia(s)</td>
-                        <td>${item.fornecedorNome}</td>
+                        <td>${escapeHtml(item.fornecedorNome)}</td>
                         <td>${item.quantidade}</td>
                         <td><a class="table-action" href="/Produtos?editar=${item.id}">Editar</a></td>
                     </tr>

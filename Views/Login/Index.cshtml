@@ -21,6 +21,7 @@
                                 <div style="display:flex;gap:20px;margin-top:6px;">
                                     <label class="inline-checkbox"><input type="checkbox" id="acessoCadastros" checked /> Cadastros (clientes, fornecedores, produtos)</label>
                                     <label class="inline-checkbox"><input type="checkbox" id="acessoCompras" checked /> Contas a pagar</label>
+                                    <label class="inline-checkbox"><input type="checkbox" id="acessoPedidos" checked /> Contas a receber</label>
                                 </div>
                                 <small>Uma permissão alterada só entra em vigor no próximo login do usuário.</small>
                             </div>
@@ -57,6 +58,7 @@
         const password = document.getElementById('password');
         const acessoCadastros = document.getElementById('acessoCadastros');
         const acessoCompras = document.getElementById('acessoCompras');
+        const acessoPedidos = document.getElementById('acessoPedidos');
         const cancelEdit = document.getElementById('cancelEdit');
         const tableBody = document.getElementById('loginTableBody');
         const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
@@ -71,10 +73,10 @@
             tableBody.innerHTML = data.map(item => `
                 <tr>
                     <td>${item.id}</td>
-                    <td>${item.username}</td>
-                    <td>${item.email}</td>
-                    <td>${item.role}</td>
-                    <td>${item.role === 'Admin' ? '<span class="muted">Completo</span>' : [item.acessoCadastros ? 'Cadastros' : null, item.acessoCompras ? 'Contas a pagar' : null].filter(Boolean).join(', ') || '<span class="muted">Nenhuma</span>'}</td>
+                    <td>${escapeHtml(item.username)}</td>
+                    <td>${escapeHtml(item.email)}</td>
+                    <td>${escapeHtml(item.role)}</td>
+                    <td>${item.role === 'Admin' ? '<span class="muted">Completo</span>' : [item.acessoCadastros ? 'Cadastros' : null, item.acessoCompras ? 'Contas a pagar' : null, item.acessoPedidos ? 'Contas a receber' : null].filter(Boolean).join(', ') || '<span class="muted">Nenhuma</span>'}</td>
                     <td>${new Date(item.createdAt).toLocaleString('pt-BR')}</td>
                     <td>
                         <button class="table-action" data-edit="${item.id}">Editar</button>
@@ -102,6 +104,7 @@
             password.value = '';
             acessoCadastros.checked = data.acessoCadastros;
             acessoCompras.checked = data.acessoCompras;
+            acessoPedidos.checked = data.acessoPedidos;
             cancelEdit.classList.remove('hidden');
             username.focus();
         }
@@ -129,7 +132,8 @@
                 role: role.value,
                 password: password.value.trim(),
                 acessoCadastros: acessoCadastros.checked,
-                acessoCompras: acessoCompras.checked
+                acessoCompras: acessoCompras.checked,
+                acessoPedidos: acessoPedidos.checked
             };
 
             const method = payload.id ? 'PUT' : 'POST';

@@ -115,6 +115,7 @@
 
     <div class="table-toolbar">
         <input type="search" id="pedidoBusca" class="table-search" placeholder="Buscar por cliente, nº do pedido ou status..." />
+        <button type="button" class="button button-outline" id="exportarPedidos">Exportar CSV</button>
     </div>
     <div class="table-wrap">
         <table class="data-table">
@@ -187,7 +188,7 @@
 
         function optionsProdutosHtml(selectedId) {
             return '<option value="">Selecione...</option>' + allProdutos.map(p =>
-                `<option value="${p.id}" ${p.id === selectedId ? 'selected' : ''}>${p.codigo} — ${p.descricao}</option>`
+                `<option value="${p.id}" ${p.id === selectedId ? 'selected' : ''}>${escapeHtml(p.codigo)} — ${escapeHtml(p.descricao)}</option>`
             ).join('');
         }
 
@@ -338,7 +339,7 @@
             const response = await fetch('/api/clientes');
             allClientes = await response.json();
             clienteId.innerHTML = '<option value="">Selecione...</option>' + allClientes.map(item =>
-                `<option value="${item.id}">${item.nome} — ${item.cpfCnpj}</option>`
+                `<option value="${item.id}">${escapeHtml(item.nome)} — ${escapeHtml(item.cpfCnpj)}</option>`
             ).join('');
         }
 
@@ -368,9 +369,9 @@
 
             tableBody.innerHTML = itens.map(item => `
                 <tr>
-                    <td>${item.numeroPedido}</td>
-                    <td>${item.clienteNome}</td>
-                    <td>${item.itens.map(i => `${i.produtoNome} (x${i.quantidade})`).join(', ')}</td>
+                    <td>${escapeHtml(item.numeroPedido)}</td>
+                    <td>${escapeHtml(item.clienteNome)}</td>
+                    <td>${item.itens.map(i => `${escapeHtml(i.produtoNome)} (x${i.quantidade})`).join(', ')}</td>
                     <td>${formatValorFinalCell(item)}</td>
                     <td>${formatDate(item.dataPedido)}</td>
                     <td>${formatVencimentoPagamentoCell(item)}</td>
@@ -550,6 +551,15 @@
         busca.addEventListener('input', () => {
             paginaAtual = 1;
             renderPedidos();
+        });
+        document.getElementById('exportarPedidos')?.addEventListener('click', () => {
+            const cabecalho = ['Nº do pedido', 'Cliente', 'Produtos', 'Valor total', 'Data', 'Status'];
+            const linhas = todosPedidos.map(item => [
+                item.numeroPedido, item.clienteNome,
+                item.itens.map(i => `${i.produtoNome} (x${i.quantidade})`).join(', '),
+                formatCurrency(item.valorComDesconto), formatDate(item.dataPedido), item.status
+            ]);
+            baixarCsv([cabecalho, ...linhas], 'contas-a-receber-lista.csv');
         });
 
         atualizarSecaoAnexo();

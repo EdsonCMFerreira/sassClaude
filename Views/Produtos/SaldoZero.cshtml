@@ -43,12 +43,12 @@
 
             tableBody.innerHTML = saldoZero.map(item => `
                 <tr>
-                    <td>${item.codigo}</td>
-                    <td>${item.descricao}</td>
+                    <td>${escapeHtml(item.codigo)}</td>
+                    <td>${escapeHtml(item.descricao)}</td>
                     <td>${item.quantidade}</td>
                     <td>${item.quantidade - item.saldo}</td>
                     <td class="text-negative">${item.saldo}</td>
-                    <td>${item.fornecedorNome}</td>
+                    <td>${escapeHtml(item.fornecedorNome)}</td>
                     <td><a class="table-action" href="/Produtos?editar=${item.id}">Editar</a></td>
                 </tr>
             `).join('') || '<tr><td colspan="7" class="muted">Nenhum produto com saldo zerado no momento.</td></tr>';

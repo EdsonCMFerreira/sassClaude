@@ -141,6 +141,21 @@ public class ApiComprasController : ControllerBase
             return BadRequest("A quantidade deve ser maior que zero.");
         }
 
+        if (request.Itens.Any(i => i.ValorUnitario <= 0))
+        {
+            return BadRequest("O valor unitário deve ser maior que zero.");
+        }
+
+        if (request.DataVencimento is not null && request.DataVencimento < request.DataCompra)
+        {
+            return BadRequest("A data de vencimento não pode ser anterior à data da compra.");
+        }
+
+        if (request.DataPagamento is not null && request.DataPagamento < request.DataCompra)
+        {
+            return BadRequest("A data de pagamento não pode ser anterior à data da compra.");
+        }
+
         var erroPagamento = ValidarPagamento(request.Status, request.NumeroNota, request.FormaPagamento);
         if (erroPagamento is not null)
         {
@@ -222,6 +237,21 @@ public class ApiComprasController : ControllerBase
         if (request.Itens.Any(i => i.Quantidade <= 0))
         {
             return BadRequest("A quantidade deve ser maior que zero.");
+        }
+
+        if (request.Itens.Any(i => i.ValorUnitario <= 0))
+        {
+            return BadRequest("O valor unitário deve ser maior que zero.");
+        }
+
+        if (request.DataVencimento is not null && request.DataVencimento < request.DataCompra)
+        {
+            return BadRequest("A data de vencimento não pode ser anterior à data da compra.");
+        }
+
+        if (request.DataPagamento is not null && request.DataPagamento < request.DataCompra)
+        {
+            return BadRequest("A data de pagamento não pode ser anterior à data da compra.");
         }
 
         var erroPagamento = ValidarPagamento(request.Status, request.NumeroNota, request.FormaPagamento);

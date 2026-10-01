@@ -136,12 +136,12 @@
 
             tableBody.innerHTML = itens.map(item => `
                 <tr>
-                    <td>${item.nome}</td>
+                    <td>${escapeHtml(item.nome)}</td>
                     <td>${formatDate(item.createdAt)}</td>
-                    <td>${item.cpfCnpj}</td>
-                    <td>${item.contatoResponsavel || '—'}</td>
-                    <td>${item.telefone || '—'}</td>
-                    <td>${[item.cidade, item.uf].filter(Boolean).join('/') || '—'}</td>
+                    <td>${escapeHtml(item.cpfCnpj)}</td>
+                    <td>${escapeHtml(item.contatoResponsavel) || '—'}</td>
+                    <td>${escapeHtml(item.telefone) || '—'}</td>
+                    <td>${escapeHtml([item.cidade, item.uf].filter(Boolean).join('/')) || '—'}</td>
                     <td>
                         <button class="table-action" data-edit="${item.id}">Editar</button>
                         <button class="table-action danger" data-delete="${item.id}">Excluir</button>

@@ -43,10 +43,10 @@
 
             tableBody.innerHTML = filtrados.map(item => `
                 <tr>
-                    <td>${item.nome}</td>
-                    <td>${item.cpfCnpj}</td>
-                    <td>${item.telefone || '—'}</td>
-                    <td>${[item.cobrancaCidade, item.cobrancaUf].filter(Boolean).join('/') || '—'}</td>
+                    <td>${escapeHtml(item.nome)}</td>
+                    <td>${escapeHtml(item.cpfCnpj)}</td>
+                    <td>${escapeHtml(item.telefone) || '—'}</td>
+                    <td>${escapeHtml([item.cobrancaCidade, item.cobrancaUf].filter(Boolean).join('/')) || '—'}</td>
                     <td><a class="table-action" href="/Clientes?editar=${item.id}">Editar</a></td>
                 </tr>
             `).join('') || '<tr><td colspan="5" class="muted">Nenhum cliente encontrado.</td></tr>';

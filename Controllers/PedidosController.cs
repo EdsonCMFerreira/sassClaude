@@ -10,7 +10,7 @@ using Saas.Services;
 
 namespace Saas.Controllers;
 
-[Authorize]
+[Authorize(Policy = "AcessoPedidos")]
 public class PedidosController : Controller
 {
     private readonly SassDbContext _context;
@@ -316,7 +316,7 @@ public class PedidosController : Controller
 }
 
 [ApiController]
-[Authorize]
+[Authorize(Policy = "AcessoPedidos")]
 [Route("api/pedidos")]
 public class ApiPedidosController : ControllerBase
 {
@@ -375,9 +375,24 @@ public class ApiPedidosController : ControllerBase
             return BadRequest("A quantidade deve ser maior que zero.");
         }
 
+        if (request.Itens.Any(i => i.ValorUnitario <= 0))
+        {
+            return BadRequest("O valor unitário deve ser maior que zero.");
+        }
+
         if (request.PercentualDesconto < 0 || request.PercentualDesconto > 100)
         {
             return BadRequest("O desconto deve estar entre 0 e 100%.");
+        }
+
+        if (request.DataVencimento is not null && request.DataVencimento < request.DataPedido)
+        {
+            return BadRequest("A data de vencimento não pode ser anterior à data do pedido.");
+        }
+
+        if (request.DataPagamento is not null && request.DataPagamento < request.DataPedido)
+        {
+            return BadRequest("A data de pagamento não pode ser anterior à data do pedido.");
         }
 
         var erroConclusao = ValidarConclusao(request.Status, request.NumeroNota, request.FormaPagamento);
@@ -472,9 +487,24 @@ public class ApiPedidosController : ControllerBase
             return BadRequest("A quantidade deve ser maior que zero.");
         }
 
+        if (request.Itens.Any(i => i.ValorUnitario <= 0))
+        {
+            return BadRequest("O valor unitário deve ser maior que zero.");
+        }
+
         if (request.PercentualDesconto < 0 || request.PercentualDesconto > 100)
         {
             return BadRequest("O desconto deve estar entre 0 e 100%.");
+        }
+
+        if (request.DataVencimento is not null && request.DataVencimento < request.DataPedido)
+        {
+            return BadRequest("A data de vencimento não pode ser anterior à data do pedido.");
+        }
+
+        if (request.DataPagamento is not null && request.DataPagamento < request.DataPedido)
+        {
+            return BadRequest("A data de pagamento não pode ser anterior à data do pedido.");
         }
 
         var erroConclusao = ValidarConclusao(request.Status, request.NumeroNota, request.FormaPagamento);

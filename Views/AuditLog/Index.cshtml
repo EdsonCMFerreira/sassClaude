@@ -74,11 +74,11 @@
             tableBody.innerHTML = itens.map(entry => `
                 <tr>
                     <td>${new Date(entry.timestamp).toLocaleString('pt-BR')}</td>
-                    <td>${nomesEntidade[entry.entityName] || entry.entityName}</td>
+                    <td>${escapeHtml(nomesEntidade[entry.entityName] || entry.entityName)}</td>
                     <td>${entry.entityId}</td>
-                    <td>${entry.action}</td>
-                    <td>${entry.userName}</td>
-                    <td>${entry.details || '—'}</td>
+                    <td>${escapeHtml(entry.action)}</td>
+                    <td>${escapeHtml(entry.userName)}</td>
+                    <td>${entry.details ? escapeHtml(entry.details) : '—'}</td>
                 </tr>
             `).join('') || '<tr><td colspan="6" class="muted">Nenhum registro de auditoria ainda.</td></tr>';
 

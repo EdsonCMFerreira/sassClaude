@@ -175,7 +175,7 @@
                 return '<option value="">Selecione um fornecedor primeiro</option>';
             }
             return '<option value="">Selecione...</option>' + produtosFiltrados.map(p =>
-                `<option value="${p.id}" ${p.id === selectedId ? 'selected' : ''}>${p.codigo} — ${p.descricao}</option>`
+                `<option value="${p.id}" ${p.id === selectedId ? 'selected' : ''}>${escapeHtml(p.codigo)} — ${escapeHtml(p.descricao)}</option>`
             ).join('');
         }
 
@@ -276,7 +276,7 @@
             const response = await fetch('/api/fornecedores');
             const data = await response.json();
             fornecedorId.innerHTML = '<option value="">Selecione...</option>' + data.map(item =>
-                `<option value="${item.id}">${item.nome} — ${item.cpfCnpj}</option>`
+                `<option value="${item.id}">${escapeHtml(item.nome)} — ${escapeHtml(item.cpfCnpj)}</option>`
             ).join('');
         }
 
@@ -296,9 +296,9 @@
 
             tableBody.innerHTML = itens.map(item => `
                 <tr>
-                    <td>${item.numeroCompra}</td>
-                    <td>${item.fornecedorNome}</td>
-                    <td>${item.itens.map(i => `${i.produtoNome} (x${i.quantidade})`).join(', ')}</td>
+                    <td>${escapeHtml(item.numeroCompra)}</td>
+                    <td>${escapeHtml(item.fornecedorNome)}</td>
+                    <td>${item.itens.map(i => `${escapeHtml(i.produtoNome)} (x${i.quantidade})`).join(', ')}</td>
                     <td>${formatCurrency(item.valorTotal)}</td>
                     <td>${formatDate(item.dataCompra)}</td>
                     <td>${formatVencimentoPagamentoCell(item)}</td>

@@ -59,7 +59,7 @@
             if (!response.ok) return;
             const data = await response.json();
             produtoCadastrado.innerHTML = '<option value="">Selecione...</option>' + data.map(item =>
-                `<option value="${item.descricao.replace(/"/g, '&quot;')}">${item.codigo} — ${item.descricao}</option>`
+                `<option value="${escapeHtml(item.descricao)}">${escapeHtml(item.codigo)} — ${escapeHtml(item.descricao)}</option>`
             ).join('');
         }
 

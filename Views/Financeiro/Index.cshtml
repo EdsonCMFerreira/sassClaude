@@ -255,8 +255,8 @@
 
             corpo.innerHTML = itens.map(conta => `
                 <tr>
-                    <td>${conta.numeroPedido}</td>
-                    <td>${conta.clienteNome}</td>
+                    <td>${escapeHtml(conta.numeroPedido)}</td>
+                    <td>${escapeHtml(conta.clienteNome)}</td>
                     <td>${formatCurrency(conta.valor)}</td>
                     <td>${conta.dataVencimento ? formatDate(conta.dataVencimento) : '—'}${diasParaVencerHtml(conta.diasParaVencer)}</td>
                     <td><span class="status-badge ${badgeClasseSituacao(conta.situacao)}">${conta.situacao}</span></td>
@@ -277,8 +277,8 @@
 
             corpo.innerHTML = itens.map(conta => `
                 <tr>
-                    <td>${conta.numeroCompra}</td>
-                    <td>${conta.fornecedorNome}</td>
+                    <td>${escapeHtml(conta.numeroCompra)}</td>
+                    <td>${escapeHtml(conta.fornecedorNome)}</td>
                     <td>${formatCurrency(conta.valor)}</td>
                     <td>${conta.dataVencimento ? formatDate(conta.dataVencimento) : '—'}${diasParaVencerHtml(conta.diasParaVencer)}</td>
                     <td><span class="status-badge ${badgeClasseSituacao(conta.situacao)}">${conta.situacao}</span></td>

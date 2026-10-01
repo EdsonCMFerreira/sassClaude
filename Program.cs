@@ -62,6 +62,8 @@ builder.Services.AddAuthorization(options =>
         ctx.User.IsInRole("Admin") || ctx.User.HasClaim(TenantClaimTypes.AcessoCadastros, "true")));
     options.AddPolicy("AcessoCompras", policy => policy.RequireAssertion(ctx =>
         ctx.User.IsInRole("Admin") || ctx.User.HasClaim(TenantClaimTypes.AcessoCompras, "true")));
+    options.AddPolicy("AcessoPedidos", policy => policy.RequireAssertion(ctx =>
+        ctx.User.IsInRole("Admin") || ctx.User.HasClaim(TenantClaimTypes.AcessoPedidos, "true")));
 });
 
 var app = builder.Build();
@@ -753,6 +755,11 @@ using (var scope = app.Services.CreateScope())
         if (!loginColumns.Contains("AcessoCompras"))
         {
             db.Database.ExecuteSqlRaw("ALTER TABLE Logins ADD COLUMN AcessoCompras INTEGER NOT NULL DEFAULT 1;");
+        }
+
+        if (!loginColumns.Contains("AcessoPedidos"))
+        {
+            db.Database.ExecuteSqlRaw("ALTER TABLE Logins ADD COLUMN AcessoPedidos INTEGER NOT NULL DEFAULT 1;");
         }
 
         var superAdminOptions = scope.ServiceProvider.GetRequiredService<IOptions<SuperAdminOptions>>().Value;

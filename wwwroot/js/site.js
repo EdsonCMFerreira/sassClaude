@@ -9,6 +9,12 @@ document.addEventListener('click', (event) => {
     });
 });
 
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[char]);
+}
+
 function formatCurrency(value) {
     return Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
